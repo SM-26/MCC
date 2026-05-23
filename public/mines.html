@@ -103,8 +103,28 @@
       max-width: 400px;
       aspect-ratio: 1/1;
       touch-action: none;
+      /* Prevent scroll while interacting with grid */
     }
 
+    @media (max-width: 768px) {
+      #tile-grid {
+        max-width: 95vw;
+        aspect-ratio: auto;
+        padding: 10px;
+      }
+
+      .tile {
+        font-size: 16px;
+      }
+
+      .miner-icon {
+        font-size: 24px;
+      }
+
+      .miner-level {
+        font-size: 8px;
+      }
+    }
     .tile {
       background: var(--empty);
       border-radius: 8px;
@@ -605,7 +625,6 @@
       state.selectedMiner = null;
       renderPlot();
     }
-
     // Mobile touch drag simulation
     let touchTargetIdx = null;
 
@@ -616,12 +635,13 @@
 
     function onTouchMove(e) {
       if (!state.draggedMiner) return;
-      e.preventDefault();
+      e.preventDefault(); // Prevent scrolling
 
       const touch = e.touches[0];
       const el = document.elementFromPoint(touch.clientX, touch.clientY);
       const tileEl = el ? el.closest('.tile') : null;
 
+      // Remove previous highlights
       document.querySelectorAll('.tile.drag-over').forEach(t => t.classList.remove('drag-over'));
       touchTargetIdx = null;
 
@@ -647,6 +667,14 @@
       document.querySelectorAll('.tile.drag-over').forEach(t => t.classList.remove('drag-over'));
       renderPlot();
     }
+
+    // Add touch handlers to tiles for drag-and-drop
+    plot.tiles.forEach((_, i) => {
+      const el = grid.children[i];
+      el.ondragover = (e) => onDragOver(e, i);
+      el.ondragleave = (e) => { if (el.classList.contains('drag-over')) el.classList.remove('drag-over'); };
+      el.ondrop = (e) => onDrop(e, i);
+    });
 
     function onTileClick(tileIndex) {
       const plot = state.plots[state.activePlot];
