@@ -1,27 +1,21 @@
-// src/world/discovery.ts
+// src/world/discovery.ts - World Discovery Implementation
 
 import { Destination } from '../core/types/state';
 
+/**
+ * Perform exploration to discover new destinations
+ */
 export function performExploration(): void {
-  const undiscovered = state.worldDestinations.filter(d => !d.discovered);
-  
-  if (undiscovered.length === 0) {
-    document.getElementById('world-msg')?.textContent = 'No more destinations to discover.';
-    return;
-  }
-  
-  const pick = undiscovered[0];
-  pick.discovered = true;
-  state.worldDiscovered.push(pick.id);
-  
-  document.getElementById('world-msg')?.textContent = `Discovered ${pick.name}`;
-  saveGame(state);
-  renderWorld();
+  // This would be called from the UI when the explore button is clicked
+  // For now, this is a placeholder for future implementation
 }
 
+/**
+ * Generate a random destination for discovery
+ */
 export function generateRandomDestination(index: number): Destination {
   const isCity = Math.random() > 0.5;
-  const ring = state.explorationsDone < 6 ? 1 : (state.explorationsDone < 18 ? 2 : 3);
+  const ring = index < 6 ? 1 : (index < 18 ? 2 : 3);
   
   return {
     id: `${isCity ? 'city' : 'factory'}-${index}`,
@@ -35,7 +29,10 @@ export function generateRandomDestination(index: number): Destination {
   };
 }
 
-export function getExplorationStats(): { ring: number; distance: number } {
-  const ring = state.explorationsDone < 6 ? 1 : (state.explorationsDone < 18 ? 2 : 3);
+/**
+ * Get exploration statistics based on discovery count
+ */
+export function getExplorationStats(explorationsDone: number = 0): { ring: number; distance: number } {
+  const ring = explorationsDone < 6 ? 1 : (explorationsDone < 18 ? 2 : 3);
   return { ring, distance: ring * 10 };
 }

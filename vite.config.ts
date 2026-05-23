@@ -1,16 +1,24 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/MCC/',
   root: '.',
   publicDir: 'public',
   build: {
     outDir: 'dist',
     sourcemap: true,
-    minify: false
+    minify: false // Disable minification for development
   },
   server: {
     port: 3000,
-    host: true
+    host: true,
+    watch: false
+  },
+  resolve: {
+    alias: {
+      '@': './src'
+    }
+  },
+  optimizeDeps: {
+    include: []
   }
 });
