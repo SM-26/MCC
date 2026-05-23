@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Merge & Choo-Choo - Station MVP</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel: #16213e;
+            --accent: #ffd700;
+            --empty: #0f3460;
+            --text: #eee;
+            --btn-green: linear-gradient(180deg, #4CAF50 0%, #2e7d32 100%);
+            --btn-blue: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 15px;
+            background: var(--panel);
+            border-bottom: 2px solid var(--empty);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        #money-display {
+            font-size: 24px;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        #station-name {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow-y: auto;
+            position: relative;
+            min-height: 0;
+        }
+
+        .platform-container {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            border-bottom: 4px solid var(--empty);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 200px;
+            justify-content: flex-end;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .track {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            height: 10px;
+            background: repeating-linear-gradient(90deg, #555 0px, #555 10px, #333 10px, #333 20px);
+            border-top: 2px solid #777;
+        }
+
+        #visual-area {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            z-index: 10;
+            margin-bottom: 12px;
+            transition: transform 0.8s ease-in;
+            width: 100%;
+            justify-content: flex-start;
+            padding-left: 20px;
+        }
+
+        .unit-img {
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .unit-img.engine {
+            height: 50px;
+        }
+
+        .traveling {
+            transform: translateX(150vw) !important;
+            opacity: 0;
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .stat-row.controls {
+            align-items: center;
+        }
+
+        .progress-container {
+            height: 12px;
+            background: var(--empty);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        #trip-progress {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.1s linear;
+        }
+
+        .dest-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .dest-card {
+            background: var(--empty);
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dest-card.selected {
+            border-color: var(--accent);
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .dest-info {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--panel);
+            border: 2px solid var(--accent);
+            color: var(--text);
+            padding: 12px 20px;
+            border-radius: 25px;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            animation: toast-in 0.4s ease-out, toast-out 0.4s ease-in 2.6s forwards;
+            pointer-events: none;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        @keyframes toast-in {
+            0% {
+                top: -50px;
+                opacity: 0;
+            }
+
+            100% {
+                top: 20px;
+                opacity: 1;
+            }
+        }
+
+        @keyframes toast-out {
+            0% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        footer {
+            padding: 20px;
+            background: var(--panel);
+            border-top: 2px solid var(--empty);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .main-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+
+        .main-btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        .main-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-buy {
+            background: var(--btn-blue);
+        }
+
+        .btn-action {
+            background: var(--btn-green);
+            grid-column: span 2;
+            font-size: 18px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 6px;
+            background: var(--empty);
+            color: white;
+        }
+
+        #status-text {
+            text-align: center;
+            font-size: 12px;
+            opacity: 0.7;
+            grid-column: span 2;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div id="money-display">$0</div>
+        <div id="station-name">plot one, ground level</div>
+        <button class="btn-small" onclick="toggleTrainyardView()">Trainyard</button>
+    </header>
+    <div id="main-content-wrapper"
+        style="flex: 1; display: flex; flex-direction: column; position: relative; min-height: 0;">
+        <main>
+            <div class="platform-container">
+                <div id="visual-area">
+                    <div style="opacity: 0.3; font-style: italic;">No train on platform</div>
+                </div>
+                <div class="track"></div>
+            </div>
+            <div class="info-panel">
+                <div
+                    style="font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 5px;">
+                    Train Stats</div>
+                <div class="stat-row"><span>Engine:</span><span id="engine-lvl">None</span></div>
+                <div class="stat-row"><span>Speed:</span><span id="engine-speed">0.0 km/h</span></div>
+                <div style="margin-top: 5px;">
+                    <div style="font-size: 12px; margin-bottom: 5px; opacity: 0.8;">Fitted Carts (<span
+                            id="cart-count">0/0</span>)</div>
+                    <div id="station-cart-controls" style="display: flex; flex-direction: column; gap: 5px;"></div>
+                </div>
+                <div
+                    style="font-weight: bold; margin-top: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                    Select Destination</div>
+                <div id="dest-list" class="dest-list"></div>
+                <div style="margin-top: 15px;">Progress</div>
+                <div class="progress-container">
+                    <div id="trip-progress"></div>
+                </div>
+            </div>
+        </main>
+        <div id="trainyard-panel" style="display: none;">
+            <div class="trainyard-section">
+                <div
+                    style="font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 10px;">
+                    Trainyard Depot</div>
+                <div id="trainyard-buy-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                <div
+                    style="font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 10px 0; margin-top: 20px; margin-bottom: 10px;">
+                    Engine Workshop</div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btn-buy-engine" class="main-btn btn-buy" onclick="buyEngine()">Buy Engine
+                        ($100)</button>
+                    <button id="btn-advance-engine" class="main-btn" style="background: var(--btn-blue); opacity: 0.5;"
+                        disabled title="Unlocked in MVP4">Advance Engine Type</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <button id="btn-dispatch" class="main-btn btn-action" onclick="dispatch()" disabled>SEND TRAIN</button>
+        <div id="status-text">Platform Ready</div>
+    </footer>
+    <script>
+        const ENGINE_UPGRADE_BASE = 150;
+        const ENGINE_BASE_CART_CAPACITY = 2;
+        const ENGINE_CART_CAPACITY_PER_LEVEL = 1;
+        const CART_PRICE_GROWTH = 1.1;
+        const CART_TYPES = {
+            passengers: { name: 'Passenger Cart', category: 'passenger', baseCost: 75, weight: 0.1, value: 0.5, hue: 0 },
+            doubleDecker: { name: 'Double Decker', category: 'passenger', baseCost: 150, weight: 0.2, value: 1.0, hue: 200 },
+            luxury: { name: 'Luxury Cart', category: 'passenger', baseCost: 250, weight: 0.15, value: 1.5, hue: 50 },
+            cargo: { name: 'Cargo Cart', category: 'cargo', baseCost: 100, weight: 0.12, value: 0.7, hue: 140 }
+        };
+        const EXPLORE_CHANCE = 0.4;
+        const EXPLORE_PAYOUT = 20;
+        const SPEED_BASE = 10;
+        const SPEED_MODIFIER = 0.2;
+        const DIST_VALUE_FACTOR = 5;
+        let state = {
+            money: 200,
+            engineLevel: 0,
+            fittedCarts: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
+            trainState: 'idle',
+            remainingTime: 0,
+            totalTripTime: 0,
+            explorationsDone: 0,
+            destinations: [],
+            selectedDestId: -1,
+            inventory: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
+            showTrainyard: false
+        };
+        function buyEngine() {
+            if (state.engineLevel === 0) {
+                if (state.money >= 100) {
+                    state.money -= 100;
+                    state.engineLevel = 1;
+                }
+            } else {
+                const cost = ENGINE_UPGRADE_BASE * state.engineLevel;
+                if (state.money >= cost) {
+                    state.money -= cost;
+                    state.engineLevel++;
+                }
+            }
+            updateUI();
+        }
+        function getCartCost(typeId) {
+            const type = CART_TYPES[typeId];
+            const totalOwned = state.inventory[typeId] + state.fittedCarts[typeId];
+            return Math.floor(type.baseCost * Math.pow(CART_PRICE_GROWTH, totalOwned));
+        }
+        function buyCart(typeId) {
+            const cost = getCartCost(typeId);
+            if (state.money >= cost) {
+                state.money -= cost;
+                state.inventory[typeId]++;
+                updateUI();
+            }
+        }
+        function selectDest(id) {
+            if (state.trainState !== 'idle') return;
+            state.selectedDestId = id;
+            updateUI();
+        }
+        function fitCart(typeId) {
+            const maxCartsForEngine = getEngineCartCapacity();
+            const totalFitted = Object.values(state.fittedCarts).reduce((a, b) => a + b, 0);
+            if (state.trainState !== 'idle') return;
+            const newType = CART_TYPES[typeId];
+            const activeCategoryId = Object.keys(state.fittedCarts).find(id => state.fittedCarts[id] > 0);
+            if (activeCategoryId && CART_TYPES[activeCategoryId].category !== newType.category) return;
+            if (state.inventory[typeId] > 0 && totalFitted < maxCartsForEngine) {
+                state.inventory[typeId]--;
+                state.fittedCarts[typeId]++;
+                updateUI();
+            }
+        }
+        function removeCart(typeId) {
+            if (state.trainState !== 'idle') return;
+            if (state.fittedCarts[typeId] > 0) {
+                state.inventory[typeId]++;
+                state.fittedCarts[typeId]--;
+                updateUI();
+            }
+        }
+        function dispatch() {
+            if (state.trainState === 'idle' && state.engineLevel > 0) {
+                state.trainState = 'traveling';
+                const dist = state.selectedDestId !== -1 ? state.destinations[state.selectedDestId].distance : getExplorationStats().distance;
+                state.totalTripTime = calculateTime(dist);
+                state.remainingTime = state.totalTripTime;
+            } else if (state.trainState === 'arrived') {
+                completeTrip();
+            }
+            updateUI();
+        }
+        function completeTrip() {
+            const ex = getExplorationStats();
+            if (state.selectedDestId === -1) {
+                state.money += EXPLORE_PAYOUT * ex.ring;
+                state.explorationsDone++;
+                if (Math.random() < EXPLORE_CHANCE) {
+                    const isCity = Math.random() > 0.5;
+                    const newLoc = {
+                        name: isCity ? `City ${String.fromCharCode(65 + state.destinations.length)}` : `Factory ${state.destinations.length + 1}`,
+                        type: isCity ? 'City' : 'Factory',
+                        ring: ex.ring,
+                        distance: Math.floor(Math.random() * 5) + (ex.ring * 10),
+                        basePayout: isCity ? 120 : 180
+                    };
+                    state.destinations.push(newLoc);
+                    showDiscoveryToast(newLoc.name, newLoc.type);
+                }
+            } else {
+                const d = state.destinations[state.selectedDestId];
+                state.money += calculateRoutePayout(d);
+            }
+            state.trainState = 'idle';
+        }
+        function calculateRoutePayout(dest) {
+            const baseValue = dest.basePayout + (dest.distance * DIST_VALUE_FACTOR);
+            const ex = getExplorationStats();
+            const exploreValue = EXPLORE_PAYOUT * ex.ring;
+            const lowPayout = Math.max(baseValue * 0.25, exploreValue + 10);
+            const categories = new Set();
+            for (let id in state.fittedCarts) if (state.fittedCarts[id] > 0) categories.add(CART_TYPES[id].category);
+            if (categories.size > 1) return lowPayout;
+            let totalBonus = 0;
+            let hasCarts = false;
+            for (let id in state.fittedCarts) {
+                const count = state.fittedCarts[id];
+                if (count > 0) {
+                    hasCarts = true;
+                    const type = CART_TYPES[id];
+                    const isCorrect = (dest.type === 'City' && type.category === 'passenger') || (dest.type === 'Factory' && type.category === 'cargo');
+                    if (isCorrect) totalBonus += count * type.value;
+                }
+            }
+            if (!hasCarts || totalBonus === 0) return lowPayout;
+            return baseValue * (1 + totalBonus);
+        }
+        function getExplorationStats() {
+            const ring = state.explorationsDone < 6 ? 1 : (state.explorationsDone < 18 ? 2 : 3);
+            return { ring, distance: ring * 10 };
+        }
+        function calculateTime(dist) {
+            const baseSpeed = SPEED_BASE * (1 + (state.engineLevel - 1) * SPEED_MODIFIER);
+            let totalWeightPenalty = 0;
+            for (let id in state.fittedCarts) totalWeightPenalty += state.fittedCarts[id] * CART_TYPES[id].weight;
+            const weightMult = 1 + totalWeightPenalty;
+            return (dist / baseSpeed) * 10 * weightMult;
+        }
+        function showDiscoveryToast(name, type) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `Discovered: <span style="color: var(--accent)">${name}</span> (${type})`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3100);
+        }
+        function updateUI() {
+            document.getElementById('money-display').textContent = `$${Math.floor(state.money)}`;
+            document.getElementById('engine-lvl').textContent = state.engineLevel > 0 ? `Level ${state.engineLevel}` : 'None';
+            const maxCartsForEngine = getEngineCartCapacity();
+            const totalFitted = Object.values(state.fittedCarts).reduce((sum, count) => sum + count, 0);
+            document.getElementById('cart-count').textContent = `${totalFitted}/${maxCartsForEngine}`;
+            const baseSpeed = SPEED_BASE * (1 + (state.engineLevel - 1) * SPEED_MODIFIER);
+            const nextBaseSpeed = SPEED_BASE * (1 + (state.engineLevel) * SPEED_MODIFIER);
+            let totalWeightPenalty = 0;
+            for (let id in state.fittedCarts) totalWeightPenalty += state.fittedCarts[id] * CART_TYPES[id].weight;
+            const weightMult = 1 + totalWeightPenalty;
+            const effectiveSpeed = state.engineLevel > 0 ? baseSpeed / weightMult : 0;
+            document.getElementById('engine-speed').textContent = state.engineLevel > 0 ? `${effectiveSpeed.toFixed(1)} km/h (+${(nextBaseSpeed - baseSpeed).toFixed(1)} engine base next)` : '0.0 km/h';
+            const engineBtn = document.getElementById('btn-buy-engine');
+            if (state.engineLevel === 0) {
+                engineBtn.textContent = 'Buy Engine ($100)';
+                engineBtn.disabled = state.money < 100;
+            } else {
+                const cost = ENGINE_UPGRADE_BASE * state.engineLevel;
+                engineBtn.textContent = `Upgrade Engine ($${cost})`;
+                engineBtn.disabled = state.money < cost || state.trainState !== 'idle';
+            }
+            const statusTxt = document.getElementById('status-text');
+            document.querySelector('main').style.display = state.showTrainyard ? 'none' : 'flex';
+            document.getElementById('trainyard-panel').style.display = state.showTrainyard ? 'block' : 'none';
+            renderPlatform();
+            renderDestinations();
+            renderTrainyard();
+            renderStationCarts();
+            const dispatchBtn = document.getElementById('btn-dispatch');
+            if (state.trainState === 'idle') {
+                dispatchBtn.textContent = 'SEND TRAIN';
+                dispatchBtn.className = 'main-btn btn-action';
+                dispatchBtn.disabled = state.engineLevel === 0;
+                statusTxt.textContent = state.engineLevel === 0 ? 'Buy an engine to start' : 'Platform Ready';
+            } else if (state.trainState === 'traveling') {
+                dispatchBtn.textContent = 'IN TRANSIT...';
+                dispatchBtn.disabled = true;
+                statusTxt.textContent = `In Transit... ${Math.ceil(state.remainingTime)}s`;
+            } else if (state.trainState === 'arrived') {
+                dispatchBtn.textContent = 'COLLECT PAYOUT';
+                dispatchBtn.className = 'main-btn btn-action';
+                dispatchBtn.disabled = false;
+                statusTxt.textContent = 'Mission Complete!';
+            }
+        }
+        function renderTrainyard() {
+            const list = document.getElementById('trainyard-buy-list');
+            list.innerHTML = '';
+            Object.keys(CART_TYPES).forEach(id => {
+                const type = CART_TYPES[id];
+                const cost = getCartCost(id);
+                const owned = state.inventory[id] + state.fittedCarts[id];
+                const row = document.createElement('div');
+                row.className = 'trainyard-section';
+                row.innerHTML = `
+          <div class="stat-row"><strong>${type.name}</strong> <span>Owned: ${owned}</span></div>
+          <div class="stat-row" style="font-size:11px; opacity:0.7;">
+            <span>Bonus: +${(type.value * 100).toFixed(0)}% value</span>
+            <span>Weight: +${(type.weight * 100).toFixed(0)}% time</span>
+          </div>
+          <button class="main-btn btn-buy" onclick="buyCart('${id}')" ${state.money < cost ? 'disabled' : ''}>Buy Unit ($${cost})</button>
+        `;
+                list.appendChild(row);
+            });
+        }
+        function renderStationCarts() {
+            const container = document.getElementById('station-cart-controls');
+            container.innerHTML = '';
+            const max = getEngineCartCapacity();
+            const totalFitted = Object.values(state.fittedCarts).reduce((sum, count) => sum + count, 0);
+            Object.keys(CART_TYPES).forEach(id => {
+                const type = CART_TYPES[id];
+                const fitted = state.fittedCarts[id];
+                const available = state.inventory[id];
+                const canFit = available > 0 && totalFitted < max && state.trainState === 'idle';
+                const canRemove = fitted > 0 && state.trainState === 'idle';
+                if (available > 0 || fitted > 0) {
+                    const row = document.createElement('div');
+                    row.className = 'stat-row controls';
+                    row.style.background = 'rgba(255,255,255,0.05)';
+                    row.style.padding = '5px 10px';
+                    row.style.borderRadius = '5px';
+                    row.innerHTML = `
+            <span style="font-size:12px;">${type.name} (${fitted})</span>
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <button class="btn-small" onclick="removeCart('${id}')" ${!canRemove ? 'disabled' : ''}>-</button>
+              <button class="btn-small" onclick="fitCart('${id}')" ${!canFit ? 'disabled' : ''}>+</button>
+            </div>
+          `;
+                    container.appendChild(row);
+                }
+            });
+            if (container.innerHTML === '') {
+                container.innerHTML = '<div style="font-size:12px; opacity:0.6;">No carts fitted</div>';
+            }
+        }
+        function getEngineCartCapacity() { return state.engineLevel === 0 ? 0 : ENGINE_BASE_CART_CAPACITY + (state.engineLevel - 1) * ENGINE_CART_CAPACITY_PER_LEVEL; }
+        function toggleTrainyardView() { state.showTrainyard = !state.showTrainyard; updateUI(); }
+        function renderPlatform() {
+            const visual = document.getElementById('visual-area');
+            if (state.engineLevel === 0) { visual.innerHTML = '<div style="opacity: 0.3; font-style: italic;">No train on platform</div>'; return; }
+            let html = `<div id="train-group" style="display:flex; align-items:flex-end; gap:4px;" class="${state.trainState === 'traveling' ? 'traveling' : ''}">`;
+            for (let id in state.fittedCarts) {
+                const count = state.fittedCarts[id];
+                const hue = CART_TYPES[id].hue;
+                for (let i = 0; i < count; i++) html += `<img src="station.svg" class="unit-img" style="filter: hue-rotate(${hue}deg) brightness(1.5);">`;
+            }
+            html += '<img src="train.svg" class="unit-img engine">';
+            html += '</div>';
+            visual.innerHTML = html;
+        }
+        function renderDestinations() {
+            const list = document.getElementById('dest-list');
+            list.innerHTML = '';
+            const ex = getExplorationStats();
+            list.appendChild(createDestCard(-1, `Exploration (Ring ${ex.ring})`, 'Unknown', ex.distance, EXPLORE_PAYOUT));
+            state.destinations.forEach((dest, idx) => list.appendChild(createDestCard(idx, dest.name, dest.type, dest.distance, calculateRoutePayout(dest))));
+        }
+        function createDestCard(id, name, type, dist, payout) {
+            const el = document.createElement('div');
+            el.className = `dest-card ${state.selectedDestId === id ? 'selected' : ''}`;
+            el.onclick = () => selectDest(id);
+            const time = calculateTime(dist);
+            el.innerHTML = `<div><div>${name} <span style="font-size:9px; color:var(--accent)">${type}</span></div><div class="dest-info">${dist}km / ${Math.ceil(time)}s</div></div><div style="color:var(--accent)">$${Math.floor(payout)}</div>`;
+            return el;
+        }
+        setInterval(() => {
+            if (state.trainState === 'traveling') {
+                state.remainingTime -= 0.1;
+                const progress = ((state.totalTripTime - state.remainingTime) / state.totalTripTime) * 100;
+                document.getElementById('trip-progress').style.width = `${Math.max(0, Math.min(100, progress))}%`;
+                if (state.remainingTime <= 0) {
+                    state.trainState = 'arrived';
+                    document.getElementById('trip-progress').style.width = '100%';
+                }
+                updateUI();
+            } else if (state.trainState === 'idle') {
+                document.getElementById('trip-progress').style.width = '0%';
+            }
+        }, 100);
+        updateUI();
+    </script>
+</body>
+
+</html>

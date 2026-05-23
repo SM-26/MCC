@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Merge & Choo-Choo - Alpha 1</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #ffd700;
+      --text: #eee;
+      --empty: #0f3460
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    header,
+    footer {
+      background: var(--panel);
+      padding: 12px;
+      flex-shrink: 0
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--empty)
+    }
+
+    footer {
+      border-top: 2px solid var(--empty);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto
+    }
+
+    .tab {
+      padding: 8px 10px;
+      border: 1px solid #ffffff22;
+      border-radius: 10px;
+      background: #0f3460;
+      color: var(--text);
+      white-space: nowrap
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #111;
+      font-weight: 700
+    }
+
+    main {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      position: relative
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: auto;
+      padding: 14px
+    }
+
+    .screen.active {
+      display: block
+    }
+
+    .card {
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid #ffffff14;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .btn {
+      padding: 12px 14px;
+      border: none;
+      border-radius: 12px;
+      background: #2e7d32;
+      color: #fff;
+      font-weight: 700
+    }
+
+    .btn.secondary {
+      background: #1976d2
+    }
+
+    .btn.warn {
+      background: #8b5e00
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      filter: grayscale(1)
+    }
+
+    .small {
+      font-size: 12px;
+      opacity: .8
+    }
+
+    #world-map {
+      position: relative;
+      width: 560px;
+      height: 420px;
+      margin: 0 auto
+    }
+
+    .hex {
+      position: absolute;
+      width: 84px;
+      height: 72px;
+      clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0 50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 12px;
+      text-align: center;
+      border: 1px solid #ffffff22;
+      background: #24324d;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .2) inset;
+      transform: translate(-50%, -50%)
+    }
+
+    .hex.plot {
+      background: #1b5e20
+    }
+
+    .hex.city {
+      background: #6a1b9a
+    }
+
+    .hex.factory {
+      background: #5d4037
+    }
+
+    .hex.fog {
+      background: #24324d;
+      opacity: .28
+    }
+
+    .hex.player {
+      outline: 2px solid var(--accent)
+    }
+
+    .hex.hidden {
+      display: none
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 12px;
+      background: #000
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div id="money">$0</div>
+      <div class="small" id="context">World</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="world">World</button>
+      <button class="tab" data-tab="plot">Plot</button>
+      <button class="tab" data-tab="station">Station</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="world" class="screen active">
+      <div class="card"><strong>World Grid</strong></div>
+      <div id="world-map"></div>
+      <div class="card">
+        <div class="row">
+          <button id="explore-btn" class="btn secondary">Send Explorer</button>
+          <button id="open-plot-btn" class="btn">Open Plot</button>
+          <button id="open-station-btn" class="btn warn">Open Station</button>
+        </div>
+        <div id="world-msg" class="small">Ready.</div>
+      </div>
+    </section>
+
+    <section id="plot" class="screen">
+      <iframe id="plot-frame" src="./mines.html"></iframe>
+    </section>
+
+    <section id="station" class="screen">
+      <iframe id="station-frame" src="./station.html"></iframe>
+    </section>
+
+    <section id="settings" class="screen">
+      <div class="card"><strong>Settings</strong></div>
+      <div class="card row">
+        <button id="dev-btn" class="btn secondary">Dev Mode: Off</button>
+        <button id="reset-btn" class="btn warn">Reset Save</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="small">World → Plot → Station</div>
+    <div class="small" id="explore-status"></div>
+  </footer>
+
+  <script type="module" src="/src/ui/App.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+
+  python-server:
+    image: python:3.12-slim
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./dist:/usr/share/nginx/html
+    command: >
+      sh -c "pip install gunicorn &&
+             gunicorn --bind 0.0.0.0:8000 
+             nginx:conf:/etc/nginx/conf.d/default.conf"

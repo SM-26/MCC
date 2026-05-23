@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Merge & Choo-Choo - Miner Loop MVP</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #ffd700;
+      --rubble: #666;
+      --dirt: #8b7355;
+      --empty: #0f3460;
+      --text: #eee;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    /* UI Header */
+    header {
+      padding: 15px;
+      background: var(--panel);
+      border-bottom: 2px solid var(--empty);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #money-display {
+      font-size: 24px;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    #stats-display {
+      font-size: 14px;
+      text-align: right;
+      opacity: 0.8;
+    }
+
+    /* Navigation */
+    nav {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .nav-btn {
+      padding: 8px;
+      background: var(--empty);
+      border: 1px solid #ffffff33;
+      color: white;
+      border-radius: 4px;
+      width: 100%;
+      font-size: 12px;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+    }
+
+    /* Grid Container */
+    #game-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    #tile-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 1/1;
+      touch-action: none;
+      /* Prevent scroll while interacting with grid */
+    }
+
+    .tile {
+      background: var(--empty);
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      transition: transform 0.1s;
+    }
+
+    .tile.rubble {
+      background: var(--rubble);
+      border: 2px solid #888;
+    }
+
+    .tile.dirt {
+      background: var(--dirt);
+      border: 2px solid #a68b6a;
+    }
+
+    .tile.empty {
+      border: 1px dashed #444;
+    }
+
+    .tile.drag-over {
+      background: rgba(255, 215, 0, 0.2);
+    }
+
+    .hp-bar {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      right: 4px;
+      height: 4px;
+      background: #000;
+      border-radius: 2px;
+      display: none;
+    }
+
+    .hp-fill {
+      height: 100%;
+      background: #ff4444;
+      border-radius: 2px;
+      transition: width 0.1s;
+    }
+
+    /* Miner Visuals */
+    .miner {
+      position: absolute;
+      width: 80%;
+      height: 80%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: grab;
+    }
+
+    .miner.selected {
+      filter: drop-shadow(0 0 5px var(--accent));
+      transform: scale(1.15);
+      z-index: 20;
+    }
+
+    .miner:active {
+      cursor: grabbing;
+    }
+
+    .miner-icon {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .miner-level {
+      position: absolute;
+      bottom: -5px;
+      right: -5px;
+      background: var(--accent);
+      color: black;
+      font-size: 10px;
+      padding: 2px 5px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .miner-progress {
+      position: absolute;
+      top: -10px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: #00ff00;
+      display: none;
+    }
+
+    /* Footer Controls */
+    footer {
+      padding: 20px;
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .main-btn {
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 16px;
+      color: white;
+      background: linear-gradient(180deg, #4CAF50 0%, #2e7d32 100%);
+      box-shadow: 0 4px 0 #1b5e20;
+    }
+
+    .main-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1b5e20;
+    }
+
+    .main-btn:disabled {
+      filter: grayscale(1);
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Floating Text */
+    .float-text {
+      position: absolute;
+      color: var(--accent);
+      font-weight: bold;
+      pointer-events: none;
+      animation: floatUp 1s ease-out forwards;
+      z-index: 100;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div id="money-display">$0</div>
+    <div id="stats-display">
+      <div id="loc-text">Plot 1, Depth 0</div>
+      <div id="clear-text">Cleared: 0%</div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="nav-group">
+      <button class="nav-btn" onclick="navPlot(-1)">◀ Prev Plot</button>
+      <button class="nav-btn" onclick="navPlot(1)">Next Plot ▶</button>
+    </div>
+    <div class="nav-group">
+      <button class="nav-btn" onclick="navDepth(-1)">▲ Go Up</button>
+      <button class="nav-btn" onclick="navDepth(1)">Go Down ▼</button>
+    </div>
+    <div class="nav-group">
+      <button id="btn-buy-north" class="nav-btn" onclick="buyNorthPlot()"
+        style="background: var(--accent); color: black;">Buy North Plot</button>
+      <button id="btn-dig-down" class="nav-btn" onclick="digDown()" style="background: #2196F3;">Dig
+        Deeper</button>
+    </div>
+  </nav>
+
+  <main id="game-view">
+    <div id="tile-grid"></div>
+  </main>
+
+  <footer>
+    <button id="btn-buy-miner" class="main-btn" onclick="buyMiner()">Buy Miner (Lvl 1) - $50</button>
+    <div style="font-size: 12px; text-align: center; opacity: 0.6;">Select miner to move or merge</div>
+  </footer>
+
+  <script>
+    // --- Configuration & Constants ---
+    const GRID_SIZE = 5;
+    const BASE_MINER_COST = 50;
+    const RUBBLE_VALUE = 25;
+    const TICK_RATE = 100; // ms
+    const OFFLINE_RATE = 0.5;
+
+    // --- Game State ---
+    const RUBBLE_EMOJIS = ['🎁', '📦', '🏺', '🧱', '📜', '💰', '⚒️'];
+
+    let state = {
+      money: 100,
+      activePlot: 0,
+      maxUnlockedPlot: 0,
+      plots: [], // Array of { depth: 0, tiles: [], miners: [] }
+      selectedMiner: null,
+      draggedMiner: null,
+      lastTick: Date.now()
+    };
+
+    // --- Initialization ---
+    function initPlot(depth = 0) {
+      const tiles = [];
+      for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+        const row = Math.floor(i / GRID_SIZE);
+        // Rule: The southernmost (bottom) row is always empty to ensure space for miners
+        const isBottomRow = (row === GRID_SIZE - 1);
+        const level = depth + 1;
+        const type = isBottomRow ? 'empty' : (Math.random() > 0.4 ? 'rubble' : 'dirt');
+        const isRubble = type === 'rubble';
+
+        tiles.push({
+          type: type,
+          level: level,
+          emoji: isRubble ? RUBBLE_EMOJIS[Math.floor(Math.random() * RUBBLE_EMOJIS.length)] : '',
+          hp: type === 'empty' ? 0 : (isRubble ? 50 + (depth * 25) : 20 + (depth * 10)),
+          maxHp: type === 'empty' ? 0 : (isRubble ? 50 + (depth * 25) : 20 + (depth * 10))
+        });
+      }
+      return { depth, tiles, miners: [] };
+    }
+
+    function loadGame() {
+      const saved = localStorage.getItem('mcc_save');
+      if (saved) {
+        state = JSON.parse(saved);
+        handleOfflineProgress();
+      } else {
+        state.plots.push(initPlot(0));
+      }
+      renderAll();
+    }
+
+    function saveGame() {
+      state.lastTick = Date.now();
+      localStorage.setItem('mcc_save', JSON.stringify(state));
+    }
+
+    // --- Core Loop Logic ---
+    function gameTick() {
+      const now = Date.now();
+      const dt = (now - state.lastTick) / 1000;
+      state.lastTick = now;
+
+      state.plots.forEach((plot, pIdx) => {
+        plot.miners.forEach(miner => {
+          updateMiner(miner, plot, dt);
+        });
+      });
+
+      if (!state.draggedMiner) {
+        renderAll();
+      } else {
+        updateUI();
+      }
+    }
+
+    function updateMiner(miner, plot, dt) {
+      const targetIdx = findTarget(miner, plot);
+
+      if (targetIdx !== null) {
+        const target = plot.tiles[targetIdx];
+        const damage = Math.pow(2, miner.level - 1) * 5 * dt;
+
+        // Set rotation
+        miner.facing = getFacing(miner.tileIndex, targetIdx);
+
+        target.hp -= damage;
+        if (target.hp <= 0) {
+          // Reward if Rubble
+          if (target.type === 'rubble') {
+            const val = RUBBLE_VALUE * (plot.depth + 1);
+            state.money += val;
+            if (state.activePlot === state.plots.indexOf(plot)) {
+              spawnFloatText(targetIdx, `+$${val}`);
+            }
+          }
+          target.type = 'empty';
+          target.hp = 0;
+        }
+      }
+    }
+
+    function findTarget(miner, plot) {
+      const neighbors = getNeighbors(miner.tileIndex);
+      const validTargets = neighbors.filter(idx => plot.tiles[idx].type !== 'empty');
+
+      if (validTargets.length === 0) return null;
+
+      // Priority: Rubble > Dirt, then lowest HP
+      validTargets.sort((a, b) => {
+        const tA = plot.tiles[a];
+        const tB = plot.tiles[b];
+        if (tA.type !== tB.type) {
+          return tA.type === 'rubble' ? -1 : 1;
+        }
+        return tA.hp - tB.hp;
+      });
+
+      return validTargets[0];
+    }
+
+    function getNeighbors(idx) {
+      const n = [];
+      const x = idx % GRID_SIZE;
+      const y = Math.floor(idx / GRID_SIZE);
+
+      if (y > 0) n.push(idx - GRID_SIZE); // North
+      if (x < GRID_SIZE - 1) n.push(idx + 1); // East
+      if (y < GRID_SIZE - 1) n.push(idx + GRID_SIZE); // South
+      if (x > 0) n.push(idx - 1); // West
+      return n;
+    }
+
+    function getFacing(from, to) {
+      const diff = to - from;
+      if (diff === -GRID_SIZE) return 0; // N
+      if (diff === 1) return 90; // E
+      if (diff === GRID_SIZE) return 180; // S
+      if (diff === -1) return 270; // W
+      return 0;
+    }
+
+    // --- UI Rendering ---
+    function renderAll() {
+      renderPlot();
+      updateUI();
+    }
+
+    function renderPlot() {
+      const grid = document.getElementById('tile-grid');
+      grid.innerHTML = '';
+      const plot = state.plots[state.activePlot];
+
+      plot.tiles.forEach((tile, i) => {
+        const el = document.createElement('div');
+        el.className = `tile ${tile.type}`;
+        el.onclick = () => onTileClick(i);
+
+        el.ondragover = (e) => onDragOver(e, i);
+        el.ondragleave = (e) => el.classList.remove('drag-over');
+        el.ondrop = (e) => onDrop(e, i);
+
+        if (tile.type !== 'empty') {
+          // Level display
+          const lvl = document.createElement('div');
+          lvl.className = 'tile-level';
+          lvl.textContent = `Lv.${tile.level}`;
+          el.appendChild(lvl);
+
+          // Emoji display for rubble
+          if (tile.type === 'rubble' && tile.emoji) {
+            const emo = document.createElement('div');
+            emo.className = 'tile-emoji';
+            emo.textContent = tile.emoji;
+            el.appendChild(emo);
+          }
+
+          const bar = document.createElement('div');
+          bar.className = 'hp-bar';
+          bar.style.display = 'block';
+          const fill = document.createElement('div');
+          fill.className = 'hp-fill';
+          fill.style.width = `${(tile.hp / tile.maxHp) * 100}%`;
+          bar.appendChild(fill);
+          el.appendChild(bar);
+        }
+
+        // Render miner if present
+        const miner = plot.miners.find(m => m.tileIndex === i);
+        if (miner) {
+          const mEl = document.createElement('div');
+          mEl.className = `miner ${state.selectedMiner === miner ? 'selected' : ''}`;
+          mEl.setAttribute('draggable', 'true');
+          mEl.style.transform = `rotate(${miner.facing || 0}deg)`;
+          mEl.innerHTML = `
+                        <span class="miner-icon">⛏️</span>
+                        <span class="miner-level" style="transform: rotate(-${miner.facing || 0}deg)">${miner.level}</span>
+                    `;
+          mEl.onclick = (e) => { e.stopPropagation(); onMinerClick(miner); };
+
+          mEl.ondragstart = (e) => onDragStart(e, miner);
+          mEl.ondragend = () => state.draggedMiner = null;
+          mEl.ontouchstart = (e) => onTouchStart(e, miner);
+          el.appendChild(mEl);
+        }
+
+        grid.appendChild(el);
+      });
+    }
+
+    function updateUI() {
+      const plot = state.plots[state.activePlot];
+      document.getElementById('money-display').textContent = `$${Math.floor(state.money)}`;
+      document.getElementById('loc-text').textContent = `Plot ${state.activePlot + 1}, Depth ${plot.depth}`;
+
+      const total = plot.tiles.length;
+      const cleared = plot.tiles.filter(t => t.type === 'empty').length;
+      const rubble = plot.tiles.filter(t => t.type === 'rubble').length;
+      document.getElementById('clear-text').textContent = `Cleared: ${Math.floor((cleared / total) * 100)}%`;
+
+      const cost = BASE_MINER_COST * Math.pow(1.5, plot.miners.length);
+      const btnBuy = document.getElementById('btn-buy-miner');
+      btnBuy.textContent = `Buy Miner (Lvl 1) - $${Math.floor(cost)}`;
+      btnBuy.disabled = state.money < cost;
+
+      // Progress Unlocks
+      const isSoftClear = rubble === 0;
+      const isHardClear = cleared === total;
+
+      document.getElementById('btn-buy-north').disabled = !isSoftClear || state.money < 500;
+      document.getElementById('btn-dig-down').disabled = !isHardClear;
+    }
+
+    // --- Interactions ---
+    function onMinerClick(miner) {
+      if (state.selectedMiner === miner) {
+        state.selectedMiner = null;
+      } else if (state.selectedMiner && state.selectedMiner.level === miner.level && state.selectedMiner !== miner) {
+        // Merge!
+        const plot = state.plots[state.activePlot];
+        plot.miners = plot.miners.filter(m => m !== state.selectedMiner);
+        miner.level++;
+        state.selectedMiner = null;
+        spawnFloatText(miner.tileIndex, "LEVEL UP!");
+      } else {
+        state.selectedMiner = miner;
+      }
+      renderPlot();
+    }
+
+    // --- Drag and Drop Shared Logic ---
+    function onDropInternal(tileIndex) {
+      const plot = state.plots[state.activePlot];
+      const existingMiner = plot.miners.find(m => m.tileIndex === tileIndex);
+      const dragged = state.draggedMiner;
+
+      if (existingMiner && existingMiner.level === dragged.level && existingMiner !== dragged) {
+        // Merge
+        plot.miners = plot.miners.filter(m => m !== dragged);
+        existingMiner.level++;
+        spawnFloatText(tileIndex, "LEVEL UP!");
+        console.log("Merged!");
+      } else if (!existingMiner && plot.tiles[tileIndex].type === 'empty') {
+        // Move
+        dragged.tileIndex = tileIndex;
+        console.log("Moved!");
+      }
+    }
+
+    function onDragStart(e, miner) {
+      state.draggedMiner = miner;
+      e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+    }
+
+    function onDragOver(e, tileIndex) {
+      e.preventDefault();
+      if (!state.draggedMiner) return;
+
+      const plot = state.plots[state.activePlot];
+      const targetMiner = plot.miners.find(m => m.tileIndex === tileIndex);
+
+      // Allow drop if tile is empty ground or contains a mergeable miner
+      if (plot.tiles[tileIndex].type === 'empty' || (targetMiner && targetMiner.level === state.draggedMiner.level && targetMiner !== state.draggedMiner)) {
+        e.currentTarget.classList.add('drag-over');
+        e.dataTransfer.dropEffect = 'move';
+      }
+    }
+
+    function onDrop(e, tileIndex) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      if (!state.draggedMiner) return;
+
+      onDropInternal(tileIndex);
+
+      state.draggedMiner = null;
+      state.selectedMiner = null;
+      renderPlot();
+    }
+
+    // --- Mobile Touch Drag Simulation ---
+    let touchTargetIdx = null;
+
+    function onTouchStart(e, miner) {
+      state.draggedMiner = miner;
+      state.selectedMiner = null;
+    }
+
+    function onTouchMove(e) {
+      if (!state.draggedMiner) return;
+      // Prevent page scrolling while dragging a miner
+      e.preventDefault();
+
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const tileEl = el ? el.closest('.tile') : null;
+
+      // Remove previous highlights
+      document.querySelectorAll('.tile.drag-over').forEach(t => t.classList.remove('drag-over'));
+      touchTargetIdx = null;
+
+      if (tileEl) {
+        const grid = document.getElementById('tile-grid');
+        const idx = Array.from(grid.children).indexOf(tileEl);
+        if (idx !== -1) {
+          const plot = state.plots[state.activePlot];
+          const targetMiner = plot.miners.find(m => m.tileIndex === idx);
+          if (plot.tiles[idx].type === 'empty' || (targetMiner && targetMiner.level === state.draggedMiner.level && targetMiner !== state.draggedMiner)) {
+            tileEl.classList.add('drag-over');
+            touchTargetIdx = idx;
+          }
+        }
+      }
+    }
+
+    function onTouchEnd(e) {
+      if (!state.draggedMiner) return;
+      if (touchTargetIdx !== null) onDropInternal(touchTargetIdx);
+      state.draggedMiner = null;
+      touchTargetIdx = null;
+      document.querySelectorAll('.tile.drag-over').forEach(t => t.classList.remove('drag-over'));
+      renderPlot();
+    }
+
+    function onTileClick(tileIndex) {
+      const plot = state.plots[state.activePlot];
+      const existingMiner = plot.miners.find(m => m.tileIndex === tileIndex);
+
+      if (state.selectedMiner && !existingMiner && plot.tiles[tileIndex].type === 'empty') {
+        // Move
+        state.selectedMiner.tileIndex = tileIndex;
+        state.selectedMiner = null;
+        renderPlot();
+      } else if (!existingMiner) {
+        state.selectedMiner = null;
+        renderPlot();
+      }
+    }
+
+    function buyMiner() {
+      console.log("Attempting to buy miner...");
+      const plot = state.plots[state.activePlot];
+      const cost = BASE_MINER_COST * Math.pow(1.5, plot.miners.length);
+
+      if (state.money >= cost) {
+        console.log(`Checking for space. Current money: $${state.money}, Cost: $${cost}`);
+        // Find empty tile
+        const emptyTiles = plot.tiles
+          .map((t, i) => i)
+          .filter(i => plot.tiles[i].type === 'empty' && !plot.miners.some(m => m.tileIndex === i));
+
+        if (emptyTiles.length > 0) {
+          // Sort to prioritize bottom row (highest row index)
+          emptyTiles.sort((a, b) => {
+            const rowA = Math.floor(a / GRID_SIZE);
+            const rowB = Math.floor(b / GRID_SIZE);
+            return rowB - rowA;
+          });
+
+          const targetIdx = emptyTiles[0];
+          state.money -= cost;
+          plot.miners.push({
+            level: 1,
+            tileIndex: targetIdx,
+            facing: 0,
+            progress: 0
+          });
+          console.log("Success! Miner placed at tile index:", targetIdx);
+          renderPlot();
+          updateUI();
+        } else {
+          console.error("No empty tiles available! Miners must be placed on empty ground.");
+          alert("No room to place a miner! Wait for a current miner to clear a path.");
+        }
+      }
+    }
+
+    // --- Navigation & Expansion ---
+    function navPlot(dir) {
+      const target = state.activePlot + dir;
+      if (target >= 0 && target <= state.maxUnlockedPlot) {
+        state.activePlot = target;
+        renderAll();
+      }
+    }
+
+    function navDepth(dir) {
+      const plot = state.plots[state.activePlot];
+      // In MVP, we just allow switching if plot exists. 
+      // Realistically we'd need a stack of grids per plot.
+      // For simplicity, we just adjust the current plot's depth variable for visuals.
+    }
+
+    function buyNorthPlot() {
+      const cost = 500;
+      if (state.money >= cost) {
+        state.money -= cost;
+        state.plots.push(initPlot(0));
+        state.maxUnlockedPlot++;
+        state.activePlot = state.maxUnlockedPlot;
+        renderAll();
+      }
+    }
+
+    function digDown() {
+      const plot = state.plots[state.activePlot];
+      plot.depth++;
+      plot.tiles = initPlot(plot.depth).tiles;
+
+      // Keep miners but reset their positions to the new floor's empty bottom row
+      const emptyIndices = plot.tiles
+        .map((t, i) => t.type === 'empty' ? i : -1)
+        .filter(idx => idx !== -1);
+
+      plot.miners.forEach((m, i) => m.tileIndex = emptyIndices[i % emptyIndices.length]);
+      renderAll();
+    }
+
+    // --- Utilities ---
+    function spawnFloatText(tileIdx, text) {
+      const grid = document.getElementById('tile-grid');
+      const tileEl = grid.children[tileIdx];
+      const rect = tileEl.getBoundingClientRect();
+
+      const el = document.createElement('div');
+      el.className = 'float-text';
+      el.textContent = text;
+      el.style.left = `${rect.left + rect.width / 2}px`;
+      el.style.top = `${rect.top}px`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }
+
+    function handleOfflineProgress() {
+      const now = Date.now();
+      const seconds = (now - state.lastTick) / 1000;
+      if (seconds < 60) return; // Only if away for > 1 min
+
+      let totalEarned = 0;
+      state.plots.forEach(plot => {
+        const rubbleCount = plot.tiles.filter(t => t.type === 'rubble').length;
+        if (rubbleCount > 0) {
+          // Abstract calculation: miners * level * time
+          const power = plot.miners.reduce((acc, m) => acc + Math.pow(2, m.level - 1), 0);
+          const earned = power * seconds * 0.1 * OFFLINE_RATE;
+          totalEarned += Math.min(earned, rubbleCount * RUBBLE_VALUE);
+        }
+      });
+
+      state.money += totalEarned;
+      if (totalEarned > 0) {
+        alert(`While you were away, your miners earned $${Math.floor(totalEarned)} at a reduced rate!`);
+      }
+    }
+
+    // --- Start ---
+    loadGame();
+    setInterval(gameTick, TICK_RATE);
+    setInterval(saveGame, 5000);
+
+    // Global touch listeners for simulation
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Merge & Choo-Choo - MVP3 World</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #ffd700;
+      --text: #eee;
+      --empty: #0f3460
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    header,
+    footer {
+      background: var(--panel);
+      padding: 12px;
+      flex-shrink: 0
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--empty)
+    }
+
+    footer {
+      border-top: 2px solid var(--empty);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto
+    }
+
+    .tab {
+      padding: 8px 10px;
+      border: 1px solid #ffffff22;
+      border-radius: 10px;
+      background: #0f3460;
+      color: var(--text);
+      white-space: nowrap
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #111;
+      font-weight: 700
+    }
+
+    main {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      position: relative
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: auto;
+      padding: 14px
+    }
+
+    .screen.active {
+      display: block
+    }
+
+    .card {
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid #ffffff14;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .btn {
+      padding: 12px 14px;
+      border: none;
+      border-radius: 12px;
+      background: #2e7d32;
+      color: #fff;
+      font-weight: 700
+    }
+
+    .btn.secondary {
+      background: #1976d2
+    }
+
+    .btn.warn {
+      background: #8b5e00
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      filter: grayscale(1)
+    }
+
+    .small {
+      font-size: 12px;
+      opacity: .8
+    }
+
+    .world-wrap {
+      position: relative;
+      overflow: auto;
+      padding: 16px 8px 24px;
+      height: 100%
+    }
+
+    #world-map {
+      position: relative;
+      width: 560px;
+      height: 420px;
+      margin: 0 auto
+    }
+
+    .hex {
+      position: absolute;
+      width: 84px;
+      height: 72px;
+      clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0 50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 12px;
+      text-align: center;
+      border: 1px solid #ffffff22;
+      background: #24324d;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .2) inset;
+      transform: translate(-50%, -50%)
+    }
+
+    .hex.plot {
+      background: #1b5e20
+    }
+
+    .hex.city {
+      background: #6a1b9a
+    }
+
+    .hex.factory {
+      background: #5d4037
+    }
+
+    .hex.fog {
+      background: #24324d;
+      opacity: .28
+    }
+
+    .hex.player {
+      outline: 2px solid var(--accent)
+    }
+
+    .hex.hidden {
+      display: none
+    }
+
+    #world-msg {
+      margin-top: 10px
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 12px;
+      background: #000
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <div id="money">$0</div>
+      <div class="small" id="context">World</div>
+    </div>
+    <div class="tabs"><button class="tab active" data-tab="world">World</button><button class="tab"
+        data-tab="plot">Plot</button><button class="tab" data-tab="station">Station</button><button class="tab"
+        data-tab="settings">Settings</button></div>
+  </header>
+  <main>
+    <section id="world" class="screen active">
+      <div class="card"><strong>World Grid</strong>
+        <div class="small">Dev mode reveals everything. Normal mode only shows explored locations and your plot.</div>
+      </div>
+      <div class="world-wrap">
+        <div id="world-map"></div>
+      </div>
+      <div class="card">
+        <div class="row"><button id="explore-btn" class="btn secondary">Send Explorer</button><button id="open-plot-btn"
+            class="btn">Open Plot</button><button id="open-station-btn" class="btn warn">Open Station</button></div>
+        <div id="world-msg" class="small">Ready.</div>
+      </div>
+    </section>
+    <section id="plot" class="screen"><iframe id="plot-frame" src="./mines.html"></iframe></section>
+    <section id="station" class="screen"><iframe id="station-frame" src="./station.html"></iframe></section>
+    <section id="settings" class="screen">
+      <div class="card"><strong>Settings</strong>
+        <div class="small">Shared save: <code>mcc_save</code></div>
+      </div>
+      <div class="card row"><button id="dev-btn" class="btn secondary">Dev Mode: Off</button><button id="reset-btn"
+          class="btn warn">Reset Save</button></div>
+    </section>
+  </main>
+  <footer>
+    <div class="small">World → Plot → Station</div>
+    <div class="small" id="explore-status"></div>
+  </footer>
+  <script>
+    const KEY = 'mcc_save';
+    const defaultSave = { money: 200, dev: false, playerPlotId: 'plot-0', plots: [{ id: 'plot-0', name: 'Your Plot', x: 2, y: 2, discovered: true, stationBuilt: false, depth: 0, level: 0 }], worldDiscovered: ['plot-0'], worldDestinations: [{ id: 'city-0', name: 'City A', type: 'city', x: 4, y: 1, discovered: false }, { id: 'factory-0', name: 'Factory 1', type: 'factory', x: 0, y: 3, discovered: false }], activePlotId: 'plot-0', activeStationPlotId: 'plot-0' };
+    let state = load();
+    function load() { try { return Object.assign({}, defaultSave, JSON.parse(localStorage.getItem(KEY) || '{}')) } catch { return structuredClone(defaultSave) } }
+    function save() { localStorage.setItem(KEY, JSON.stringify(state)) }
+    function normalize() { state.plots ||= []; state.worldDiscovered ||= []; state.worldDestinations ||= []; state.money = Number(state.money || 0); if (!state.plots.find(p => p.id === state.playerPlotId)) state.plots.push(defaultSave.plots[0]) }
+    function setTab(tab) { document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab)); document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === tab)); document.getElementById('context').textContent = tab[0].toUpperCase() + tab.slice(1); save() }
+    function worldCells() { return [{ id: 'fog-0', name: '', type: 'fog', x: 0, y: 0 }, { id: 'fog-1', name: '', type: 'fog', x: 1, y: 0 }, { id: 'city-0', name: 'City A', type: 'city', x: 4, y: 1 }, { id: 'fog-2', name: '', type: 'fog', x: 0, y: 1 }, { id: 'fog-3', name: '', type: 'fog', x: 1, y: 1 }, { id: 'plot-0', name: 'Your Plot', type: 'plot', x: 2, y: 2 }, { id: 'fog-4', name: '', type: 'fog', x: 3, y: 2 }, { id: 'fog-5', name: '', type: 'fog', x: 4, y: 2 }, { id: 'factory-0', name: 'Factory 1', type: 'factory', x: 0, y: 3 }, { id: 'fog-6', name: '', type: 'fog', x: 2, y: 3 }, { id: 'fog-7', name: '', type: 'fog', x: 3, y: 3 }, { id: 'fog-8', name: '', type: 'fog', x: 4, y: 3 }] }
+    function discovered(id) { return state.worldDiscovered.includes(id) || state.dev }
+    function hexPos(x, y) { const size = 78, gapX = 67, gapY = 60; return { left: 160 + x * gapX + (y % 2 ? gapX / 2 : 0), top: 70 + y * gapY }; }
+    function renderWorld() { const el = document.getElementById('world-map'); el.innerHTML = ''; worldCells().forEach(c => { const hidden = (c.type === 'city' || c.type === 'factory') && !discovered(c.id); const d = document.createElement('div'); d.className = 'hex ' + c.type + (c.id === state.playerPlotId ? ' player' : '') + (hidden ? ' hidden' : ''); const p = hexPos(c.x, c.y); d.style.left = p.left + 'px'; d.style.top = p.top + 'px'; d.innerHTML = c.type === 'fog' ? '<div>Fog</div>' : `<div>${c.name}</div><div class="small">${c.type}</div>`; d.onclick = () => { if (hidden) { document.getElementById('world-msg').textContent = 'Undiscovered.'; return } if (c.type === 'plot') { state.activePlotId = 'plot-0'; setTab('plot') } else if (c.type === 'city' || c.type === 'factory') { document.getElementById('world-msg').textContent = `Selected ${c.name}` } else { document.getElementById('world-msg').textContent = 'Unknown' } }; el.appendChild(d) }) }
+    function syncMoney() { try { const other = JSON.parse(localStorage.getItem(KEY) || '{}'); if (typeof other.money === 'number') state.money = other.money } catch { } }
+    function updateHeader() { document.getElementById('money').textContent = `$${Math.floor(state.money)}`; document.getElementById('dev-btn').textContent = `Dev Mode: ${state.dev ? 'On' : 'Off'}` }
+    function render(doSave = true) { normalize(); syncMoney(); updateHeader(); renderWorld(); if (doSave) save() }
+    document.querySelectorAll('.tab').forEach(b => b.onclick = () => setTab(b.dataset.tab)); document.getElementById('open-plot-btn').onclick = () => setTab('plot'); document.getElementById('open-station-btn').onclick = () => setTab('station'); document.getElementById('dev-btn').onclick = () => { state.dev = !state.dev; render() }; document.getElementById('reset-btn').onclick = () => { localStorage.removeItem(KEY); location.reload() }; document.getElementById('explore-btn').onclick = () => { const undis = state.worldDestinations.filter(d => !d.discovered); if (!undis.length) { document.getElementById('world-msg').textContent = 'No more destinations to discover.'; return } const pick = undis[0]; pick.discovered = true; state.worldDiscovered.push(pick.id); document.getElementById('world-msg').textContent = `Discovered ${pick.name}`; save(); render() }; window.addEventListener('storage', e => { if (e.key === KEY) { state = load(); render(false) } }); setInterval(() => { const latest = load(); if (latest.money !== state.money) { Object.assign(state, latest); updateHeader() } }, 300); render();
+  </script>
+</body>
+
+</html>

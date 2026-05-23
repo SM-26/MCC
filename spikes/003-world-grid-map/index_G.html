@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Merge & Choo-Choo - World Hub MVP</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel: #16213e;
+            --accent: #ffd700;
+            --empty: #0f3460;
+            --text: #eee;
+            --hex-size: 80px;
+            --btn-green: linear-gradient(180deg, #4CAF50 0%, #2e7d32 100%);
+            --btn-blue: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Global Header */
+        header {
+            padding: 15px;
+            background: var(--panel);
+            border-bottom: 2px solid var(--empty);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #global-money {
+            font-size: 24px;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Navigation Tabs */
+        nav {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            background: var(--panel);
+            border-top: 2px solid #000;
+        }
+
+        .nav-tab {
+            padding: 15px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: white;
+            opacity: 0.5;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-tab.active {
+            opacity: 1;
+            border-top: 3px solid var(--accent);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* View Management */
+        .view {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding: 10px;
+        }
+
+        .view.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- World Map (Hex) Styles --- */
+        #world-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #0a0a1a;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #hex-grid {
+            position: absolute;
+            display: flex;
+            flex-wrap: wrap;
+            width: 1000px;
+            /* Large enough to scroll/pan */
+            justify-content: center;
+            padding: 100px;
+        }
+
+        .hex {
+            width: var(--hex-size);
+            height: calc(var(--hex-size) * 1.15);
+            background: #222;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            margin: 2px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .hex.discovered {
+            background: #34495e;
+            border: 1px solid #555;
+        }
+
+        .hex.plot {
+            background: #8b7355;
+        }
+
+        .hex.city {
+            background: #2980b9;
+        }
+
+        .hex.factory {
+            background: #27ae60;
+        }
+
+        .hex.fog {
+            opacity: 0.3;
+            filter: grayscale(1);
+            pointer-events: none;
+        }
+
+        .hex:active {
+            transform: scale(0.9);
+        }
+
+        .hex-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        /* --- Mining View Styles (Integrated from mines.html) --- */
+        #tile-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+            max-width: 400px;
+            margin: auto;
+            aspect-ratio: 1/1;
+        }
+
+        .tile {
+            background: var(--empty);
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+
+        .tile.rubble {
+            background: #666;
+            border: 2px solid #888;
+        }
+
+        .tile.dirt {
+            background: #8b7355;
+            border: 2px solid #a68b6a;
+        }
+
+        .hp-bar {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            right: 4px;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 2px;
+        }
+
+        .hp-fill {
+            height: 100%;
+            background: #ff4444;
+            border-radius: 2px;
+        }
+
+        .miner {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            cursor: grab;
+        }
+
+        .miner-level {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: var(--accent);
+            color: black;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        /* --- Station View Styles (Integrated from station.html) --- */
+        .platform-container {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            border-bottom: 4px solid var(--empty);
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            position: relative;
+        }
+
+        .track {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-top: 1px solid #555;
+        }
+
+        #visual-area {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            z-index: 10;
+            transition: transform 0.8s ease-in;
+        }
+
+        .unit-img {
+            height: 35px;
+        }
+
+        .progress-container {
+            height: 10px;
+            background: var(--empty);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        #trip-progress {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        /* Action Buttons */
+        .main-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            color: white;
+            background: var(--btn-green);
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .main-btn:disabled {
+            filter: grayscale(1);
+            opacity: 0.5;
+        }
+
+        /* Floating Text */
+        .float-text {
+            position: absolute;
+            color: var(--accent);
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            z-index: 1000;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div id="global-money">$0</div>
+        <div style="font-size: 12px; opacity: 0.7;">MVP3 Prototype</div>
+    </header>
+
+    <!-- Main View Area -->
+    <div id="view-container" style="flex: 1; display: flex; flex-direction: column;">
+
+        <!-- WORLD MAP VIEW -->
+        <div id="view-world" class="view active">
+            <div id="world-container">
+                <div id="hex-grid"></div>
+            </div>
+            <div style="padding: 10px; background: rgba(0,0,0,0.5); font-size: 12px; text-align: center;">
+                Tap a discovered Hex to visit. Send Explorer from Station.
+            </div>
+        </div>
+
+        <!-- MINING PLOT VIEW -->
+        <div id="view-mines" class="view">
+            <div id="tile-grid"></div>
+            <footer style="margin-top: 20px;">
+                <button id="btn-buy-miner" class="main-btn" onclick="buyMiner()">Buy Miner ($50)</button>
+            </footer>
+        </div>
+
+        <!-- STATION VIEW -->
+        <div id="view-station" class="view">
+            <div class="platform-container">
+                <div id="visual-area"></div>
+                <div class="track"></div>
+            </div>
+            <div style="padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>Engine: <b id="st-engine">None</b></span>
+                    <span>Capacity: <b id="st-cap">0/0</b></span>
+                </div>
+                <div class="progress-container">
+                    <div id="trip-progress"></div>
+                </div>
+                <button id="btn-buy-engine" class="main-btn" style="background: var(--btn-blue)"
+                    onclick="buyEngine()">Buy Engine ($100)</button>
+                <button id="btn-dispatch" class="main-btn" onclick="dispatchTrain()">SEND EXPLORER</button>
+            </div>
+        </div>
+    </div>
+
+    <nav>
+        <button class="nav-tab active" onclick="showView('world')">WORLD</button>
+        <button class="nav-tab" onclick="showView('mines')">MINING</button>
+        <button class="nav-tab" onclick="showView('station')">STATION</button>
+    </nav>
+
+    <script>
+        // --- Global Config & State ---
+        const TICK_RATE = 100;
+        let state = {
+            money: 250,
+            activeView: 'world',
+            // World Map Data
+            world: [
+                { id: 0, q: 0, r: 0, type: 'plot', name: 'Your Plot', discovered: true },
+                { id: 1, q: 1, r: 0, type: 'city', name: 'Grand City', discovered: false },
+                { id: 2, q: 0, r: 1, type: 'factory', name: 'Iron Works', discovered: false },
+                { id: 3, q: -1, r: 1, type: 'empty', name: 'Wilderness', discovered: false },
+                { id: 4, q: -1, r: 0, type: 'empty', name: 'Wilderness', discovered: false },
+                { id: 5, q: 0, r: -1, type: 'empty', name: 'Wilderness', discovered: false },
+                { id: 6, q: 1, r: -1, type: 'empty', name: 'Wilderness', discovered: false }
+            ],
+            // Mining Data
+            plot: {
+                tiles: [],
+                miners: []
+            },
+            // Station Data
+            station: {
+                engineLevel: 0,
+                trainState: 'idle',
+                remainingTime: 0,
+                totalTime: 5 // Explorer time
+            },
+            lastTick: Date.now()
+        };
+
+        // --- Initialization ---
+        function init() {
+            // Init Plot Tiles (MVP1 logic)
+            for (let i = 0; i < 25; i++) {
+                const row = Math.floor(i / 5);
+                const isBottom = (row === 4);
+                state.plot.tiles.push({
+                    type: isBottom ? 'empty' : (Math.random() > 0.4 ? 'rubble' : 'dirt'),
+                    hp: 50, maxHp: 50
+                });
+            }
+            renderWorld();
+            updateUI();
+        }
+
+        // --- View Management ---
+        function showView(viewId) {
+            state.activeView = viewId;
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            const btnIdx = ['world', 'mines', 'station'].indexOf(viewId);
+            document.querySelectorAll('.nav-tab')[btnIdx].classList.add('active');
+
+            if (viewId === 'mines') renderMines();
+            if (viewId === 'station') renderStation();
+        }
+
+        // --- World Map Logic ---
+        function renderWorld() {
+            const grid = document.getElementById('hex-grid');
+            grid.innerHTML = '';
+
+            state.world.forEach(hex => {
+                const el = document.createElement('div');
+                el.className = `hex ${hex.type} ${hex.discovered ? 'discovered' : 'fog'}`;
+
+                // Simple axial to pixel positioning
+                const size = 84;
+                const x = size * (3 / 2 * hex.q);
+                const y = size * (Math.sqrt(3) / 2 * hex.q + Math.sqrt(3) * hex.r);
+
+                el.style.position = 'absolute';
+                el.style.left = `calc(50% + ${x}px)`;
+                el.style.top = `calc(50% + ${y}px)`;
+
+                if (hex.discovered) {
+                    const icons = { plot: '🏠', city: '🏙️', factory: '🏭', empty: '🌲' };
+                    el.innerHTML = `<span class="hex-icon">${icons[hex.type]}</span><span>${hex.name}</span>`;
+                    el.onclick = () => {
+                        if (hex.type === 'plot') showView('mines');
+                    };
+                } else {
+                    el.innerHTML = `<span class="hex-icon">❓</span>`;
+                }
+
+                grid.appendChild(el);
+            });
+        }
+
+        function discoverNewHex() {
+            const hidden = state.world.filter(h => !h.discovered);
+            if (hidden.length > 0) {
+                const target = hidden[Math.floor(Math.random() * hidden.length)];
+                target.discovered = true;
+                alert(`Explorer discovered: ${target.name}!`);
+                renderWorld();
+            } else {
+                alert("The whole region is explored!");
+            }
+        }
+
+        // --- Mining Logic (MVP1 Port) ---
+        function buyMiner() {
+            const cost = 50 * Math.pow(1.5, state.plot.miners.length);
+            if (state.money >= cost) {
+                const emptyIdx = state.plot.tiles.findIndex((t, i) => t.type === 'empty' && !state.plot.miners.some(m => m.tileIndex === i));
+                if (emptyIdx !== -1) {
+                    state.money -= cost;
+                    state.plot.miners.push({ level: 1, tileIndex: emptyIdx, facing: 0 });
+                    renderMines();
+                }
+            }
+        }
+
+        function updateMining(dt) {
+            state.plot.miners.forEach(miner => {
+                const targetIdx = findMiningTarget(miner.tileIndex);
+                if (targetIdx !== null) {
+                    const target = state.plot.tiles[targetIdx];
+                    const dmg = Math.pow(2, miner.level - 1) * 10 * dt;
+                    target.hp -= dmg;
+                    if (target.hp <= 0) {
+                        if (target.type === 'rubble') state.money += 15;
+                        target.type = 'empty';
+                        target.hp = 0;
+                    }
+                }
+            });
+        }
+
+        function findMiningTarget(idx) {
+            const neighbors = [idx - 5, idx + 1, idx + 5, idx - 1]; // N, E, S, W
+            for (let n of neighbors) {
+                if (n >= 0 && n < 25 && state.plot.tiles[n].type !== 'empty') return n;
+            }
+            return null;
+        }
+
+        function renderMines() {
+            const grid = document.getElementById('tile-grid');
+            grid.innerHTML = '';
+            state.plot.tiles.forEach((tile, i) => {
+                const el = document.createElement('div');
+                el.className = `tile ${tile.type}`;
+                if (tile.type !== 'empty') {
+                    el.innerHTML = `<div class="hp-bar"><div class="hp-fill" style="width:${(tile.hp / tile.maxHp) * 100}%"></div></div>`;
+                }
+                // Miner
+                const miner = state.plot.miners.find(m => m.tileIndex === i);
+                if (miner) {
+                    const mEl = document.createElement('div');
+                    mEl.className = 'miner';
+                    mEl.innerHTML = `⛏️<span class="miner-level">${miner.level}</span>`;
+                    el.appendChild(mEl);
+                }
+                grid.appendChild(el);
+            });
+        }
+
+        // --- Station Logic (MVP2 Port) ---
+        function buyEngine() {
+            if (state.money >= 100 && state.station.engineLevel === 0) {
+                state.money -= 100;
+                state.station.engineLevel = 1;
+                renderStation();
+            }
+        }
+
+        function dispatchTrain() {
+            if (state.station.trainState === 'idle' && state.station.engineLevel > 0) {
+                state.station.trainState = 'traveling';
+                state.station.remainingTime = state.station.totalTime;
+            }
+        }
+
+        function renderStation() {
+            const visual = document.getElementById('visual-area');
+            document.getElementById('st-engine').textContent = state.station.engineLevel > 0 ? 'Steam Mk1' : 'None';
+            document.getElementById('st-cap').textContent = state.station.engineLevel > 0 ? '1/2' : '0/0';
+
+            visual.innerHTML = '';
+            if (state.station.engineLevel > 0) {
+                visual.innerHTML = `<span style="font-size:30px; ${state.station.trainState === 'traveling' ? 'margin-left:200px; transition: 2s;' : ''}">🚂</span>`;
+            } else {
+                visual.innerHTML = '<span style="opacity:0.3">No Engine</span>';
+            }
+        }
+
+        // --- Global Core Loop ---
+        function gameTick() {
+            const now = Date.now();
+            const dt = (now - state.lastTick) / 1000;
+            state.lastTick = now;
+
+            // Update Logic
+            updateMining(dt);
+
+            if (state.station.trainState === 'traveling') {
+                state.station.remainingTime -= dt;
+                const prog = ((state.station.totalTime - state.station.remainingTime) / state.station.totalTime) * 100;
+                document.getElementById('trip-progress').style.width = `${Math.min(100, prog)}%`;
+
+                if (state.station.remainingTime <= 0) {
+                    state.station.trainState = 'idle';
+                    discoverNewHex();
+                    renderStation();
+                }
+            } else {
+                document.getElementById('trip-progress').style.width = '0%';
+            }
+
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('global-money').textContent = `$${Math.floor(state.money)}`;
+
+            // Disable buttons based on state
+            const minerCost = 50 * Math.pow(1.5, state.plot.miners.length);
+            document.getElementById('btn-buy-miner').disabled = state.money < minerCost;
+            document.getElementById('btn-buy-miner').textContent = `Buy Miner ($${Math.floor(minerCost)})`;
+
+            const engineBtn = document.getElementById('btn-buy-engine');
+            engineBtn.disabled = state.money < 100 || state.station.engineLevel > 0;
+
+            const dispatchBtn = document.getElementById('btn-dispatch');
+            dispatchBtn.disabled = state.station.engineLevel === 0 || state.station.trainState !== 'idle';
+
+            if (state.activeView === 'mines') renderMines();
+        }
+
+        // Start
+        init();
+        setInterval(gameTick, TICK_RATE);
+    </script>
+</body>
+
+</html>
