@@ -6,17 +6,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    minify: false // Disable minification for development
+    minify: false // Terser not installed yet; will enable when available
   },
   server: {
     port: 3000,
     host: true,
     watch: false
-  },
-  resolve: {
-    alias: {
-      '@': './src'
-    }
   },
   optimizeDeps: {
     include: []
