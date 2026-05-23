@@ -290,8 +290,6 @@
       };
     }
 
-    let state = { ...state, station: state.station };
-
     function getEngineCartCapacity() {
       return state.station.engineLevel === 0 ? 0 : 2 + (state.station.engineLevel - 1);
     }

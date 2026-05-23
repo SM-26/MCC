@@ -511,7 +511,6 @@
             el.appendChild(mEl);
           }
           
-          const mEl = el.querySelector('.miner');
           mEl.style.pointerEvents = (state.draggedMiner === miner) ? 'none' : 'auto';
           mEl.style.opacity = (state.draggedMiner === miner) ? '0.5' : '1';
           mEl.style.transform = `rotate(${miner.facing || 0}deg)`;
@@ -753,6 +752,13 @@
 
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
+
+    // Export functions for global access
+    window.buyMiner = buyMiner;
+    window.navPlot = navPlot;
+    window.navDepth = navDepth;
+    window.buyNorthPlot = buyNorthPlot;
+    window.digDown = digDown;
 
   </script>
 </body>
