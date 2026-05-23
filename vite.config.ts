@@ -6,14 +6,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    minify: 'terser'
+    minify: false
   },
   server: {
     port: 3000,
-    host: true,
-    watch: true
-  },
-  optimizeDeps: {
-    include: []
+    host: true
   }
 });
