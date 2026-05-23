@@ -3,20 +3,25 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install pnpm globally
+RUN npm install -g pnpm
+
 # Copy package files
 COPY package*.json ./
-RUN npm ci
+
+# Install dependencies with pnpm
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy source
 COPY . .
 
-# Build
-RUN npm run build
+# Build with Vite
+RUN pnpm run build
 
 # Production stage
 FROM nginx:alpine
 
-# Copy built assets
+# Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy custom nginx config

@@ -11,16 +11,19 @@ services:
       - ./src:/app/src
       - ./public:/app/public
     environment:
-      - NODE_ENV=development
-    command: npm run dev
+      - NODE_ENV=production
+    restart: unless-stopped
 
-  python-server:
-    image: python:3.12-slim
+  # Optional: Python dev server for local development
+  dev-server:
+    image: python:3.12-alpine
+    working_dir: /app
+    volumes:
+      - ./public:/app/public
+      - ./src:/app/src
+    command: >
+      sh -c "pip install serve -q &&
+              cd /app/public &&
+              serve -l 8000"
     ports:
       - "8000:8000"
-    volumes:
-      - ./dist:/usr/share/nginx/html
-    command: >
-      sh -c "pip install gunicorn &&
-             gunicorn --bind 0.0.0.0:8000 
-             nginx:conf:/etc/nginx/conf.d/default.conf"
