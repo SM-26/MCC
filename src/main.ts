@@ -7,7 +7,7 @@ import { generateInitialWorldGrid } from './world/grid';
 // Global game state
 let state: GameState = loadSave();
 
-// Initialize game state if empty
+// Initialize game state if empty - ALWAYS set money to 50 for new saves
 if (!state.plots || state.plots.length === 0) {
   try {
     state.plots = [];
@@ -16,6 +16,7 @@ if (!state.plots || state.plots.length === 0) {
     state.money = 50; // Start with $50 for new saves
   } catch (error) {
     console.error('Failed to initialize game state:', error);
+    state.money = 50; // Fallback to $50 on error
   }
 }
 
@@ -28,12 +29,13 @@ if (!state.playerPlotId && state.plots.length > 0) {
   }
 }
 
-// Ensure money has a default value if not set
-if (!state.money || state.money === 0) {
+// Ensure money has a default value if not set or is 0
+if (!state.money || typeof state.money !== 'number' || state.money === 0) {
   try {
-    state.money = 50;
+    state.money = 50; // Always $50 for fresh starts
   } catch (error) {
     console.error('Failed to set initial money:', error);
+    state.money = 50; // Final fallback
   }
 }
 
