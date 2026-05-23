@@ -1,0 +1,43 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+web_modules/
+
+# Nested node_modules (catches your experimental spike folders)
+**/node_modules/
+
+# Python Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Build and Output directories
+dist/
+build/
+out/
+.tmp/
+
+# Vite / Build tool caches
+.vite/
+.eslintcache
+.tsbuildinfo
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local environment / secrets
+.env
+.env.local
+.env.*.local

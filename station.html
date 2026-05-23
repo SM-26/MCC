@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Merge & Choo-Choo - Station MVP</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #ffd700;
+      --empty: #0f3460;
+      --text: #eee;
+      --btn-green: linear-gradient(180deg, #4CAF50 0%, #2e7d32 100%);
+      --btn-blue: linear-gradient(180deg, #2196F3 0%, #1976D2 100%)
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: sans-serif
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden
+    }
+
+    header {
+      padding: 15px;
+      background: var(--panel);
+      border-bottom: 2px solid var(--empty);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0
+    }
+
+    #money-display {
+      font-size: 24px;
+      color: var(--accent);
+      font-weight: bold
+    }
+
+    #station-name {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: .8
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 20px;
+      overflow-y: auto;
+      position: relative;
+      min-height: 0
+    }
+
+    .platform-container {
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 20px;
+      border-bottom: 4px solid var(--empty);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 200px;
+      justify-content: flex-end;
+      position: relative;
+      overflow: hidden
+    }
+
+    .track {
+      position: absolute;
+      bottom: 30px;
+      width: 100%;
+      height: 10px;
+      background: repeating-linear-gradient(90deg, #555 0px, #555 10px, #333 10px, #333 20px);
+      border-top: 2px solid #777
+    }
+
+    #visual-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      z-index: 10;
+      margin-bottom: 12px;
+      width: 100%;
+      justify-content: flex-start;
+      padding-left: 20px;
+      transition: transform .8s ease-in;
+    }
+
+    .unit-img {
+      height: 40px;
+      object-fit: contain
+    }
+
+    .unit-img.engine {
+      height: 50px
+    }
+
+    .traveling {
+      transform: translateX(150vw)!important;
+      opacity: 0
+    }
+
+    .info-panel {
+      background: rgba(0, 0, 0, .2);
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px
+    }
+
+    .progress-container {
+      height: 12px;
+      background: var(--empty);
+      border-radius: 6px;
+      overflow: hidden
+    }
+
+    #trip-progress {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      transition: width .1s linear
+    }
+
+    .dest-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px
+    }
+
+    .dest-card {
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid #ffffff14;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      transition: background .2s
+    }
+
+    .dest-card.selected {
+      background: rgba(255, 215, 0, .2)
+    }
+
+    .dest-info {
+      font-size: 11px;
+      opacity: .7
+    }
+
+    footer {
+      padding: 20px;
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .main-btn {
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 16px;
+      color: #fff;
+      background: var(--btn-green);
+      box-shadow: 0 4px 0 #1b5e20
+    }
+
+    .main-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1b5e20
+    }
+
+    .main-btn:disabled {
+      filter: grayscale(1);
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .btn-small {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 12px;
+      color: #fff;
+      background: var(--btn-blue);
+      cursor: pointer
+    }
+
+    .btn-small:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="money-display">$0</div>
+    <div id="station-name">plot one, ground level</div>
+    <button class="btn-small" onclick="toggleTrainyardView()">Trainyard</button>
+  </header>
+
+  <main id="main-content-wrapper">
+    <div id="station-main">
+      <div class="platform-container">
+        <div id="visual-area"><div style="opacity:.3;font-style:italic;">No train on platform</div></div>
+        <div class="track"></div>
+      </div>
+      <div class="info-panel">
+        <div style="font-weight:bold;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px;margin-bottom:5px;">Train Stats</div>
+        <div class="stat-row"><span>Engine:</span><span id="engine-lvl">None</span></div>
+        <div class="stat-row"><span>Speed:</span><span id="engine-speed">0.0 km/h</span></div>
+        <div style="margin-top:5px;">
+          <div style="font-size:12px;margin-bottom:5px;opacity:.8;">Fitted Carts (<span id="cart-count">0/0</span>)</div>
+          <div id="station-cart-controls" style="display:flex;flex-direction:column;gap:5px;"></div>
+        </div>
+        <div style="font-weight:bold;margin-top:10px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px;">Select Destination</div>
+        <div id="dest-list" class="dest-list"></div>
+        <div style="margin-top:15px;">Progress</div>
+        <div class="progress-container"><div id="trip-progress"></div></div>
+      </div>
+    </div>
+
+    <div id="trainyard-panel" style="display:none;">
+      <div class="trainyard-section">
+        <div style="font-weight:bold;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px;margin-bottom:10px;">Trainyard Depot</div>
+        <div id="trainyard-buy-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <div style="font-weight:bold;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1);padding:10px 0;margin-top:20px;margin-bottom:10px;">Engine Workshop</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button id="btn-buy-engine" class="main-btn btn-buy" onclick="buyEngine()">Buy Engine ($100)</button>
+          <button id="btn-advance-engine" class="main-btn" style="background:var(--btn-blue);opacity:.5;" disabled title="Unlocked in MVP4">Advance Engine Type</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <button id="btn-dispatch" class="main-btn btn-action" onclick="dispatch()" disabled>SEND TRAIN</button>
+    <div id="status-text">Platform Ready</div>
+  </footer>
+
+  <script>
+    const KEY = 'mcc_save', ENGINE_UPGRADE_BASE = 150, ENGINE_BASE_CART_CAPACITY = 2, ENGINE_CART_CAPACITY_PER_LEVEL = 1, CART_PRICE_GROWTH = 1.1;
+    const CART_TYPES = {
+      passengers: { name: 'Passenger Cart', category: 'passenger', baseCost: 75, weight: 0.1, value: 0.5 },
+      doubleDecker: { name: 'Double Decker', category: 'passenger', baseCost: 150, weight: 0.2, value: 1.0 },
+      luxury: { name: 'Luxury Cart', category: 'passenger', baseCost: 250, weight: 0.15, value: 1.5 },
+      cargo: { name: 'Cargo Cart', category: 'cargo', baseCost: 100, weight: 0.12, value: 0.7 }
+    };
+    const EXPLORE_CHANCE = 0.4, EXPLORE_PAYOUT = 20, SPEED_BASE = 10, SPEED_MODIFIER = 0.2, DIST_VALUE_FACTOR = 5;
+    
+    let state = load();
+    
+    function load() {
+      try {
+        return Object.assign({
+          money: 200, engineLevel: 0, fittedCarts: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
+          trainState: 'idle', remainingTime: 0, totalTripTime: 0, explorationsDone: 0, destinations: [],
+          selectedDestId: -1, inventory: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
+          showTrainyard: false
+        }, JSON.parse(localStorage.getItem(KEY) || '{}'));
+      } catch { return { money: 200, engineLevel: 0, fittedCarts: {}, trainState: 'idle', remainingTime: 0, totalTripTime: 0, explorationsDone: 0, destinations: [], selectedDestId: -1, inventory: {}, showTrainyard: false }; }
+    }
+    
+    function persist() { localStorage.setItem(KEY, JSON.stringify(state)) }
+    
+    function sync() {
+      state = load();
+      state.money = Number(state.money || 0);
+      state.engineLevel = Number(state.engineLevel || 0);
+      state.fittedCarts = state.fittedCarts || { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 };
+      state.inventory = state.inventory || { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 };
+      state.destinations = state.destinations || [];
+      state.showTrainyard = !!state.showTrainyard;
+    }
+    
+    function getEngineCartCapacity() {
+      return state.engineLevel === 0 ? 0 : ENGINE_BASE_CART_CAPACITY + (state.engineLevel - 1) * ENGINE_CART_CAPACITY_PER_LEVEL;
+    }
+    
+    function buyEngine() {
+      if (state.engineLevel === 0) {
+        if (state.money >= 100) { state.money -= 100; state.engineLevel = 1; }
+      } else {
+        const cost = ENGINE_UPGRADE_BASE * state.engineLevel;
+        if (state.money >= cost) { state.money -= cost; state.engineLevel++; }
+      }
+      persist();
+      updateUI();
+    }
+    
+    function getCartCost(id) {
+      const t = CART_TYPES[id], total = state.inventory[id] + state.fittedCarts[id];
+      return Math.floor(t.baseCost * Math.pow(CART_PRICE_GROWTH, total));
+    }
+    
+    function buyCart(id) {
+      const c = getCartCost(id);
+      if (state.money >= c) {
+        state.money -= c;
+        state.inventory[id]++;
+        persist();
+        updateUI();
+      }
+    }
+    
+    function fitCart(id) {
+      if (state.trainState !== 'idle') return;
+      const max = getEngineCartCapacity(), fitted = Object.values(state.fittedCarts).reduce((a, b) => a + b, 0);
+      if (fitted >= max || state.inventory[id] <= 0) return;
+      const newCat = CART_TYPES[id].category, active = Object.keys(state.fittedCarts).find(k => state.fittedCarts[k] > 0);
+      if (active && CART_TYPES[active].category !== newCat) return;
+      state.inventory[id]--;
+      state.fittedCarts[id]++;
+      persist();
+      updateUI();
+    }
+    
+    function removeCart(id) {
+      if (state.trainState !== 'idle') return;
+      if (state.fittedCarts[id] > 0) {
+        state.fittedCarts[id]--;
+        state.inventory[id]++;
+        persist();
+        updateUI();
+      }
+    }
+    
+    function selectDest(id) {
+      if (state.trainState !== 'idle') return;
+      state.selectedDestId = id;
+      persist();
+      updateUI();
+    }
+    
+    function getExplorationStats() {
+      const ring = state.explorationsDone < 6 ? 1 : (state.explorationsDone < 18 ? 2 : 3);
+      return { ring, distance: ring * 10 };
+    }
+    
+    function calculateTime(dist) {
+      const baseSpeed = SPEED_BASE * (1 + (state.engineLevel - 1) * SPEED_MODIFIER);
+      const weight = 1 + Object.keys(state.fittedCarts).reduce((a, k) => a + state.fittedCarts[k] * CART_TYPES[k].weight, 0);
+      return (dist / baseSpeed) * 10 * weight;
+    }
+    
+    function calculateRoutePayout(dest) {
+      const base = dest.basePayout + (dest.distance * DIST_VALUE_FACTOR), ex = getExplorationStats();
+      const low = Math.max(base * 0.25, EXPLORE_PAYOUT * ex.ring + 10);
+      const cats = new Set();
+      Object.keys(state.fittedCarts).forEach(id => { if (state.fittedCarts[id] > 0) cats.add(CART_TYPES[id].category); });
+      if (cats.size > 1) return low;
+      let bonus = 0, has = false;
+      Object.keys(state.fittedCarts).forEach(id => {
+        const c = state.fittedCarts[id];
+        if (c > 0) {
+          has = true;
+          const t = CART_TYPES[id], ok = (dest.type === 'City' && t.category === 'passenger') || (dest.type === 'Factory' && t.category === 'cargo');
+          if (ok) bonus += c * t.value;
+        }
+      });
+      return (!has || bonus === 0) ? low : base * (1 + bonus);
+    }
+    
+    function dispatch() {
+      if (state.trainState === 'idle' && state.engineLevel > 0) {
+        state.trainState = 'traveling';
+        const dist = state.selectedDestId !== -1 ? state.destinations[state.selectedDestId].distance : getExplorationStats().distance;
+        state.totalTripTime = calculateTime(dist);
+        state.remainingTime = state.totalTripTime;
+        updateUI();
+      } else if (state.trainState === 'arrived') {
+        completeTrip();
+      }
+      persist();
+      updateUI();
+    }
+    
+    function completeTrip() {
+      const ex = getExplorationStats();
+      if (state.selectedDestId === -1) {
+        state.money += EXPLORE_PAYOUT * ex.ring;
+        state.explorationsDone++;
+        if (Math.random() < EXPLORE_CHANCE) {
+          const isCity = Math.random() > 0.5;
+          const newLoc = { name: isCity ? `City ${String.fromCharCode(65 + state.destinations.length)}` : `Factory ${state.destinations.length + 1}`, type: isCity ? 'City' : 'Factory', ring: ex.ring, distance: Math.floor(Math.random() * 5) + (ex.ring * 10), basePayout: isCity ? 120 : 180 };
+          state.destinations.push(newLoc);
+          showDiscoveryToast(newLoc.name, newLoc.type);
+        }
+      } else {
+        state.money += calculateRoutePayout(state.destinations[state.selectedDestId]);
+      }
+      state.trainState = 'idle';
+      state.remainingTime = 0;
+      state.totalTripTime = 0;
+      persist();
+    }
+    
+    function showDiscoveryToast(name, type) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = `Discovered: <span style="color: var(--accent)">${name}</span> (${type})`;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3100);
+    }
+    
+    function renderPlatform() {
+      const visual = document.getElementById('visual-area');
+      if (state.engineLevel === 0) {
+        visual.innerHTML = '<div style="opacity:.3;font-style:italic;">No train on platform</div>';
+        return;
+      }
+      let html = `<div id="train-group" style="display:flex;align-items:flex-end;gap:4px;" class="${state.trainState === 'traveling' ? 'traveling' : ''}">`;
+      Object.keys(state.fittedCarts).forEach(id => {
+        for (let i = 0; i < state.fittedCarts[id]; i++) html += `<img src="station.svg" class="unit-img" style="filter:hue-rotate(${CART_TYPES[id].hue}deg) brightness(1.5);">`;
+      });
+      html += `<img src="train.svg" class="unit-img engine"></div>`;
+      visual.innerHTML = html;
+    }
+    
+    function renderDestinations() {
+      const list = document.getElementById('dest-list');
+      list.innerHTML = '';
+      const ex = getExplorationStats();
+      list.appendChild(createDestCard(-1, `Exploration (Ring ${ex.ring})`, 'Unknown', ex.distance, EXPLORE_PAYOUT));
+      state.destinations.forEach((d, i) => list.appendChild(createDestCard(i, d.name, d.type, d.distance, calculateRoutePayout(d))));
+    }
+    
+    function createDestCard(id, name, type, dist, payout) {
+      const el = document.createElement('div');
+      el.className = `dest-card ${state.selectedDestId === id ? 'selected' : ''}`;
+      el.onclick = () => selectDest(id);
+      const time = calculateTime(dist);
+      el.innerHTML = `<div><div>${name} <span style="font-size:9px;color:var(--accent)">${type}</span></div><div class="dest-info">${dist}km / ${Math.ceil(time)}s</div></div><div style="color:var(--accent)">$${Math.floor(payout)}</div>`;
+      return el;
+    }
+    
+    function renderTrainyard() {
+      const list = document.getElementById('trainyard-buy-list');
+      list.innerHTML = '';
+      Object.keys(CART_TYPES).forEach(id => {
+        const t = CART_TYPES[id], cost = getCartCost(id), owned = state.inventory[id] + state.fittedCarts[id];
+        const row = document.createElement('div');
+        row.innerHTML = `<div class="stat-row"><strong>${t.name}</strong><span>Owned: ${owned}</span></div><div class="stat-row" style="font-size:11px;opacity:.7;"><span>Bonus: +${(t.value * 100).toFixed(0)}% value</span><span>Weight: +${(t.weight * 100).toFixed(0)}% time</span></div><button class="main-btn btn-buy" onclick="buyCart('${id}')" ${state.money < cost ? 'disabled' : ''}>Buy Unit ($${cost})</button>`;
+        list.appendChild(row);
+      });
+      if (!list.children.length) list.innerHTML = '<div style="font-size:12px;opacity:.6;">No carts available</div>';
+    }
+    
+    function renderStationCarts() {
+      const c = document.getElementById('station-cart-controls');
+      c.innerHTML = '';
+      const max = getEngineCartCapacity(), fitted = Object.values(state.fittedCarts).reduce((a, b) => a + b, 0);
+      Object.keys(CART_TYPES).forEach(id => {
+        if (state.inventory[id] > 0 || state.fittedCarts[id] > 0) {
+          const row = document.createElement('div');
+          row.className = 'stat-row controls';
+          row.style.background = 'rgba(255,255,255,0.05)';
+          row.style.padding = '5px 10px';
+          row.style.borderRadius = '5px';
+          row.innerHTML = `<span style="font-size:12px;">${CART_TYPES[id].name} (${state.fittedCarts[id]})</span><div style="display:flex;align-items:center;gap:5px;"><button class="btn-small" onclick="removeCart('${id}')" ${state.fittedCarts[id] === 0 || state.trainState !== 'idle' ? 'disabled' : ''}>-</button><button class="btn-small" onclick="fitCart('${id}')" ${state.inventory[id] === 0 || fitted >= max || state.trainState !== 'idle' ? 'disabled' : ''}>+</button></div>`;
+          c.appendChild(row);
+        }
+      });
+      if (!c.children.length) c.innerHTML = '<div style="font-size:12px;opacity:.6;">No carts fitted</div>';
+    }
+    
+    function updateUI() {
+      sync();
+      document.getElementById('money-display').textContent = `$${Math.floor(state.money)}`;
+      document.getElementById('engine-lvl').textContent = state.engineLevel > 0 ? `Level ${state.engineLevel}` : 'None';
+      const max = getEngineCartCapacity(), fitted = Object.values(state.fittedCarts).reduce((a, b) => a + b, 0), baseSpeed = SPEED_BASE * (1 + (state.engineLevel - 1) * SPEED_MODIFIER), nextBaseSpeed = SPEED_BASE * (1 + state.engineLevel * SPEED_MODIFIER), weight = 1 + Object.keys(state.fittedCarts).reduce((a, k) => a + state.fittedCarts[k] * CART_TYPES[k].weight, 0), effective = state.engineLevel > 0 ? baseSpeed / weight : 0;
+      document.getElementById('cart-count').textContent = `${fitted}/${max}`;
+      document.getElementById('engine-speed').textContent = state.engineLevel > 0 ? `${effective.toFixed(1)} km/h (+${(nextBaseSpeed - baseSpeed).toFixed(1)} engine base next)` : '0.0 km/h';
+      
+      const eb = document.getElementById('btn-buy-engine');
+      if (state.engineLevel === 0) {
+        eb.textContent = 'Buy Engine ($100)';
+        eb.disabled = state.money < 100;
+      } else {
+        const cost = ENGINE_UPGRADE_BASE * state.engineLevel;
+        eb.textContent = `Upgrade Engine ($${cost})`;
+        eb.disabled = state.money < cost || state.trainState !== 'idle';
+      }
+      
+      document.getElementById('main-content-wrapper').style.display = state.showTrainyard ? 'none' : 'flex';
+      document.getElementById('trainyard-panel').style.display = state.showTrainyard ? 'block' : 'none';
+      renderPlatform();
+      renderDestinations();
+      renderTrainyard();
+      renderStationCarts();
+      
+      const db = document.getElementById('btn-dispatch');
+      if (state.trainState === 'idle') {
+        db.textContent = 'SEND TRAIN';
+        db.disabled = state.engineLevel === 0;
+        document.getElementById('status-text').textContent = state.engineLevel === 0 ? 'Buy an engine to start' : 'Platform Ready';
+      } else if (state.trainState === 'traveling') {
+        db.textContent = 'IN TRANSIT...';
+        db.disabled = true;
+        document.getElementById('status-text').textContent = `In Transit... ${Math.ceil(state.remainingTime)}s`;
+      } else {
+        db.textContent = 'COLLECT PAYOUT';
+        db.disabled = false;
+        document.getElementById('status-text').textContent = 'Mission Complete!';
+      }
+      persist();
+    }
+    
+    function toggleTrainyardView() {
+      state.showTrainyard = !state.showTrainyard;
+      persist();
+      updateUI();
+    }
+    
+    setInterval(() => {
+      if (state.trainState === 'traveling') {
+        state.remainingTime = Math.max(0, state.remainingTime - 0.1);
+        document.getElementById('trip-progress').style.width = `${Math.max(0, Math.min(100, ((state.totalTripTime - state.remainingTime) / state.totalTripTime) * 100))}%`;
+        if (state.remainingTime <= 0) state.trainState = 'arrived';
+        updateUI();
+      } else if (state.trainState === 'idle') {
+        document.getElementById('trip-progress').style.width = '0%';
+      }
+    }, 100);
+    
+    window.addEventListener('storage', e => { if (e.key === KEY) updateUI() });
+    updateUI();
+  </script>
+</body>
+</html>
