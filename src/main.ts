@@ -13,6 +13,7 @@ if (!state.plots || state.plots.length === 0) {
     state.plots = [];
     state.worldDiscovered = [];
     state.destinations = [];
+    state.money = 50; // Start with $50 for new saves
   } catch (error) {
     console.error('Failed to initialize game state:', error);
   }
@@ -24,6 +25,15 @@ if (!state.playerPlotId && state.plots.length > 0) {
     state.playerPlotId = state.plots[0].id;
   } catch (error) {
     console.error('Failed to set player plot:', error);
+  }
+}
+
+// Ensure money has a default value if not set
+if (!state.money || state.money === 0) {
+  try {
+    state.money = 50;
+  } catch (error) {
+    console.error('Failed to set initial money:', error);
   }
 }
 

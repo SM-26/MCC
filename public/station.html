@@ -262,292 +262,306 @@
     <div id="status-text">Platform Ready</div>
   </footer>
 
-  <script>
-    const KEY = 'mcc_save', ENGINE_UPGRADE_BASE = 150, ENGINE_BASE_CART_CAPACITY = 2, ENGINE_CART_CAPACITY_PER_LEVEL = 1, CART_PRICE_GROWTH = 1.1;
+  <script type="module">
+    import { state, saveGame } from './src/main.js';
+
     const CART_TYPES = {
       passengers: { name: 'Passenger Cart', category: 'passenger', baseCost: 75, weight: 0.1, value: 0.5 },
       doubleDecker: { name: 'Double Decker', category: 'passenger', baseCost: 150, weight: 0.2, value: 1.0 },
       luxury: { name: 'Luxury Cart', category: 'passenger', baseCost: 250, weight: 0.15, value: 1.5 },
       cargo: { name: 'Cargo Cart', category: 'cargo', baseCost: 100, weight: 0.12, value: 0.7 }
     };
+
     const EXPLORE_CHANCE = 0.4, EXPLORE_PAYOUT = 20, SPEED_BASE = 10, SPEED_MODIFIER = 0.2, DIST_VALUE_FACTOR = 5;
     
-    let state = load();
-    
-    function load() {
-      try {
-        return Object.assign({
-          money: 200, engineLevel: 0, fittedCarts: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
-          trainState: 'idle', remainingTime: 0, totalTripTime: 0, explorationsDone: 0, destinations: [],
-          selectedDestId: -1, inventory: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
-          showTrainyard: false
-        }, JSON.parse(localStorage.getItem(KEY) || '{}'));
-      } catch { return { money: 200, engineLevel: 0, fittedCarts: {}, trainState: 'idle', remainingTime: 0, totalTripTime: 0, explorationsDone: 0, destinations: [], selectedDestId: -1, inventory: {}, showTrainyard: false }; }
+    // Initialize station state
+    if (!state.station) {
+      state.station = {
+        engineLevel: 0,
+        fittedCarts: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
+        trainState: 'idle',
+        remainingTime: 0,
+        totalTripTime: 0,
+        explorationsDone: 0,
+        destinations: [],
+        selectedDestId: -1,
+        inventory: { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 },
+        showTrainyard: false
+      };
     }
-    
-    function persist() { localStorage.setItem(KEY, JSON.stringify(state)) }
-    
-    function sync() {
-      state = load();
-      state.money = Number(state.money || 0);
-      state.engineLevel = Number(state.engineLevel || 0);
-      state.fittedCarts = state.fittedCarts || { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 };
-      state.inventory = state.inventory || { passengers: 0, doubleDecker: 0, luxury: 0, cargo: 0 };
-      state.destinations = state.destinations || [];
-      state.showTrainyard = !!state.showTrainyard;
-    }
-    
+
+    let state = { ...state, station: state.station };
+
     function getEngineCartCapacity() {
-      return state.engineLevel === 0 ? 0 : ENGINE_BASE_CART_CAPACITY + (state.engineLevel - 1) * ENGINE_CART_CAPACITY_PER_LEVEL;
+      return state.station.engineLevel === 0 ? 0 : 2 + (state.station.engineLevel - 1);
     }
-    
+
     function buyEngine() {
-      if (state.engineLevel === 0) {
-        if (state.money >= 100) { state.money -= 100; state.engineLevel = 1; }
+      if (state.station.engineLevel === 0) {
+        if (state.money >= 100) { 
+          state.money -= 100; 
+          state.station.engineLevel = 1; 
+        }
       } else {
-        const cost = ENGINE_UPGRADE_BASE * state.engineLevel;
-        if (state.money >= cost) { state.money -= cost; state.engineLevel++; }
+        const cost = 150 * state.station.engineLevel;
+        if (state.money >= cost) { 
+          state.money -= cost; 
+          state.station.engineLevel++; 
+        }
       }
-      persist();
+      saveGame(state);
       updateUI();
     }
-    
+
     function getCartCost(id) {
-      const t = CART_TYPES[id], total = state.inventory[id] + state.fittedCarts[id];
-      return Math.floor(t.baseCost * Math.pow(CART_PRICE_GROWTH, total));
+      const t = CART_TYPES[id], total = state.station.inventory[id] + state.station.fittedCarts[id];
+      return Math.floor(t.baseCost * Math.pow(1.1, total));
     }
-    
+
     function buyCart(id) {
       const c = getCartCost(id);
       if (state.money >= c) {
         state.money -= c;
-        state.inventory[id]++;
-        persist();
+        state.station.inventory[id]++;
+        saveGame(state);
         updateUI();
       }
     }
-    
+
     function fitCart(id) {
-      if (state.trainState !== 'idle') return;
-      const max = getEngineCartCapacity(), fitted = Object.values(state.fittedCarts).reduce((a, b) => a + b, 0);
-      if (fitted >= max || state.inventory[id] <= 0) return;
-      const newCat = CART_TYPES[id].category, active = Object.keys(state.fittedCarts).find(k => state.fittedCarts[k] > 0);
+      if (state.station.trainState !== 'idle') return;
+      const max = getEngineCartCapacity(), fitted = Object.values(state.station.fittedCarts).reduce((a, b) => a + b, 0);
+      if (fitted >= max || state.station.inventory[id] <= 0) return;
+      const newCat = CART_TYPES[id].category, active = Object.keys(state.station.fittedCarts).find(k => state.station.fittedCarts[k] > 0);
       if (active && CART_TYPES[active].category !== newCat) return;
-      state.inventory[id]--;
-      state.fittedCarts[id]++;
-      persist();
+      state.station.inventory[id]--;
+      state.station.fittedCarts[id]++;
+      saveGame(state);
       updateUI();
     }
-    
+
     function removeCart(id) {
-      if (state.trainState !== 'idle') return;
-      if (state.fittedCarts[id] > 0) {
-        state.fittedCarts[id]--;
-        state.inventory[id]++;
-        persist();
+      if (state.station.trainState !== 'idle') return;
+      if (state.station.fittedCarts[id] > 0) {
+        state.station.fittedCarts[id]--;
+        state.station.inventory[id]++;
+        saveGame(state);
         updateUI();
       }
     }
-    
+
     function selectDest(id) {
-      if (state.trainState !== 'idle') return;
-      state.selectedDestId = id;
-      persist();
+      if (state.station.trainState !== 'idle') return;
+      state.station.selectedDestId = id;
+      saveGame(state);
       updateUI();
     }
-    
+
     function getExplorationStats() {
-      const ring = state.explorationsDone < 6 ? 1 : (state.explorationsDone < 18 ? 2 : 3);
+      const ring = state.station.explorationsDone < 6 ? 1 : (state.station.explorationsDone < 18 ? 2 : 3);
       return { ring, distance: ring * 10 };
     }
-    
+
     function calculateTime(dist) {
-      const baseSpeed = SPEED_BASE * (1 + (state.engineLevel - 1) * SPEED_MODIFIER);
-      const weight = 1 + Object.keys(state.fittedCarts).reduce((a, k) => a + state.fittedCarts[k] * CART_TYPES[k].weight, 0);
+      const baseSpeed = SPEED_BASE * (1 + (state.station.engineLevel - 1) * SPEED_MODIFIER);
+      const weight = 1 + Object.keys(state.station.fittedCarts).reduce((sum, slot) => {
+        if (slot.type === 'passenger') return sum + state.station.fittedCarts[slot] * CART_TYPES[slot].weight;
+        if (slot.type === 'cargo') return sum + state.station.fittedCarts[slot] * CART_TYPES[slot].weight;
+        return sum;
+      }, 0);
+      
       return (dist / baseSpeed) * 10 * weight;
     }
-    
+
     function calculateRoutePayout(dest) {
       const base = dest.basePayout + (dest.distance * DIST_VALUE_FACTOR), ex = getExplorationStats();
       const low = Math.max(base * 0.25, EXPLORE_PAYOUT * ex.ring + 10);
-      const cats = new Set();
-      Object.keys(state.fittedCarts).forEach(id => { if (state.fittedCarts[id] > 0) cats.add(CART_TYPES[id].category); });
-      if (cats.size > 1) return low;
+      
       let bonus = 0, has = false;
-      Object.keys(state.fittedCarts).forEach(id => {
-        const c = state.fittedCarts[id];
+      Object.keys(state.station.fittedCarts).forEach(id => {
+        const c = state.station.fittedCarts[id];
         if (c > 0) {
           has = true;
           const t = CART_TYPES[id], ok = (dest.type === 'City' && t.category === 'passenger') || (dest.type === 'Factory' && t.category === 'cargo');
           if (ok) bonus += c * t.value;
         }
       });
+      
       return (!has || bonus === 0) ? low : base * (1 + bonus);
     }
-    
+
     function dispatch() {
-      if (state.trainState === 'idle' && state.engineLevel > 0) {
-        state.trainState = 'traveling';
-        const dist = state.selectedDestId !== -1 ? state.destinations[state.selectedDestId].distance : getExplorationStats().distance;
-        state.totalTripTime = calculateTime(dist);
-        state.remainingTime = state.totalTripTime;
+      if (state.station.trainState === 'idle' && state.station.engineLevel > 0) {
+        state.station.trainState = 'traveling';
+        const dist = state.station.selectedDestId !== -1 ? state.station.destinations[state.station.selectedDestId].distance : getExplorationStats().distance;
+        state.station.totalTripTime = calculateTime(dist);
+        state.station.remainingTime = state.station.totalTripTime;
         updateUI();
-      } else if (state.trainState === 'arrived') {
+      } else if (state.station.trainState === 'arrived') {
         completeTrip();
       }
-      persist();
+      saveGame(state);
       updateUI();
     }
-    
+
     function completeTrip() {
       const ex = getExplorationStats();
-      if (state.selectedDestId === -1) {
+      if (state.station.selectedDestId === -1) {
         state.money += EXPLORE_PAYOUT * ex.ring;
-        state.explorationsDone++;
+        state.station.explorationsDone++;
         if (Math.random() < EXPLORE_CHANCE) {
           const isCity = Math.random() > 0.5;
-          const newLoc = { name: isCity ? `City ${String.fromCharCode(65 + state.destinations.length)}` : `Factory ${state.destinations.length + 1}`, type: isCity ? 'City' : 'Factory', ring: ex.ring, distance: Math.floor(Math.random() * 5) + (ex.ring * 10), basePayout: isCity ? 120 : 180 };
-          state.destinations.push(newLoc);
-          showDiscoveryToast(newLoc.name, newLoc.type);
+          const newLoc = { name: isCity ? `City ${String.fromCharCode(65 + state.station.destinations.length)}` : `Factory ${state.station.destinations.length + 1}`, type: isCity ? 'City' : 'Factory', ring: ex.ring, distance: Math.floor(Math.random() * 5) + (ex.ring * 10), basePayout: isCity ? 120 : 180 };
+          state.station.destinations.push(newLoc);
         }
       } else {
-        state.money += calculateRoutePayout(state.destinations[state.selectedDestId]);
+        state.money += calculateRoutePayout(state.station.destinations[state.station.selectedDestId]);
       }
-      state.trainState = 'idle';
-      state.remainingTime = 0;
-      state.totalTripTime = 0;
-      persist();
+      
+      state.station.trainState = 'idle';
+      state.station.remainingTime = 0;
+      state.station.totalTripTime = 0;
+      saveGame(state);
     }
-    
-    function showDiscoveryToast(name, type) {
-      const t = document.createElement('div');
-      t.className = 'toast';
-      t.innerHTML = `Discovered: <span style="color: var(--accent)">${name}</span> (${type})`;
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 3100);
-    }
-    
+
     function renderPlatform() {
       const visual = document.getElementById('visual-area');
-      if (state.engineLevel === 0) {
+      if (state.station.engineLevel === 0) {
         visual.innerHTML = '<div style="opacity:.3;font-style:italic;">No train on platform</div>';
         return;
       }
-      let html = `<div id="train-group" style="display:flex;align-items:flex-end;gap:4px;" class="${state.trainState === 'traveling' ? 'traveling' : ''}">`;
-      Object.keys(state.fittedCarts).forEach(id => {
-        for (let i = 0; i < state.fittedCarts[id]; i++) html += `<img src="station.svg" class="unit-img" style="filter:hue-rotate(${CART_TYPES[id].hue}deg) brightness(1.5);">`;
+      
+      let html = `<div id="train-group" style="display:flex;align-items:flex-end;gap:4px;" class="${state.station.trainState === 'traveling' ? 'traveling' : ''}">`;
+      Object.keys(state.station.fittedCarts).forEach(id => {
+        for (let i = 0; i < state.station.fittedCarts[id]; i++) html += `<img src="station.svg" class="unit-img" style="filter:hue-rotate(${CART_TYPES[id].hue}deg) brightness(1.5);">`;
       });
       html += `<img src="train.svg" class="unit-img engine"></div>`;
       visual.innerHTML = html;
     }
-    
+
     function renderDestinations() {
       const list = document.getElementById('dest-list');
       list.innerHTML = '';
       const ex = getExplorationStats();
       list.appendChild(createDestCard(-1, `Exploration (Ring ${ex.ring})`, 'Unknown', ex.distance, EXPLORE_PAYOUT));
-      state.destinations.forEach((d, i) => list.appendChild(createDestCard(i, d.name, d.type, d.distance, calculateRoutePayout(d))));
+      state.station.destinations.forEach((d, i) => list.appendChild(createDestCard(i, d.name, d.type, d.distance, calculateRoutePayout(d))));
     }
-    
+
     function createDestCard(id, name, type, dist, payout) {
       const el = document.createElement('div');
-      el.className = `dest-card ${state.selectedDestId === id ? 'selected' : ''}`;
+      el.className = `dest-card ${state.station.selectedDestId === id ? 'selected' : ''}`;
       el.onclick = () => selectDest(id);
       const time = calculateTime(dist);
       el.innerHTML = `<div><div>${name} <span style="font-size:9px;color:var(--accent)">${type}</span></div><div class="dest-info">${dist}km / ${Math.ceil(time)}s</div></div><div style="color:var(--accent)">$${Math.floor(payout)}</div>`;
       return el;
     }
-    
+
     function renderTrainyard() {
       const list = document.getElementById('trainyard-buy-list');
       list.innerHTML = '';
       Object.keys(CART_TYPES).forEach(id => {
-        const t = CART_TYPES[id], cost = getCartCost(id), owned = state.inventory[id] + state.fittedCarts[id];
+        const t = CART_TYPES[id], cost = getCartCost(id), owned = state.station.inventory[id] + state.station.fittedCarts[id];
         const row = document.createElement('div');
         row.innerHTML = `<div class="stat-row"><strong>${t.name}</strong><span>Owned: ${owned}</span></div><div class="stat-row" style="font-size:11px;opacity:.7;"><span>Bonus: +${(t.value * 100).toFixed(0)}% value</span><span>Weight: +${(t.weight * 100).toFixed(0)}% time</span></div><button class="main-btn btn-buy" onclick="buyCart('${id}')" ${state.money < cost ? 'disabled' : ''}>Buy Unit ($${cost})</button>`;
         list.appendChild(row);
       });
+      
       if (!list.children.length) list.innerHTML = '<div style="font-size:12px;opacity:.6;">No carts available</div>';
     }
-    
+
     function renderStationCarts() {
       const c = document.getElementById('station-cart-controls');
       c.innerHTML = '';
-      const max = getEngineCartCapacity(), fitted = Object.values(state.fittedCarts).reduce((a, b) => a + b, 0);
+      const max = getEngineCartCapacity(), fitted = Object.values(state.station.fittedCarts).reduce((a, b) => a + b, 0);
+      
       Object.keys(CART_TYPES).forEach(id => {
-        if (state.inventory[id] > 0 || state.fittedCarts[id] > 0) {
+        if (state.station.inventory[id] > 0 || state.station.fittedCarts[id] > 0) {
           const row = document.createElement('div');
           row.className = 'stat-row controls';
           row.style.background = 'rgba(255,255,255,0.05)';
           row.style.padding = '5px 10px';
           row.style.borderRadius = '5px';
-          row.innerHTML = `<span style="font-size:12px;">${CART_TYPES[id].name} (${state.fittedCarts[id]})</span><div style="display:flex;align-items:center;gap:5px;"><button class="btn-small" onclick="removeCart('${id}')" ${state.fittedCarts[id] === 0 || state.trainState !== 'idle' ? 'disabled' : ''}>-</button><button class="btn-small" onclick="fitCart('${id}')" ${state.inventory[id] === 0 || fitted >= max || state.trainState !== 'idle' ? 'disabled' : ''}>+</button></div>`;
+          row.innerHTML = `<span style="font-size:12px;">${CART_TYPES[id].name} (${state.station.fittedCarts[id]})</span><div style="display:flex;align-items:center;gap:5px;"><button class="btn-small" onclick="removeCart('${id}')" ${state.station.fittedCarts[id] === 0 || state.station.trainState !== 'idle' ? 'disabled' : ''}>-</button><button class="btn-small" onclick="fitCart('${id}')" ${state.station.inventory[id] === 0 || fitted >= max || state.station.trainState !== 'idle' ? 'disabled' : ''}>+</button></div>`;
           c.appendChild(row);
         }
       });
+      
       if (!c.children.length) c.innerHTML = '<div style="font-size:12px;opacity:.6;">No carts fitted</div>';
     }
-    
+
     function updateUI() {
-      sync();
       document.getElementById('money-display').textContent = `$${Math.floor(state.money)}`;
-      document.getElementById('engine-lvl').textContent = state.engineLevel > 0 ? `Level ${state.engineLevel}` : 'None';
-      const max = getEngineCartCapacity(), fitted = Object.values(state.fittedCarts).reduce((a, b) => a + b, 0), baseSpeed = SPEED_BASE * (1 + (state.engineLevel - 1) * SPEED_MODIFIER), nextBaseSpeed = SPEED_BASE * (1 + state.engineLevel * SPEED_MODIFIER), weight = 1 + Object.keys(state.fittedCarts).reduce((a, k) => a + state.fittedCarts[k] * CART_TYPES[k].weight, 0), effective = state.engineLevel > 0 ? baseSpeed / weight : 0;
+      document.getElementById('engine-lvl').textContent = state.station.engineLevel > 0 ? `Level ${state.station.engineLevel}` : 'None';
+      
+      const max = getEngineCartCapacity(), fitted = Object.values(state.station.fittedCarts).reduce((a, b) => a + b, 0);
+      const baseSpeed = SPEED_BASE * (1 + (state.station.engineLevel - 1) * SPEED_MODIFIER);
+      const weight = 1 + Object.keys(state.station.fittedCarts).reduce((sum, slot) => {
+        if (slot.type === 'passenger') return sum + state.station.fittedCarts[slot] * CART_TYPES[slot].weight;
+        if (slot.type === 'cargo') return sum + state.station.fittedCarts[slot] * CART_TYPES[slot].weight;
+        return sum;
+      }, 0);
+      
+      const effective = state.station.engineLevel > 0 ? baseSpeed / weight : 0;
       document.getElementById('cart-count').textContent = `${fitted}/${max}`;
-      document.getElementById('engine-speed').textContent = state.engineLevel > 0 ? `${effective.toFixed(1)} km/h (+${(nextBaseSpeed - baseSpeed).toFixed(1)} engine base next)` : '0.0 km/h';
+      document.getElementById('engine-speed').textContent = state.station.engineLevel > 0 ? `${effective.toFixed(1)} km/h` : '0.0 km/h';
       
       const eb = document.getElementById('btn-buy-engine');
-      if (state.engineLevel === 0) {
+      if (state.station.engineLevel === 0) {
         eb.textContent = 'Buy Engine ($100)';
         eb.disabled = state.money < 100;
       } else {
-        const cost = ENGINE_UPGRADE_BASE * state.engineLevel;
+        const cost = 150 * state.station.engineLevel;
         eb.textContent = `Upgrade Engine ($${cost})`;
-        eb.disabled = state.money < cost || state.trainState !== 'idle';
+        eb.disabled = state.money < cost || state.station.trainState !== 'idle';
       }
       
-      document.getElementById('main-content-wrapper').style.display = state.showTrainyard ? 'none' : 'flex';
-      document.getElementById('trainyard-panel').style.display = state.showTrainyard ? 'block' : 'none';
+      document.getElementById('main-content-wrapper').style.display = state.station.showTrainyard ? 'none' : 'flex';
+      document.getElementById('trainyard-panel').style.display = state.station.showTrainyard ? 'block' : 'none';
+      
       renderPlatform();
       renderDestinations();
       renderTrainyard();
       renderStationCarts();
       
       const db = document.getElementById('btn-dispatch');
-      if (state.trainState === 'idle') {
+      if (state.station.trainState === 'idle') {
         db.textContent = 'SEND TRAIN';
-        db.disabled = state.engineLevel === 0;
-        document.getElementById('status-text').textContent = state.engineLevel === 0 ? 'Buy an engine to start' : 'Platform Ready';
-      } else if (state.trainState === 'traveling') {
+        db.disabled = state.station.engineLevel === 0;
+        document.getElementById('status-text').textContent = state.station.engineLevel === 0 ? 'Buy an engine to start' : 'Platform Ready';
+      } else if (state.station.trainState === 'traveling') {
         db.textContent = 'IN TRANSIT...';
         db.disabled = true;
-        document.getElementById('status-text').textContent = `In Transit... ${Math.ceil(state.remainingTime)}s`;
+        document.getElementById('status-text').textContent = `In Transit... ${Math.ceil(state.station.remainingTime)}s`;
       } else {
         db.textContent = 'COLLECT PAYOUT';
         db.disabled = false;
         document.getElementById('status-text').textContent = 'Mission Complete!';
       }
-      persist();
     }
-    
+
     function toggleTrainyardView() {
-      state.showTrainyard = !state.showTrainyard;
-      persist();
+      state.station.showTrainyard = !state.station.showTrainyard;
+      saveGame(state);
       updateUI();
     }
-    
+
+    // Game loop for trip timer
     setInterval(() => {
-      if (state.trainState === 'traveling') {
-        state.remainingTime = Math.max(0, state.remainingTime - 0.1);
-        document.getElementById('trip-progress').style.width = `${Math.max(0, Math.min(100, ((state.totalTripTime - state.remainingTime) / state.totalTripTime) * 100))}%`;
-        if (state.remainingTime <= 0) state.trainState = 'arrived';
-        updateUI();
-      } else if (state.trainState === 'idle') {
+      if (state.station.trainState === 'traveling') {
+        state.station.remainingTime = Math.max(0, state.station.remainingTime - 0.1);
+        document.getElementById('trip-progress').style.width = `${Math.max(0, Math.min(100, ((state.station.totalTripTime - state.station.remainingTime) / state.station.totalTripTime) * 100))}%`;
+        
+        if (state.station.remainingTime <= 0) {
+          state.station.trainState = 'arrived';
+          updateUI();
+        }
+      } else if (state.station.trainState === 'idle') {
         document.getElementById('trip-progress').style.width = '0%';
       }
     }, 100);
-    
-    window.addEventListener('storage', e => { if (e.key === KEY) updateUI() });
+
+    // Initial render
+    saveGame(state);
     updateUI();
   </script>
 </body>

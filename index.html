@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -191,6 +192,7 @@
     }
   </style>
 </head>
+
 <body>
   <header>
     <div>
@@ -240,7 +242,10 @@
     <div class="small">World → Plot → Station</div>
     <div class="small" id="explore-status"></div>
   </footer>
-
+  <script type="module">
+    import { registerSW } from 'virtual:pwa-register';
+    registerSW({ immediate: true });
+  </script>
   <!-- Load game logic as ES modules -->
   <script type="module">
     (async () => {
@@ -301,7 +306,7 @@
             if (msg) msg.textContent = 'No more destinations to discover.';
             return;
           }
-          
+
           const pick = undiscovered[0];
           pick.discovered = true;
           state.worldDiscovered.push(pick.id);
@@ -336,20 +341,20 @@
         function renderWorldGrid(worldGrid, playerPlotId) {
           const container = document.getElementById('world-map');
           if (!container) return;
-          
+
           container.innerHTML = '';
-          
+
           worldGrid.forEach(cell => {
             const isHidden = cell.type !== 'plot' && !cell.discovered;
-            
+
             const hex = document.createElement('div');
             hex.className = `hex ${cell.type} ${isHidden ? 'hidden' : ''} ${cell.id === playerPlotId ? 'player' : ''}`;
-            
+
             // Calculate hex position using axial coordinates
             const pos = hexPos(cell.q, cell.r);
             hex.style.left = `${pos.left}px`;
             hex.style.top = `${pos.top}px`;
-            
+
             // Add content
             if (cell.type === 'fog') {
               hex.innerHTML = '<div>Fog</div>';
@@ -359,7 +364,7 @@
                 <div class="small">${cell.type}</div>
               `;
             }
-            
+
             // Add click handler
             hex.onclick = () => {
               if (isHidden) {
@@ -367,7 +372,7 @@
                 if (msg) msg.textContent = 'Undiscovered.';
                 return;
               }
-              
+
               if (cell.type === 'plot') {
                 setTab('plot');
               } else if (cell.type === 'city' || cell.type === 'factory') {
@@ -375,7 +380,7 @@
                 if (msg) msg.textContent = `Selected ${cell.name}`;
               }
             };
-            
+
             container.appendChild(hex);
           });
         }
@@ -384,7 +389,7 @@
           const size = 78;
           const gapX = 67;
           const gapY = 60;
-          
+
           return {
             left: 160 + q * gapX + (r % 2 ? gapX / 2 : 0),
             top: 70 + r * gapY
@@ -406,4 +411,5 @@
     })();
   </script>
 </body>
+
 </html>
