@@ -61,13 +61,18 @@ export function createDefaultSave(): GameState {
 export function createValidatedSave(saved: SaveData): GameState {
   // Validate and normalize state
   const normalized = {
-    ...saved,
-    money: Number(saved.money || 0),
+    money: saved.money === undefined || saved.money === null || saved.money === 0 ? 200 : saved.money, // Default to $200 if undefined, null, or 0
     plots: saved.plots || [],
     worldDiscovered: saved.worldDiscovered || [],
     destinations: saved.destinations || [],
+    playerPlotId: saved.playerPlotId,
     engineeringIdeas: Number(saved.engineeringIdeas || 0),
-    resetCount: Number(saved.resetCount || 0)
+    resetCount: Number(saved.resetCount || 0),
+    version: saved.version ?? CURRENT_VERSION,
+    lastSaveTime: saved.lastSaveTime ?? Date.now(),
+    worldGrid: saved.worldGrid,
+    // Only include worldDiscovered if it exists (for backwards compatibility)
+    ...(saved.worldDiscovered && { worldDiscovered: saved.worldDiscovered })
   };
   
   // Ensure player plot exists

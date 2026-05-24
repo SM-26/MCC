@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite';
+// import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
@@ -42,5 +43,10 @@ export default defineConfig({
         ]
       }
     })
-  ]
+  ],
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    include: ['src/**/*.test.ts', 'src/**/*.spec.ts']
+  }
 });
