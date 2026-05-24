@@ -4,11 +4,17 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   root: '.',
+  base: '/MCC/',
   publicDir: 'public',
   build: {
     outDir: 'dist',
     sourcemap: true,
-    minify: false
+    minify: false,
+    rollupOptions: {
+      input: {
+        main: './index.html'
+      }
+    }
   },
   server: {
     port: 8080,

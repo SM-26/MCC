@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Merge & Choo-Choo - Miner Loop</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #ffd700;
+      --rubble: #666;
+      --dirt: #8b7355;
+      --empty: #0f3460;
+      --text: #eee;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    header {
+      padding: 15px;
+      background: var(--panel);
+      border-bottom: 2px solid var(--empty);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #money-display {
+      font-size: 24px;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    #miner-count {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    main {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .tile-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .tile {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      transition: transform 0.1s;
+      position: relative;
+    }
+
+    .tile:active {
+      transform: scale(0.95);
+    }
+
+    .tile.empty { background: var(--empty); }
+    .tile.rubble { background: var(--rubble); }
+    .tile.dirt { background: var(--dirt); }
+    .tile.coal { background: #333; }
+    .tile.oil { background: #8b0000; }
+    .tile.copper { background: #b87333; }
+    .tile['super-alloy'] { background: #9370db; }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #111;
+      font-weight: 700;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn.secondary {
+      background: #4a90d9;
+      color: white;
+    }
+
+    .btn.warn {
+      background: #e67e22;
+      color: white;
+    }
+
+    .tile-info {
+      font-size: 10px;
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      opacity: 0.7;
+    }
+
+    #message {
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div id="money-display">$<span id="money">0</span></div>
+      <div id="miner-count">Miners: <span id="miner-count-val">0</span></div>
+    </div>
+    <div style="font-size: 12px; opacity: 0.7;">Plot A-I-1</div>
+  </header>
+
+  <main>
+    <div class="card">
+      <strong>Mines</strong>
+      <div id="tile-grid" class="tile-grid"></div>
+      <div id="message">Click "Buy Miner" to start mining!</div>
+    </div>
+
+    <div class="card">
+      <strong>Actions</strong>
+      <button id="buy-miner-btn" class="btn">Buy Miner ($50)</button>
+      <button id="merge-miners-btn" class="btn secondary">Merge Miners</button>
+      <button id="dig-down-btn" class="btn warn">Dig Down (-1 Level)</button>
+    </div>
+
+    <div class="card">
+      <strong>Plot Info</strong>
+      <div id="plot-info"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { 
+      createPlot, 
+      digDown, 
+      buyNorthPlot, 
+      getPlotName,
+      getTileTypeDisplay,
+      getTileHealthBar,
+      findBestMinerPlacement,
+      placeMiner,
+      attemptMerge,
+      buyMiner as buyMinerFunc,
+      getFacingDirection
+    } from './src/mines/index.js';
+
+    // Load state from localStorage
+    let state = {};
+    try {
+      const saved = localStorage.getItem('mcc_save');
+      if (saved) {
+        state = JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load save:', e);
+    }
+
+    // Initialize plot if not exists
+    if (!state.plots || state.plots.length === 0) {
+      const plot = createPlot('plot-A-I-1', 0, 0);
+      state.plots = [plot];
+      state.playerPlotId = 'plot-A-I-1';
+      state.money = 200;
+    }
+
+    const plot = state.plots[0];
+
+    // UI Elements
+    const moneyEl = document.getElementById('money');
+    const minerCountEl = document.getElementById('miner-count-val');
+    const tileGridEl = document.getElementById('tile-grid');
+    const messageEl = document.getElementById('message');
+    const plotInfoEl = document.getElementById('plot-info');
+    const buyMinerBtn = document.getElementById('buy-miner-btn');
+    const mergeMinersBtn = document.getElementById('merge-miners-btn');
+    const digDownBtn = document.getElementById('dig-down-btn');
+
+    // Render tiles
+    function renderTiles() {
+      tileGridEl.innerHTML = '';
+      
+      plot.tiles.forEach((tile, index) => {
+        const tileEl = document.createElement('div');
+        tileEl.className = `tile ${tile.type}`;
+        
+        const display = getTileTypeDisplay(tile);
+        tileEl.textContent = display || '';
+        
+        // Add health bar if resource
+        if (tile.hp > 0 && tile.maxHp > 0) {
+          const healthBar = getTileHealthBar(tile);
+          if (healthBar) {
+            const bar = document.createElement('div');
+            bar.style.cssText = 'width:' + tile.hp + '%; height: 3px; background: ' + 
+              (tile.hp / tile.maxHp > 0.5 ? '#4CAF50' : tile.hp / tile.maxHp > 0.25 ? '#FF9800' : '#F44336');
+            tileEl.appendChild(bar);
+          }
+        }
+
+        // Click handler - try to place miner or merge
+        tileEl.onclick = () => {
+          if (tile.type === 'empty') {
+            const bestIndex = findBestMinerPlacement(plot);
+            if (bestIndex !== null && bestIndex === index) {
+              placeMiner(plot, 1);
+              saveAndRender();
+            } else {
+              messageEl.textContent = 'No room to place miner here';
+            }
+          } else if (tile.type !== 'empty' && plot.miners.length > 0) {
+            // Try merge
+            const miners = plot.miners.filter(m => m.level === 1);
+            if (miners.length >= 2) {
+              attemptMerge(plot, miners[0]);
+              saveAndRender();
+            } else {
+              messageEl.textContent = 'Need at least 2 level-1 miners to merge';
+            }
+          }
+        };
+
+        const info = document.createElement('div');
+        info.className = 'tile-info';
+        info.textContent = tile.type === 'empty' ? '' : 
+          (tile.value ? tile.value + ' ' + tile.resourceType : '');
+        tileEl.appendChild(info);
+
+        tileGridEl.appendChild(tileEl);
+      });
+    }
+
+    // Render plot info
+    function renderPlotInfo() {
+      const name = getPlotName(plot);
+      plotInfoEl.innerHTML = `
+        <strong>Name:</strong> ${name}<br>
+        <strong>Level:</strong> ${plot.undergroundLevels}<br>
+        <strong>Status:</strong> ${plot.hardCleared ? 'Cleared' : 'Active'}
+      `;
+    }
+
+    // Save state
+    function saveState() {
+      const saveData = { ...state, _version: 1 };
+      localStorage.setItem('mcc_save', JSON.stringify(saveData));
+    }
+
+    // Render everything
+    function saveAndRender() {
+      saveState();
+      renderTiles();
+      renderPlotInfo();
+      updateUI();
+    }
+
+    // Update UI
+    function updateUI() {
+      moneyEl.textContent = state.money;
+      minerCountEl.textContent = plot.miners.length;
+      
+      buyMinerBtn.disabled = state.money < 50;
+      mergeMinersBtn.disabled = plot.miners.filter(m => m.level === 1).length < 2;
+      digDownBtn.disabled = plot.hardCleared || plot.undergroundLevels >= -5;
+    }
+
+    // Event handlers
+    buyMinerBtn.onclick = () => {
+      try {
+        const miner = buyMinerFunc(plot);
+        messageEl.textContent = `Bought level ${miner.level} miner!`;
+        saveAndRender();
+      } catch (e) {
+        messageEl.textContent = e.message;
+      }
+    };
+
+    mergeMinersBtn.onclick = () => {
+      const miners = plot.miners.filter(m => m.level === 1);
+      if (miners.length >= 2) {
+        attemptMerge(plot, miners[0]);
+        messageEl.textContent = 'Miners merged!';
+        saveAndRender();
+      }
+    };
+
+    digDownBtn.onclick = () => {
+      if (!plot.hardCleared) {
+        messageEl.textContent = 'Plot not cleared yet!';
+        return;
+      }
+      digDown(plot);
+      messageEl.textContent = 'Dug down to level ' + (plot.undergroundLevels + 1);
+      saveAndRender();
+    };
+
+    // Auto-save every 5 seconds
+    setInterval(saveState, 5000);
+
+    // Initial render
+    renderTiles();
+    renderPlotInfo();
+    updateUI();
+
+    // Listen for storage changes (from other tabs)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'mcc_save') {
+        try {
+          state = JSON.parse(e.newValue);
+          const plot = state.plots[0];
+          renderTiles();
+          renderPlotInfo();
+          updateUI();
+        } catch (err) {
+          console.error('Failed to update from storage:', err);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

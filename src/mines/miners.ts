@@ -18,7 +18,7 @@ export function placeMiner(plot: Plot, minerLevel: number): Miner {
   const tileIndex = findBestMinerPlacement(plot);
   if (tileIndex === null) throw new Error('No room to place miner');
   
-  const facing = getFacingDirection(tileIndex);
+  const facing = getTileFacing(tileIndex);
   
   return {
     level: minerLevel,
@@ -27,7 +27,7 @@ export function placeMiner(plot: Plot, minerLevel: number): Miner {
   };
 }
 
-export function getFacingDirection(tileIndex: number): number {
+export function getTileFacing(tileIndex: number): number {
   // Simple heuristic: face toward center or nearest target
   const x = tileIndex % 5;
   const y = Math.floor(tileIndex / 5);
@@ -51,7 +51,7 @@ export function getNeighbors(idx: number): number[] {
   return n;
 }
 
-export function getFacingDirection(from: number, to: number): number {
+export function getDirection(from: number, to: number): number {
   const d = to - from;
   if (d === -5) return 0;      // up
   if (d === 1) return 90;      // right

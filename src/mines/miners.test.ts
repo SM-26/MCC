@@ -1,6 +1,6 @@
 import { describe, beforeEach, test, expect } from 'vitest';
 import { Plot } from '../core/types/state';
-import { findBestMinerPlacement, placeMiner, getFacingDirection, getNeighbors, attemptMerge, buyMiner, calculateMinerCost } from './miners';
+import { findBestMinerPlacement, placeMiner, getTileFacing, getDirection, getNeighbors, attemptMerge, buyMiner, calculateMinerCost } from './miners';
 
 describe('Mines - Miner Placement', () => {
   beforeEach(() => {
@@ -205,7 +205,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns correct direction for tile at index 0', () => {
     // Act: Get facing direction
-    const direction = getFacingDirection(0);
+    const direction = getDirection(0);
 
     // Assert: Faces right (0 degrees)
     expect(direction).toBe(0);
@@ -213,7 +213,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns correct direction for tile at index 1', () => {
     // Act: Get facing direction
-    const direction = getFacingDirection(1);
+    const direction = getDirection(1);
 
     // Assert: Faces right (0 degrees)
     expect(direction).toBe(0);
@@ -221,7 +221,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns correct direction for tile at index 2', () => {
     // Act: Get facing direction
-    const direction = getFacingDirection(2);
+    const direction = getDirection(2);
 
     // Assert: Faces down (90 degrees)
     expect(direction).toBe(90);
@@ -229,7 +229,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns correct direction for tile at index 3', () => {
     // Act: Get facing direction
-    const direction = getFacingDirection(3);
+    const direction = getDirection(3);
 
     // Assert: Faces down (90 degrees)
     expect(direction).toBe(90);
@@ -237,7 +237,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns correct direction for tile at index 4', () => {
     // Act: Get facing direction
-    const direction = getFacingDirection(4);
+    const direction = getDirection(4);
 
     // Assert: Faces up (270 degrees)
     expect(direction).toBe(270);
@@ -245,7 +245,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns correct direction for tile at index 5', () => {
     // Act: Get facing direction
-    const direction = getFacingDirection(5);
+    const direction = getDirection(5);
 
     // Assert: Faces up (270 degrees)
     expect(direction).toBe(270);
@@ -253,7 +253,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns correct direction for tile at index 6', () => {
     // Act: Get facing direction
-    const direction = getFacingDirection(6);
+    const direction = getDirection(6);
 
     // Assert: Faces right (0 degrees)
     expect(direction).toBe(0);
@@ -263,7 +263,7 @@ describe('Mines - Facing Direction', () => {
     // Arrange: Check multiple tiles
     const directions = [];
     for (let i = 0; i < 25; i++) {
-      directions.push(getFacingDirection(i));
+      directions.push(getDirection(i));
     }
 
     // Assert: Directions follow expected pattern
@@ -275,8 +275,8 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection handles edge of grid', () => {
     // Act: Get directions at grid edges
-    const topRow = getFacingDirection(0);
-    const bottomRow = getFacingDirection(24);
+    const topRow = getDirection(0);
+    const bottomRow = getTileFacing(24);
 
     // Assert: Top row faces down, bottom row faces up
     expect(topRow).toBe(90);
@@ -285,7 +285,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection handles center of grid', () => {
     // Act: Get direction at center
-    const center = getFacingDirection(12);
+    const center = getDirection(12);
 
     // Assert: Center tiles face down
     expect(center).toBe(90);
@@ -293,8 +293,8 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection returns consistent values', () => {
     // Act: Call multiple times
-    const dir1 = getFacingDirection(5);
-    const dir2 = getFacingDirection(5);
+    const dir1 = getDirection(5);
+    const dir2 = getTileFacing(5);
 
     // Assert: Consistent results
     expect(dir1).toBe(dir2);
@@ -302,7 +302,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection handles negative indices', () => {
     // Act: Get direction for negative index
-    const direction = getFacingDirection(-1) as any;
+    const direction = getDirection(-1) as any;
 
     // Assert: Handles gracefully (wraps around or returns default)
     expect(typeof direction).toBe('number');
@@ -310,7 +310,7 @@ describe('Mines - Facing Direction', () => {
 
   test('getFacingDirection handles large indices', () => {
     // Act: Get direction for large index
-    const direction = getFacingDirection(100);
+    const direction = getDirection(100);
 
     // Assert: Returns valid direction
     expect([0, 90, 180, 270].includes(direction)).toBe(true);
@@ -1046,7 +1046,7 @@ describe('Mines - Miner Operations Integration', () => {
     // Act: Get facing direction
     const bestIndex = findBestMinerPlacement(plot);
     if (bestIndex !== null) {
-      const direction = getFacingDirection(bestIndex);
+      const direction = getDirection(bestIndex);
 
       // Assert: Direction is valid
       expect([0, 90, 180, 270].includes(direction)).toBe(true);
@@ -1105,7 +1105,7 @@ describe('Mines - Miner Operations Integration', () => {
     // Act: Plan placement
     const bestIndex = findBestMinerPlacement(plot);
     if (bestIndex !== null) {
-      const direction = getFacingDirection(bestIndex);
+      const direction = getDirection(bestIndex);
       const neighbors = getNeighbors(bestIndex);
 
       // Assert: Can plan placement

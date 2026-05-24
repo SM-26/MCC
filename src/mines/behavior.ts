@@ -9,7 +9,7 @@ export function updateMiner(miner: Miner, plot: PlotState, dt: number): void {
   const target = plot.tiles[idx];
   const damage = Math.pow(2, miner.level - 1) * 5 * dt;
   
-  miner.facing = getFacingDirection(miner.tileIndex, idx);
+  miner.facing = getDirection(miner.tileIndex, idx);
   target.hp -= damage;
   
   if (target.hp <= 0) {
