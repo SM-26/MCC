@@ -61,7 +61,7 @@ export function createDefaultSave(): GameState {
 export function createValidatedSave(saved: SaveData): GameState {
   // Validate and normalize state
   const normalized = {
-    money: saved.money === undefined || saved.money === null || saved.money === 0 ? 200 : saved.money, // Default to $200 if undefined, null, or 0
+    money: saved.money ?? 200, // Default to $200 if undefined or null only (preserve 0)
     plots: saved.plots || [],
     worldDiscovered: saved.worldDiscovered || [],
     destinations: saved.destinations || [],
@@ -74,26 +74,35 @@ export function createValidatedSave(saved: SaveData): GameState {
     // Only include worldDiscovered if it exists (for backwards compatibility)
     ...(saved.worldDiscovered && { worldDiscovered: saved.worldDiscovered })
   };
-  
-  // Ensure player plot exists
-  if (!normalized.plots.find(p => p.id === normalized.playerPlotId)) {
+
+  // Ensure player plot exists (only if plots array is empty, not if it has one plot)
+  if (normalized.plots.length === 0 && !normalized.playerPlotId) {
     normalized.plots.push(createInitialPlot());
   }
-  
+
   return normalized;
 }
 
-export function migrateSave(oldVersion: number, newVersion: number): SaveData {
+export function migrateSave(oldSave: Partial<GameState>, newVersion: number): SaveData {
   // Migration logic for version upgrades
-  const migrated = structuredClone(oldVersion);
-  
-  if (oldVersion === 0 && newVersion === 1) {
+  const migrated = structuredClone({} as any) as Partial<SaveData>;
+
+  if (oldSave.version === 0 && newVersion === 1) {
     // Add missing fields with defaults
     migrated._version = newVersion;
     migrated.lastSaveTime = Date.now();
+    // Copy over existing data that should be preserved
+    migrated.money = oldSave.money ?? 200;
+    migrated.playerPlotId = oldSave.playerPlotId ?? 'plot-A-I-1';
+    migrated.plots = oldSave.plots || [];
+    migrated.worldDiscovered = oldSave.worldDiscovered || [];
+    migrated.destinations = oldSave.destinations || [];
+    migrated.engineeringIdeas = Number(oldSave.engineeringIdeas ?? 0);
+    migrated.resetCount = Number(oldSave.resetCount ?? 0);
+    migrated.version = newVersion;
   }
-  
-  return migrated;
+
+  return migrated as SaveData;
 }
 
 // World grid generation (3-ring hex grid, 19 hexes total)
