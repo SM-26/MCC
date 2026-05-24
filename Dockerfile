@@ -1,16 +1,20 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
+# Enable corepack to use pnpm (no need to npm install -g)
+RUN corepack enable
+
 # Install pnpm globally
-RUN npm install -g pnpm
+# RUN npm install -g pnpm
 
 # Copy package files
-COPY package*.json ./
+# COPY package*.json ./
+COPY package.json pnpm-lock.yaml* ./
 
 # Install dependencies with pnpm
-RUN pnpm install --frozen-lockfile || pnpm install
+RUN pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .

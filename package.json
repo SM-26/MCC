@@ -1,6 +1,7 @@
 {
   "name": "merge-choo-choo",
   "version": "1.0.0",
+  "packageManager": "pnpm@11.2.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
