@@ -1,7 +1,7 @@
 import { describe, beforeEach, test, expect } from 'vitest';
-import { PlotState, createPlot, digDown, buyNorthPlot, getPlotName, getTileTypeDisplay, getTileHealthBar } from '../../mines/index';
+import { PlotState, createPlot, digDown, buyNorthPlot, getPlotName, getTileTypeDisplay, getTileHealthBar } from './index';
 
-describe('Mines & Plot Progression - Core Functions', () => {
+describe('Mines - Core Functions', () => {
   beforeEach(() => {
     // Reset any global state if needed
   });
@@ -136,7 +136,7 @@ describe('Mines & Plot Progression - Core Functions', () => {
 
     // Act & Assert: Each type returns correct emoji
     for (const { type, expectedEmoji } of tileTypes) {
-      const display = getTileTypeDisplay({ type, hp: 100, maxHp: 100 });
+      const display = getTileTypeDisplay({ type, hp: 100, maxHp: 100 } as any);
       expect(display).toBe(expectedEmoji);
     }
   });
@@ -266,7 +266,7 @@ describe('Mines & Plot Progression - Core Functions', () => {
   });
 });
 
-describe('Mines & Plot Progression - Integration Tests', () => {
+describe('Mines - Integration Tests', () => {
   beforeEach(() => {
     // Reset any global state if needed
   });
@@ -354,7 +354,7 @@ describe('Mines & Plot Progression - Integration Tests', () => {
   });
 });
 
-describe('Mines & Plot Progression - Edge Cases', () => {
+describe('Mines - Edge Cases', () => {
   beforeEach(() => {
     // Reset any global state if needed
   });
