@@ -1,25 +1,28 @@
 #!/bin/bash
 
+# If this script was triggered by our own amend command, exit immediately to stop the loop!
+if [ "$GIT_INFO_AMENDING" = "true" ]; then
+    exit 0
+fi
+
 # Define the target path
 TARGET_FILE="/home/sm26/MCC/public/git-info.txt"
 
-# Since the commit isn't finalized, the new hash doesn't exist yet.
-# We fetch the current HEAD and append a "+" marker to signify "this commit will follow" 
-# or use "next" so your UI accurately updates.
-COMMIT_HASH="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")+"
+# Get the absolute, real, brand new commit hash (short, 7 characters)
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-# Capture the exact message you just typed in your text editor
-if [ -f ".git/COMMIT_EDITMSG" ]; then
-    COMMIT_MSG=$(head -n 1 .git/COMMIT_EDITMSG)
-else
-    COMMIT_MSG="Automated Commit"
-fi
+# Get the real commit message
+COMMIT_MSG=$(git log -1 --pretty="%s" 2>/dev/null || echo "Unknown commit")
 
-# Write to file
+# Write the true data to the file
 echo "$COMMIT_HASH" > "$TARGET_FILE"
 echo "$COMMIT_MSG" >> "$TARGET_FILE"
 
-# Stage the file inside the pre-commit environment
+# Stage the updated file
 git add "$TARGET_FILE"
 
-echo "Generated and staged public/git-info.txt cleanly within pre-commit"
+echo "Generated public/git-info.txt with true hash: $COMMIT_HASH"
+
+# Amend the commit using our environment variable guard to block loops
+export GIT_INFO_AMENDING="true"
+git commit --amend --no-edit --no-verify

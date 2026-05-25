@@ -1,2 +1,2 @@
-8f520f55
-testing the true hash fix
+7381846a
+chore: solidifying git-info environment guard in post-commit
