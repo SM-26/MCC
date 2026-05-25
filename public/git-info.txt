@@ -1,2 +1,2 @@
-38f4e88
-Refactor to Vite best practices: single index.html entry, modular app.js with slices, remove duplicate settings.html
+5cc106b
+Fix Vite config import, create app.js in src/, move styles.css to root

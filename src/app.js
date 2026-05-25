@@ -84,8 +84,8 @@ async function init() {
 // ============================================================================
 async function loadAppInfo() {
   try {
-    // Read package.json for version
-    const packageResponse = await fetch('/package.json');
+    // Read package.json for version (Vite serves from /MCC/)
+    const packageResponse = await fetch('/MCC/package.json');
     if (packageResponse.ok) {
       const packageData = await packageResponse.json();
       appState.version = packageData.version || 'unknown';
@@ -93,9 +93,9 @@ async function loadAppInfo() {
       appState.version = 'unknown';
     }
 
-    // Read git-info.txt for commit hash and message
+    // Read git-info.txt for commit hash and message (Vite serves from /MCC/)
     try {
-      const gitResponse = await fetch('/git-info.txt');
+      const gitResponse = await fetch('/MCC/git-info.txt');
       if (gitResponse.ok) {
         const gitInfo = await gitResponse.text();
         const lines = gitInfo.trim().split('\n');
