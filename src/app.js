@@ -105,14 +105,14 @@ async function loadAppInfo() {
         // Make commit hash clickable to show message
         dom.commitHash.innerHTML = `
           <span class="hash-value" contenteditable="true">${appState.commitHash}</span>
-          <span class="hash-message">${appState.commitMessage}</span>
+          ${appState.commitMessage}
         `;
       } else {
         appState.commitHash = 'abc123def';
         appState.commitMessage = 'Initial commit';
         dom.commitHash.innerHTML = `
           <span class="hash-value" contenteditable="true">${appState.commitHash}</span>
-          <span class="hash-message">${appState.commitMessage}</span>
+          ${appState.commitMessage}
         `;
       }
     } catch (error) {
@@ -121,7 +121,7 @@ async function loadAppInfo() {
       appState.commitMessage = 'Initial commit';
       dom.commitHash.innerHTML = `
         <span class="hash-value" contenteditable="true">${appState.commitHash}</span>
-        <span class="hash-message">${appState.commitMessage}</span>
+        ${appState.commitMessage}
       `;
     }
 

@@ -169,11 +169,6 @@ main {
   color: var(--accent);
 }
 
-.hash-message {
-  color: #888;
-  font-size: 0.875rem;
-}
-
 /* Toast */
 .toast {
   position: fixed;

@@ -1,2 +1,2 @@
-54533e7
-Fix fetch paths for Vite base URL (/MCC/)
+f3aa18d
+Move nav to footer, remove hash-message class
