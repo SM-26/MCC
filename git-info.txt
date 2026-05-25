@@ -1,2 +1,2 @@
-caa578b
-new baseline, untested
+32ad0db
+Fix structure: move settings.html, app.js, git-info.txt to root; keep public/ for static assets only
