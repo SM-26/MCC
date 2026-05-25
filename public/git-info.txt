@@ -1,2 +1,0 @@
-4c9ecef
-Ignore Windows Zone.Identifier metadata files
