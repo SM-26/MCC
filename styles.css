@@ -63,6 +63,7 @@ nav {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  justify-content: center; /* Center the nav buttons */
 }
 
 .nav-tab {
@@ -203,4 +204,26 @@ main {
 .description-text {
   color: #aaa;
   line-height: 1.8;
+}
+
+/* Footer with nav bar (can be toggled) */
+footer#nav-bar {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+footer#nav-bar.nav-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+header nav {
+  justify-content: center; /* Center the nav buttons */
 }

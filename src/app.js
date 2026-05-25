@@ -177,8 +177,16 @@ function setupEventListeners() {
 
   // Navigation bar toggle
   dom.navToggle?.addEventListener('click', () => {
-    dom.navBar.classList.toggle('nav-bottom');
-    appState.navPosition = dom.navBar.classList.contains('nav-bottom') ? 'bottom' : 'top';
+    const isBottom = dom.navBar.classList.toggle('nav-bottom');
+    appState.navPosition = isBottom ? 'bottom' : 'top';
+    
+    // Update button text based on position
+    const buttonText = dom.navToggle.querySelector('.text');
+    if (isBottom) {
+      buttonText.textContent = 'Move Nav Up';
+    } else {
+      buttonText.textContent = 'Move Nav Down';
+    }
   });
 
   // Dev mode toggle (placeholder)

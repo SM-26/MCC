@@ -1,2 +1,2 @@
-5cc106b
-Fix Vite config import, create app.js in src/, move styles.css to root
+54533e7
+Fix fetch paths for Vite base URL (/MCC/)
