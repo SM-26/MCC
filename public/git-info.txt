@@ -1,2 +1,2 @@
-7381846a
-chore: solidifying git-info environment guard in post-commit
+56df46a4
+docs: add TypeScript-Migration branch documentation
