@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge & Choo-Choo</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <!-- Splash screen -->
+    <div id="splash">
+        <h1>Loading...</h1>
+    </div>
+
+    <!-- Main app container -->
+    <div id="app" style="display: none;">
+        <!-- Header -->
+        <header>
+            <h1>Merge & Choo-Choo</h1>
+            <nav>
+                <button class="nav-tab" data-tab="world">World</button>
+                <button class="nav-tab" data-tab="mines">Mines</button>
+                <button class="nav-tab" data-tab="station">Station</button>
+                <button class="nav-tab" data-tab="settings">Settings</button>
+            </nav>
+        </header>
+
+        <!-- Main content area -->
+        <main>
+            <!-- World tab -->
+            <section id="world" class="tab-content active">
+                <h2>World Map</h2>
+                <div id="world-grid"></div>
+            </section>
+
+            <!-- Mines tab -->
+            <section id="mines" class="tab-content">
+                <h2>Mines</h2>
+                <div id="mines-container"></div>
+            </section>
+
+            <!-- Station tab -->
+            <section id="station" class="tab-content">
+                <h2>Station</h2>
+                <div id="station-container"></div>
+            </section>
+
+            <!-- Settings tab -->
+            <section id="settings" class="tab-content">
+                <h2>Settings</h2>
+                
+                <!-- General Settings -->
+                <section class="settings-section">
+                    <h3>General</h3>
+                    
+                    <!-- Theme Toggle -->
+                    <div class="setting-item">
+                        <label for="themeToggle" class="setting-label">🎨 Theme</label>
+                        <div class="setting-controls">
+                            <button id="themeToggle" class="btn-primary">
+                                <span class="icon">🌙</span>
+                                <span class="text">Dark Mode</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reset Save Data -->
+                    <div class="setting-item">
+                        <label for="resetSaveData" class="setting-label">🗑️ Reset Save Data</label>
+                        <div class="setting-controls">
+                            <button id="resetSaveData" class="btn-danger">
+                                <span class="icon">🗑️</span>
+                                <span class="text">Reset All Data</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Navigation Position -->
+                    <div class="setting-item">
+                        <label for="navToggle" class="setting-label">📍 Navigation Bar Position</label>
+                        <div class="setting-controls">
+                            <button id="navToggle" class="btn-primary">
+                                <span class="icon">🔄</span>
+                                <span class="text">Move Nav Here</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Version & Commit Info -->
+                    <div class="setting-item version-info">
+                        <label class="setting-label">📦 Version Information</label>
+                        <div class="version-display">
+                            <div class="version-number" id="app-version"></div>
+                            <div class="commit-hash" id="commit-hash">
+                                <span class="hash-value"></span>
+                                <span class="hash-message"></span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Developer Settings -->
+                <section class="settings-section">
+                    <h3>Developer</h3>
+                    <div class="setting-item">
+                        <label for="devModeToggle" class="setting-label">🔧 Dev Mode</label>
+                        <div class="setting-controls">
+                            <input type="checkbox" id="devModeToggle" disabled>
+                            <span class="disabled-text">(Placeholder - no effect)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- About -->
+                <section class="settings-section">
+                    <h3>About</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">📝 Description</label>
+                        <p class="description-text">
+                            Merge & Choo-Choo is a mobile-first idle railway tycoon game.
+                            Build your empire from rubble to rail dominance!
+                        </p>
+                    </div>
+                </section>
+            </section>
+        </main>
+
+        <!-- Footer with nav bar (can be toggled) -->
+        <footer id="nav-bar">
+            <!-- Nav tabs will be duplicated here when toggled -->
+        </footer>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Application logic -->
+    <script type="module" src="/src/app.js"></script>
+</body>
+</html>

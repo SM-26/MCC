@@ -1,2 +1,0 @@
-82c7394
-Move source files (index.html, settings.html, app.js) to src/ folder

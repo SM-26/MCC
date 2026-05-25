@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Define the target path
+TARGET_FILE="/home/sm26/MCC/public/git-info.txt"
+
 # Get commit hash (short, 7 characters)
 COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
@@ -7,13 +10,10 @@ COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 COMMIT_MSG=$(git log -1 --pretty="%s" 2>/dev/null || echo "Unknown commit")
 
 # Write to file
-echo "$COMMIT_HASH" > /home/sm26/MCC/git-info.txt
-echo "$COMMIT_MSG" >> /home/sm26/MCC/git-info.txt
+echo "$COMMIT_HASH" > "$TARGET_FILE"
+echo "$COMMIT_MSG" >> "$TARGET_FILE"
 
-# Stage the file so it's included in the current commit
-git add /home/sm26/MCC/git-info.txt
+# Stage the file
+git add "$TARGET_FILE"
 
-# echo "Generated git-info.txt:"
-# cat /home/sm26/MCC/git-info.txt
-
-echo "Generated and staged git-info.txt"
+echo "Generated and staged public/git-info.txt"
