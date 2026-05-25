@@ -8,9 +8,10 @@
 import { initWorldSlice } from './world.js';
 import { initMinesSlice } from './mines.js';
 import { initStationSlice } from './station.js';
-import { initUISlice } from './ui.js';
+import { initUISlice, showToast } from './ui.js';
 import { initSaveSlice } from './save.js';
 import { initPlatformSlice } from './platform.js';
+import { initSettingsSlice } from './settings.js';
 
 // ============================================================================
 // Application State (Single Source of Truth)
@@ -21,28 +22,17 @@ const appState = {
   version: null,
   commitHash: null,
   commitMessage: null,
-  navPosition: 'bottom' // 'top' or 'bottom'
+  navPosition: 'top' // 'top' or 'bottom'
 };
 
 // ============================================================================
-// DOM Elements Cache
+// DOM Elements Cache (Functional/System Elements)
 // ============================================================================
 const dom = {
-  splash: document.getElementById('splash'),
-  app: document.getElementById('app'),
-  worldGrid: document.getElementById('world-grid'),
-  minesContainer: document.getElementById('mines-container'),
-  stationContainer: document.getElementById('station-container'),
-  settingsSections: document.querySelectorAll('.settings-section'),
-  navBar: document.getElementById('nav-bar'),
-  toast: document.getElementById('toast'),
-  
-  // Settings elements
   appVersion: document.getElementById('app-version'),
   commitHash: document.getElementById('commit-hash'),
   themeToggle: document.getElementById('themeToggle'),
   resetSaveData: document.getElementById('resetSaveData'),
-  navToggle: document.getElementById('navToggle'),
   devModeToggle: document.getElementById('devModeToggle')
 };
 
@@ -64,17 +54,14 @@ async function init() {
   await initMinesSlice();     // Mining systems
   await initStationSlice();   // Station/logistics systems
   
-  // Initialize UI (navigation, tabs, etc.)
-  initUISlice();
+  // Initialize UI (navigation, tabs, etc.) and pass state
+  initUISlice(appState);
   
-  // Setup event listeners
+  // Initialize Settings logic (dev mode, theme, save reset)
+  initSettingsSlice(appState);
+  
+  // Setup functional event listeners
   setupEventListeners();
-  
-  // Hide splash screen after load
-  setTimeout(() => {
-    dom.splash.style.display = 'none';
-    dom.app.style.display = 'block';
-  }, 1000);
   
   console.log('[App] Initialization complete');
 }
@@ -104,24 +91,16 @@ async function loadAppInfo() {
         
         // Make commit hash clickable to show message
         dom.commitHash.innerHTML = `
-          <span class="hash-value" contenteditable="true">${appState.commitHash}</span>
-          ${appState.commitMessage}
+          <span class="hash-value">${appState.commitHash}</span>
         `;
-      } else {
-        appState.commitHash = 'abc123def';
-        appState.commitMessage = 'Initial commit';
-        dom.commitHash.innerHTML = `
-          <span class="hash-value" contenteditable="true">${appState.commitHash}</span>
-          ${appState.commitMessage}
-        `;
-      }
+      } 
     } catch (error) {
       console.log('Using fallback commit info');
       appState.commitHash = 'abc123def';
       appState.commitMessage = 'Initial commit';
       dom.commitHash.innerHTML = `
-        <span class="hash-value" contenteditable="true">${appState.commitHash}</span>
-        ${appState.commitMessage}
+        <span class="hash-value">${appState.commitHash}</span>
+       
       `;
     }
 
@@ -141,27 +120,6 @@ async function loadAppInfo() {
 // Setup Event Listeners
 // ============================================================================
 function setupEventListeners() {
-  // Tab navigation
-  document.querySelectorAll('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const targetTab = tab.dataset.tab;
-      
-      // Update active tab
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      
-      // Show corresponding content
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-        if (content.id === targetTab) {
-          content.classList.add('active');
-        }
-      });
-      
-      appState.currentTab = targetTab;
-    });
-  });
-
   // Reset save data button
   dom.resetSaveData?.addEventListener('click', () => {
     if (confirm('Are you sure you want to reset all save data? This cannot be undone!')) {
@@ -173,20 +131,6 @@ function setupEventListeners() {
   // Theme toggle (placeholder)
   dom.themeToggle?.addEventListener('click', () => {
     showToast('Theme toggle not yet implemented');
-  });
-
-  // Navigation bar toggle
-  dom.navToggle?.addEventListener('click', () => {
-    const isBottom = dom.navBar.classList.toggle('nav-bottom');
-    appState.navPosition = isBottom ? 'bottom' : 'top';
-    
-    // Update button text based on position
-    const buttonText = dom.navToggle.querySelector('.text');
-    if (isBottom) {
-      buttonText.textContent = 'Move Nav Up';
-    } else {
-      buttonText.textContent = 'Move Nav Down';
-    }
   });
 
   // Dev mode toggle (placeholder)
@@ -205,19 +149,6 @@ function setupEventListeners() {
       }
     });
   });
-}
-
-// ============================================================================
-// Toast Notification System
-// ============================================================================
-function showToast(message) {
-  dom.toast.textContent = message;
-  dom.toast.classList.add('show');
-  
-  // Remove after 3 seconds
-  setTimeout(() => {
-    dom.toast.classList.remove('show');
-  }, 3000);
 }
 
 // ============================================================================

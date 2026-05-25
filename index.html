@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merge & Choo-Choo</title>
     <link rel="stylesheet" href="/styles.css">
+	<link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
     <!-- Splash screen -->
@@ -17,8 +18,16 @@
         <!-- Header -->
         <header>
             <h1>Merge & Choo-Choo</h1>
+			
         </header>
-
+<div id="nav-bar">
+        <nav>
+            <button class="nav-tab" data-tab="world">World</button>
+            <button class="nav-tab" data-tab="mines">Mines</button>
+            <button class="nav-tab" data-tab="station">Station</button>
+            <button class="nav-tab" data-tab="settings">Settings</button>
+        </nav>
+    </div>
         <!-- Main content area -->
         <main>
             <!-- World tab -->
@@ -87,7 +96,7 @@
                             <div class="version-number" id="app-version"></div>
                             <div class="commit-hash" id="commit-hash">
                                 <span class="hash-value"></span>
-                                <span class="hash-message"></span>
+                                <!-- <span class="hash-message"></span> -->
                             </div>
                         </div>
                     </div>
@@ -95,15 +104,17 @@
 
                 <!-- Developer Settings -->
                 <section class="settings-section">
-                    <h3>Developer</h3>
-                    <div class="setting-item">
-                        <label for="devModeToggle" class="setting-label">🔧 Dev Mode</label>
-                        <div class="setting-controls">
-                            <input type="checkbox" id="devModeToggle" disabled>
-                            <span class="disabled-text">(Placeholder - no effect)</span>
-                        </div>
-                    </div>
-                </section>
+    <h3>Developer</h3>
+    <div class="setting-item">
+        <label class="setting-label">🔧 Dev Mode</label>
+        <div class="setting-controls">
+            <label class="switch">
+                <input type="checkbox" id="devModeToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+</section>
 
                 <!-- About -->
                 <section class="settings-section">
@@ -119,14 +130,9 @@
             </section>
         </main>
 
-        <!-- Footer with nav bar (can be toggled) -->
-        <footer id="nav-bar">
-            <nav>
-                <button class="nav-tab" data-tab="world">World</button>
-                <button class="nav-tab" data-tab="mines">Mines</button>
-                <button class="nav-tab" data-tab="station">Station</button>
-                <button class="nav-tab" data-tab="settings">Settings</button>
-            </nav>
+        <!-- Footer -->
+        <footer>
+            
         </footer>
     </div>
 

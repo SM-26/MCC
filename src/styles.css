@@ -49,25 +49,36 @@ html {
   font-size: 16px;
 }
 
-/* Dark theme with CSS variables */
+/* Material 3 Dark Theme Baseline Tokens */
 :root {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --text-primary: #ffffff;
-  --text-secondary: #b0b0b0;
-  --accent-color: #ffd700;
-  --accent-hover: #ffed4a;
-  --border-color: #2d3561;
-  --shadow-color: rgba(0, 0, 0, 0.3);
+  --bg-primary: #141316;                       /* M3 md.sys.color.background */
+  --bg-secondary: #1c1b1f;                     /* M3 md.sys.color.surface */
+  --bg-surface-variant: #49454f;               /* M3 md.sys.color.surface-variant */
+  
+  --text-primary: #e6e1e5;                     /* M3 md.sys.color.on-background */
+  --text-secondary: #cac4d0;                   /* M3 md.sys.color.on-surface-variant */
+  
+  --accent-color: #d0bcff;                     /* M3 md.sys.color.primary (M3 Light Purple) */
+  --accent-container: #4f378b;                 /* M3 md.sys.color.primary-container */
+  --on-accent-container: #e8def8;              /* M3 md.sys.color.on-primary-container */
+  --indicator-color: #4a4458;                  /* M3 md.sys.color.secondary-container */
+  --on-indicator-color: #e8def8;               /* M3 md.sys.color.on-secondary-container */
+  
+  --border-color: #49454f;                     /* M3 md.sys.color.outline */
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  
+  /* Standard M3 Easing curves */
+  --md-easing-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* Base body styles */
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   line-height: 1.5;
   min-width: 320px;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Splash screen */
@@ -83,7 +94,7 @@ body {
   justify-content: center;
   background-color: var(--bg-primary);
   z-index: 1000;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s var(--md-easing-standard);
 }
 
 .splash-screen.hidden {
@@ -93,13 +104,13 @@ body {
 
 /* Splash spinner */
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid var(--border-color);
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--bg-surface-variant);
   border-top-color: var(--accent-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 @keyframes spin {
@@ -114,56 +125,91 @@ body {
 
 .splash-title {
   font-size: 1.5rem;
+  font-weight: 400;
   margin-bottom: 1rem;
-  color: var(--accent-color);
+  color: var(--text-primary);
+  letter-spacing: 0.1px;
 }
 
 .splash-text {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
   max-width: 300px;
+  letter-spacing: 0.25px;
 }
 
-/* Main app container */
-.app-container {
-  min-height: 100vh;
+/* Main app container - Constrained to viewport size to handle sticky boundaries */
+#app {
+  height: 100vh;
+  height: -webkit-fill-available; /* Mobile safari bounds fix */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Prevents the whole screen canvas from scrolling */
 }
 
-/* Navigation bar */
-.nav-bar {
+/* Global Application Header pinned to slot position 1 */
+#app header {
+  order: 1;
+  flex-shrink: 0; /* Keeps header from crushing on tight viewport screens */
+}
+
+/* Navigation bar configuration (Default: Top position, slot 2) */
+#nav-bar {
+  order: 2;
+  flex-shrink: 0; /* Keeps navigation deck fixed in structural size scale */
   background-color: var(--bg-secondary);
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   display: flex;
   justify-content: center;
   gap: 0.5rem;
   border-bottom: 1px solid var(--border-color);
+  border-top: none;
   position: relative;
+  transition: all 0.2s var(--md-easing-standard);
 }
 
-/* Navigation tabs with pill-box styling */
+/* Main content viewport isolates all vertical scrolls cleanly inside itself */
+#app main {
+  order: 3;
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto; /* Content list items now scroll independently here */
+  -webkit-overflow-scrolling: touch; /* Butter-smooth momentum physics on iOS */
+}
+
+/* Dynamic Bottom Navigation Modifier (Pushes structural slice to layout slot 4) */
+#nav-bar.nav-bottom {
+  order: 4;
+  border-bottom: none;
+  border-top: 1px solid var(--border-color);
+  justify-content: space-around;
+  padding: 0.75rem 0.5rem;
+}
+
+/* Navigation tabs with pill-box styling (M3 Layout with Custom Game Accents) */
 .nav-tab {
   background: none;
-  border: 2px solid transparent;
+  /* Always have a black outline */
+  border: 2px solid #000000; 
   font-size: 1.5rem;
   cursor: pointer;
-  padding: 0.75rem 1.25rem;
+  padding: 0.5rem 1.5rem;
   color: var(--text-secondary);
-  transition: all 0.2s ease;
-  border-radius: 16px;
+  transition: all 0.2s var(--md-easing-standard);
+  border-radius: 100px; /* Fully stadium pill shape */
   position: relative;
 }
 
 .nav-tab:hover {
   color: var(--text-primary);
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(230, 225, 229, 0.08); /* 8% State overlay */
 }
 
 .nav-tab.active {
-  color: var(--accent-color);
-  background-color: rgba(255, 215, 0, 0.1);
-  border-color: var(--accent-color);
+  color: #ffd700;              /* Gold text for clarity when selected */
+  background-color: var(--indicator-color); 
+  border-color: #ffd700;       /* Changes the black border to gold when active */
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); /* Optional: Soft gold glow */
 }
 
 /* Divider between tabs */
@@ -176,7 +222,7 @@ body {
   width: calc(100% - 2rem);
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-  opacity: 0.3;
+  opacity: 0.2;
 }
 
 /* Navigation toggle button */
@@ -190,13 +236,13 @@ body {
   cursor: pointer;
   padding: 0.5rem;
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  transition: all 0.2s var(--md-easing-standard);
   z-index: 10;
 }
 
 .nav-toggle-btn:hover {
   color: var(--text-primary);
-  transform: translateY(-50%) scale(1.1);
+  transform: translateY(-50%) scale(1.05);
 }
 
 /* Nav bar toggle button (inside Settings) */
@@ -206,22 +252,23 @@ body {
   cursor: pointer;
   padding: 0.5rem;
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  transition: all 0.2s var(--md-easing-standard);
 }
 
 .nav-bar-toggle-btn:hover {
   color: var(--text-primary);
 }
 
-/* Bottom navigation position */
-.nav-bar.nav-bottom {
+/* Dynamic Bottom Navigation Modifier (Pushes structural slice to layout slot 4) */
+#nav-bar.nav-bottom {
+  order: 4;
   border-bottom: none;
   border-top: 1px solid var(--border-color);
   justify-content: space-around;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 0.5rem;
 }
 
-.nav-bar.nav-bottom::after {
+#nav-bar.nav-bottom::after {
   display: none;
 }
 
@@ -236,14 +283,14 @@ body {
   cursor: pointer;
   padding: 0.5rem;
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  transition: all 0.2s var(--md-easing-standard);
 }
 
 .theme-toggle-btn:hover {
   color: var(--text-primary);
 }
 
-/* Main content area */
+/* Main content area view logic layout flags */
 .main-content {
   flex: 1;
   padding: 1rem;
@@ -257,27 +304,27 @@ body {
   display: block;
 }
 
-/* Settings group containers */
+/* Settings group containers (M3 Card styling) */
 .settings-group {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
   background-color: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: 12px; /* M3 Medium Component Radius */
   border: 1px solid var(--border-color);
 }
 
-/* Material Design switch */
+/* Material Design 3 Switch Component */
 .switch-container {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .switch {
   position: relative;
   display: inline-block;
   width: 52px;
-  height: 26px;
+  height: 32px; /* Official M3 track target bounds */
 }
 
 .switch input {
@@ -294,52 +341,66 @@ body {
   right: 0;
   bottom: 0;
   background-color: var(--bg-primary);
-  transition: .4s;
-  border-radius: 26px;
+  border: 2px solid var(--border-color);
+  transition: background-color 0.2s var(--md-easing-standard), border-color 0.2s var(--md-easing-standard);
+  border-radius: 100px;
 }
 
+/* Unchecked Switch Thumb Knob */
 .slider:before {
   position: absolute;
   content: "";
-  height: 20px;
-  width: 20px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
+  height: 16px;
+  width: 16px;
+  left: 6px;
+  bottom: 6px;
+  background-color: var(--text-secondary);
+  transition: transform 0.2s var(--md-easing-standard), width 0.15s var(--md-easing-standard), height 0.15s var(--md-easing-standard), background-color 0.2s var(--md-easing-standard);
   border-radius: 50%;
 }
 
+/* Checked Track state changes */
 input:checked + .slider {
   background-color: var(--accent-color);
+  border-color: var(--accent-color);
 }
 
+/* Checked Switch Thumb state shifts + expansion animation */
 input:checked + .slider:before {
-  transform: translateX(26px);
+  transform: translateX(20px);
+  height: 24px; /* M3 Thumb grows physically when selected */
+  width: 24px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--bg-primary);
 }
 
-/* Reset button */
+/* Reset button (M3 Filled Error Button Specification) */
 .reset-button {
   width: 100%;
-  padding: 0.75rem;
-  background-color: #dc3545;
-  color: white;
+  padding: 0.75rem 1.5rem;
+  background-color: #ffb4ab;                 /* M3 md.sys.color.error Container */
+  color: #690005;                            /* M3 md.sys.color.on-error Container */
+  font-weight: 500;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 100px;                      /* M3 full rounded button shape */
+  font-size: 0.875rem;
+  letter-spacing: 0.1px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard);
 }
 
 .reset-button:hover {
-  background-color: #c82333;
+  background-color: #ffdad6;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 
 /* Version info */
 .version-info {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
   line-height: 1.4;
+  letter-spacing: 0.25px;
 }
 
 .version-text {
@@ -353,53 +414,57 @@ input:checked + .slider:before {
   color: var(--accent-color);
   cursor: pointer;
   text-decoration: underline;
-  transition: color 0.2s ease;
+  transition: color 0.2s var(--md-easing-standard);
 }
 
 .commit-hash:hover {
-  color: var(--accent-hover);
+  color: var(--on-accent-container);
 }
 
 .commit-hash-link {
   cursor: pointer;
   text-decoration: underline;
-  transition: color 0.2s ease;
+  transition: color 0.2s var(--md-easing-standard);
 }
 
 .commit-hash-link:hover {
-  color: var(--accent-hover);
+  color: var(--on-accent-container);
 }
 
-/* Toast notification */
+/* Toast notification (M3 Snackbar Specification) */
 .toast {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px var(--shadow-color);
+  background-color: #313033;                 /* M3 Inverse Surface */
+  color: #f4f0f4;                            /* M3 Inverse On Surface */
+  font-size: 0.875rem;
+  letter-spacing: 0.25px;
+  padding: 0.875rem 1.5rem;
+  border-radius: 4px;                        /* M3 Snackbar specific soft corner */
+  box-shadow: 0 3px 5px var(--shadow-color);
   z-index: 1001;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  pointer-events: none;
+  transition: opacity 0.15s var(--md-easing-standard);
 }
 
 .toast.show {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .nav-bar {
-    padding: 0.75rem;
-    gap: 0.5rem;
+    padding: 0.5rem;
+    gap: 0.25rem;
   }
   
   .nav-tab {
     font-size: 1.25rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 1rem;
   }
   
   .splash-title {
