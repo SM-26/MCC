@@ -1,2 +1,2 @@
-c2fdfb3
-Move git-info.txt to public/, styles.css to src/
+38f4e88
+Refactor to Vite best practices: single index.html entry, modular app.js with slices, remove duplicate settings.html
