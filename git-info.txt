@@ -1,2 +1,2 @@
-32ad0db
-Fix structure: move settings.html, app.js, git-info.txt to root; keep public/ for static assets only
+82c7394
+Move source files (index.html, settings.html, app.js) to src/ folder
