@@ -1,4 +1,6 @@
-import { defineConfig } from 'vite';
+// vite.config.ts
+/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
@@ -23,9 +25,14 @@ export default defineConfig({
       interval: 100
     }
   },
+  test: {
+    globals: true,
+    environment: 'happy-dom'
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico'],
       manifest: {
         name: 'Merge & Choo-Choo',
         short_name: 'MCC',

@@ -187,6 +187,19 @@
 
     <!-- Application logic -->
     <script type="module" src="/src/app.ts"></script>
+    <script>
+        // Fail-safe: if the app doesn't load within 5 seconds, 
+        // show the app container anyway so the user can inspect errors
+        setTimeout(() => {
+            const app = document.getElementById('app');
+            if (app && app.style.display === 'none') {
+                console.error("App failed to load within 5 seconds.");
+                app.style.display = 'block';
+                document.getElementById('splash').style.display = 'none';
+            }
+        }, 5000);
+    </script>
+
 </body>
 
 </html>

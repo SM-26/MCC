@@ -76,11 +76,6 @@ export async function initSaveSlice(appState: AppState): Promise<void> {
   } catch (error) {
     console.error('[Save] Failed to initialize save data:', error);
   }
-
-  // Arm the global background auto-save interval loop (Every 10 seconds)
-  setInterval(() => {
-    saveGameState(appState);
-  }, 10000);
 }
 
 /**
@@ -88,30 +83,36 @@ export async function initSaveSlice(appState: AppState): Promise<void> {
  * * @param appState - The current application state to persist
  * @returns Promise that resolves when save is complete
  */
-export async function saveGameState(appState: AppState): Promise<void> {
+export function saveGameState(appState: AppState): void {
+  if (appState.money === 199) {
+    console.warn("!!! GHOST DETECTED: A function is trying to save the stale value 199 !!!");
+    console.trace("The culprit function is in the stack trace below:");
+  }
   try {
-    const stateData = JSON.stringify({
+    // 1. Deep clone
+    const snapshot = JSON.parse(JSON.stringify(appState));
+
+    // 2. Defensive Sanitation (The "199" fix)
+    // If you are still seeing 199, add a guard clause here to alert you if the state is invalid
+    if (snapshot.money < 0) snapshot.money = 0;
+    snapshot.money = Math.floor(snapshot.money);
+
+    // 3. Optional: Explicitly extract only what you know is valid
+    // This prevents "dirty" internal variables (like old timeouts) from being saved
+    const cleanPayload = {
       version: 1,
       timestamp: Date.now(),
       data: {
-        currentTab: appState.currentTab,
-        devMode: appState.devMode,
-        navPosition: appState.navPosition,
-        money: appState.money,
-        mines: {
-          activePlot: appState.mines?.activePlot,
-          maxUnlockedPlot: appState.mines?.maxUnlockedPlot,
-          plots: appState.mines?.plots,
-          lastTick: appState.mines?.lastTick
-        }
-      },
-    });
+        money: snapshot.money,
+        mines: snapshot.mines,
+        // Add other core fields explicitly here
+      }
+    };
 
-    localStorage.setItem('mcc_save', stateData);
-    console.log('[Save] State auto-saved successfully');
+    localStorage.setItem('mcc_save', JSON.stringify(cleanPayload));
+    console.log('[Save] Saved successfully. Money:', cleanPayload.data.money);
   } catch (error) {
     console.error('[Save] Failed to save state:', error);
-    throw error;
   }
 }
 

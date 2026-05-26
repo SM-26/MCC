@@ -1,0 +1,119 @@
+#tile-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 4px;
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+}
+
+.tile {
+    background-color: #2a2a2a;
+    border-radius: 4px;
+    position: relative;
+    aspect-ratio: 1 / 1;
+}
+
+.tile.rubble {
+    background-color: #666666;
+    border: 2px solid #888888;
+    background-image: url('../rubble-pile.svg');
+    /* Step up out of css/ into assets/ */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tile.dirt {
+    background: #8b7355;
+    border: 2px solid #a68b6a;
+}
+
+.tile.empty {
+    border: 1px dashed var(--border-color);
+}
+
+.tile.drag-over {
+    background: rgba(255, 215, 0, 0.15) !important;
+}
+
+.tile-level {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 0.625rem;
+    color: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+}
+
+.hp-bar {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+    display: none;
+    pointer-events: none;
+}
+
+.hp-fill {
+    height: 100%;
+    background: #ff4444;
+    border-radius: 2px;
+    transition: width 0.1s;
+}
+
+/* Miner Entities */
+.miner {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    transition: transform 0.2s var(--md-easing-standard);
+    cursor: grab;
+}
+
+.miner.selected {
+    filter: drop-shadow(0 0 5px #ffd700);
+    transform: scale(1.15);
+    z-index: 20;
+}
+
+.miner:active {
+    cursor: grabbing;
+}
+
+.miner-icon {
+    font-size: 1.5rem;
+    user-select: none;
+}
+
+.miner-level {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    background: #ffd700;
+    color: #000000;
+    font-size: 0.625rem;
+    padding: 1px 5px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+/* Float Feedback Effects */
+.float-text {
+    position: absolute;
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 0.875rem;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    z-index: 100;
+}

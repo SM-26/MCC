@@ -57,9 +57,12 @@ const dom = {
 /**
  * Application Initialization
  */
-async function init(): Promise<void> {
-  // Guard loop to ensure it can never execute twice if a framework/bundler lifecycle refires it
-  if (isInitialized) return;
+export async function initApp(): Promise<AppState> {
+  // Guard loop: return the existing state if already initialized
+  if (isInitialized) {
+    return appState;
+  }
+
   isInitialized = true;
 
   console.log('[App] Initializing Merge & Choo-Choo...');
@@ -89,67 +92,58 @@ async function init(): Promise<void> {
   updateGlobalMoneyUI(appState.money);
 
   console.log('[App] Initialization complete');
-}
 
-/**
- * Load Version and Commit Info
- */
+  return appState;
+}
 async function loadAppInfo(): Promise<void> {
+  const baseUrl = import.meta.env.BASE_URL;
+
   try {
-    // Read package.json for version (Vite serves from /MCC/)
-    const packageResponse = await fetch('/MCC/package.json');
-    if (packageResponse.ok) {
-      const packageData = await packageResponse.json();
-      appState.version = packageData.version || 'unknown';
-    } else {
+    // 1. Fetch version number
+    try {
+      const verResponse = await fetch(`${baseUrl}version.txt`);
+      if (verResponse.ok) {
+        appState.version = (await verResponse.text()).trim();
+      } else {
+        appState.version = 'unknown';
+      }
+    } catch (error) {
       appState.version = 'unknown';
     }
-
-    // Read git-info.txt for commit hash and message (Vite serves from /MCC/)
+    // 2. Fetch git-info.txt
     try {
-      const gitResponse = await fetch('/MCC/git-info.txt');
+      const gitResponse = await fetch(`${baseUrl}git-info.txt`);
       if (gitResponse.ok) {
         const gitInfo = await gitResponse.text();
+        // Check if the content looks like HTML (indicates a 404 fallback)
+        if (gitInfo.trim().startsWith('<!DOCTYPE')) {
+          throw new Error('Received HTML fallback instead of text');
+        }
+
         const lines = gitInfo.trim().split('\n');
         appState.commitHash = lines[0] || 'unknown';
         appState.commitMessage = lines[1] || '';
-
-        // Make commit hash clickable to show message
-        if (dom.commitHash) {
-          dom.commitHash.innerHTML = `
-            <span class="hash-value">${appState.commitHash}</span>
-          `;
-        }
+      } else {
+        throw new Error(`Failed to fetch git-info: ${gitResponse.status}`);
       }
-    } catch (error) {
-      console.log('Using fallback commit info');
+    } catch (gitError) {
+      console.warn('Using fallback commit info');
       appState.commitHash = 'abc123def';
       appState.commitMessage = 'Initial commit';
-
-      if (dom.commitHash) {
-        dom.commitHash.innerHTML = `
-          <span class="hash-value">${appState.commitHash}</span>
-        `;
-      }
     }
 
-    // Update UI with loaded info - version always visible
-    if (dom.appVersion) {
-      dom.appVersion.textContent = appState.version;
+    // 3. Final DOM Updates
+    if (dom.appVersion) dom.appVersion.textContent = appState.version;
+    if (dom.commitHash) {
+      dom.commitHash.innerHTML = `<span class="hash-value">${appState.commitHash}</span>`;
     }
 
   } catch (error) {
     console.error('[App] Error loading app info:', error);
     appState.version = 'unknown';
     appState.commitHash = 'unknown';
-
-    if (dom.appVersion) {
-      dom.appVersion.textContent = 'unknown';
-    }
-
-    if (dom.commitHash) {
-      dom.commitHash.textContent = 'unknown';
-    }
+    if (dom.appVersion) dom.appVersion.textContent = 'unknown';
+    if (dom.commitHash) dom.commitHash.textContent = 'unknown';
   }
 }
 
@@ -237,7 +231,43 @@ export function updateGlobalMoneyUI(money: number): void {
   }
 }
 
-/**
- * Bootstrap Application
- */
-init();
+// Bootstrap Application
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await initApp();
+
+    // Explicitly hide splash, show app
+    const splash = document.getElementById('splash');
+    const app = document.getElementById('app');
+
+    if (splash) splash.style.display = 'none';
+    if (app) app.style.display = 'block';
+
+    console.log('[App] UI initialized and splash screen removed');
+  } catch (err) {
+    console.error('[App] Failed to bootstrap:', err);
+  }
+});
+
+let deferredPrompt: any;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent Chrome 67 and earlier from automatically showing the prompt
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  deferredPrompt = e;
+
+  // Show your custom "Install" button in the UI
+  const installBtn = document.getElementById('btn-install');
+  if (installBtn) installBtn.style.display = 'block';
+});
+
+// Trigger the prompt when the user clicks your button
+document.getElementById('btn-install')?.addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    deferredPrompt = null;
+  }
+});

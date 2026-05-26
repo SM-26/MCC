@@ -13,57 +13,49 @@
  * To run: pnpm test
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { initApp } from '../app';
 
 describe('Initial App State', () => {
-  it('should have no TypeScript compilation errors', () => {
-    // This test passes if we got here - vitest only runs if TS compiles cleanly
-    expect(true).toBe(true);
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url.includes('package.json')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ version: '1.0.0' })
+        });
+      }
+      if (url.includes('git-info.txt')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve('abc123def\nInitial commit')
+        });
+      }
+      return Promise.reject(new Error('Not found'));
+    }));
+
+    vi.spyOn(console, 'log').mockImplementation(() => { });
+    vi.spyOn(console, 'error').mockImplementation(() => { });
   });
 
-  it('should initialize all slices in correct order', () => {
-    const expectedMessages = [
-      '[Platform] Initializing platform slice...',
-      '[World] Initializing world slice...',
-      '[Save] Initializing save slice...',
-      '[UI] Initializing UI slice...',
-      '[Mines] Initializing mines slice...',
-      '[Station] Initializing station slice...',
-      '[Settings] Initializing features...',
-      '[App] Initializing Merge & Choo-Choo...',
-    ];
+  it('should initialize and return a valid state', async () => {
+    const state = await initApp();
 
-    // The test verifies the code structure supports these logs
-    expect(expectedMessages).toHaveLength(8);
+    // Validate that state is populated
+    expect(state).toBeDefined();
+    expect(state.money).toBe(0);
+    expect(state.navPosition).toBe('top');
+    expect(state.devMode).toBe(false);
   });
 
-  it('should have completion messages', () => {
-    const expectedCompletionMessages = [
-      '[App] Initialization complete',
-      '[Platform] Platform initialized:',
-      '[Save] State loaded successfully',
-    ];
+  it('should log initialization messages', async () => {
+    await initApp();
 
-    expect(expectedCompletionMessages).toHaveLength(3);
-  });
-
-  it('should not produce any console errors during initialization', () => {
-    // This test passes if no errors were thrown during module loading
-    expect(true).toBe(true);
-  });
-
-  it('should have proper type definitions for AppState', () => {
-    // Verify that the AppState interface exists and is properly typed
-    const appStateShape = {
-      navPosition: 'fixed' | 'absolute' | 'sticky',
-      devMode: true as boolean,
-    };
-    
-    expect(appStateShape).toBeDefined();
-  });
-
-  it('should capture all initialization logs', () => {
-    // Verify that console.log is being captured correctly
-    expect(console.log).toBeDefined();
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('[App] Initializing')
+    );
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('Initialization complete')
+    );
   });
 });

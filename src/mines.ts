@@ -20,6 +20,11 @@ const OFFLINE_RATE = 0.5;
 let touchTargetIdx: number | null = null;
 let isMinesInitialized = false;
 
+// Helper to mark state for saving
+function markDirty(appState: AppState) {
+  (appState as any).isDirty = true;
+}
+
 export async function initMinesSlice(appState: AppState): Promise<void> {
   // If already run once, bail out instantly to kill duplicate loops
   if (isMinesInitialized) {
@@ -51,8 +56,19 @@ export async function initMinesSlice(appState: AppState): Promise<void> {
   // 3. Bind UI Element Actions
   bindInputEvents(appState);
 
-  // 4. Fire Loop Clocks
-  setInterval(() => gameTick(appState), TICK_RATE);
+  // 4. Keep the game loop fast for smooth mining/rendering
+  setInterval(() => {
+    gameTick(appState);
+  }, TICK_RATE);
+
+  // 5. Separate, resource-friendly save interval (e.g., 3000ms)
+  setInterval(() => {
+    if ((appState as any).isDirty) {
+      saveGameState(appState);
+      (appState as any).isDirty = false;
+      console.log('[Save] Auto-save triggered by dirty flag.');
+    }
+  }, 3000);
 }
 
 function createPlotData(depth: number): MinePlot {
@@ -71,6 +87,11 @@ function createPlotData(depth: number): MinePlot {
 }
 
 function gameTick(appState: AppState): void {
+
+  if (appState.money < 200 && appState.money > 190) {
+    console.trace('GHOST DETECTED: Money is currently in the 190-200 range');
+  }
+
   const now = Date.now();
   const dt = (now - appState.mines.lastTick) / 1000;
   appState.mines.lastTick = now;
@@ -89,29 +110,39 @@ function gameTick(appState: AppState): void {
     updateMinesUIHeaders(appState);
   }
 }
-
 function updateMinerLogic(miner: Miner, plot: MinePlot, dt: number, appState: AppState): void {
   const targetIdx = findTargetTile(miner, plot);
+  if (targetIdx === null) return;
 
-  if (targetIdx !== null) {
-    const target = plot.tiles[targetIdx];
-    const damage = Math.pow(2, miner.level - 1) * 5 * dt;
+  const target = plot.tiles[targetIdx];
 
-    miner.facing = calculateFacingAngle(miner.tileIndex, targetIdx);
-    target.hp -= damage;
+  // Optimization: Pre-calculate damage scaling outside the logic flow if possible, 
+  // but keeping it here is fine for readability. Using bit shifting for powers of 2.
+  const damage = (1 << (miner.level - 1)) * 5 * dt;
 
-    if (target.hp <= 0) {
-      if (target.type === 'rubble') {
-        const value = RUBBLE_VALUE * (plot.depth + 1);
-        appState.money += value;
-        updateGlobalMoneyUI(appState.money);
-        if (appState.mines.plots[appState.mines.activePlot] === plot) {
-          createFloatingText(targetIdx, `+$${value}`);
-        }
+  miner.facing = calculateFacingAngle(miner.tileIndex, targetIdx);
+  target.hp -= damage;
+
+  // Only handle destruction if HP actually drops below zero
+  if (target.hp <= 0) {
+    if (target.type === 'rubble') {
+      const value = RUBBLE_VALUE * (plot.depth + 1);
+
+      // FIX: Apply atomic-style rounding to prevent floating point accumulation
+      appState.money = Math.floor((appState.money + value) * 100) / 100;
+
+      updateGlobalMoneyUI(appState.money);
+      markDirty(appState);
+
+      // Only perform DOM updates if this is the active plot
+      if (appState.mines.plots[appState.mines.activePlot] === plot) {
+        createFloatingText(targetIdx, `+$${value}`);
       }
-      target.type = 'empty';
-      target.hp = 0;
     }
+
+    // Reset state
+    target.type = 'empty';
+    target.hp = 0;
   }
 }
 
@@ -185,26 +216,23 @@ function renderPlotGrid(appState: AppState): void {
     let lvl = tileEl.querySelector('.tile-level');
     let bar = tileEl.querySelector('.hp-bar') as HTMLElement;
     let fill = tileEl.querySelector('.hp-fill') as HTMLElement;
-    let sprite = tileEl.querySelector('.tile-sprite') as HTMLImageElement;
-
+    let sprite = tileEl.querySelector('.tile-sprite') as HTMLImageElement | null;
     if (tile.type !== 'empty') {
+      // 1. Manage Level Label Display
       if (!lvl) {
         lvl = document.createElement('div');
         lvl.className = 'tile-level';
         tileEl.appendChild(lvl);
       }
       lvl.textContent = `Lv.${tile.level}`;
-      if (tile.type === 'rubble') {
-        if (!sprite) {
-          sprite = document.createElement('img');
-          sprite.className = 'tile-sprite';
-          sprite.src = '/MCC/rubble-pile.svg'; // Fits Vite routing setup from your asset layer
-          sprite.alt = 'Rubble';
-          tileEl.appendChild(sprite);
-        }
-      } else if (sprite) {
+
+      // 2. Clear out programmatic sprites entirely (defer layout presentation to CSS)
+      if (sprite) {
         sprite.remove();
+        sprite = null; // Clean up variable reference if tracked within loop scope
       }
+
+      // 3. Manage HP Bar Lifecycle and Calculations
       if (!bar) {
         bar = document.createElement('div');
         bar.className = 'hp-bar';
@@ -216,6 +244,7 @@ function renderPlotGrid(appState: AppState): void {
       bar.style.display = 'block';
       fill.style.width = `${(tile.hp / tile.maxHp) * 100}%`;
     } else {
+      // Clean up DOM fragments when tile turns empty
       if (lvl) lvl.remove();
       if (sprite) sprite.remove();
       if (bar) bar.style.display = 'none';
@@ -311,7 +340,8 @@ function onMinerClick(miner: Miner, appState: AppState): void {
     appState.mines.selectedMiner = null;
     createFloatingText(miner.tileIndex, 'LEVEL UP!');
     renderPlotGrid(appState);
-    saveGameState(appState);
+    // saveGameState(appState);
+    markDirty(appState); // Replaces saveGameState
     return; // Prevent running duplicate render down below
   } else {
     appState.mines.selectedMiner = miner;
@@ -353,7 +383,9 @@ function executeDropMovement(tileIndex: number, appState: AppState): void {
   }
 
   if (stateChanged) {
-    saveGameState(appState);
+    markDirty(appState); // Replaces saveGameState
+    // saveGameState(appState);
+
   }
 }
 
@@ -472,7 +504,7 @@ function bindInputEvents(appState: AppState): void {
 
         // 3. Render and persist layout changes
         renderPlotGrid(appState);
-        saveGameState(appState);
+        markDirty(appState);
       } else {
         alert("No room to place a miner! Wait for a current miner to clear a path.");
       }
@@ -508,27 +540,38 @@ function bindInputEvents(appState: AppState): void {
     }
 
     forceGridResetAndRender(appState);
-    saveGameState(appState); // Auto-save new plot data immediately
+    markDirty(appState); // Replaces saveGameState, Auto-save new plot data immediately
   });
 
   document.getElementById('btn-dig-down')?.addEventListener('click', () => {
     const plot = appState.mines.plots[appState.mines.activePlot];
-    // Check if any tiles are still dirt or rubble
+
+    // 1. Check for Clearance
     const isFullyCleared = plot.tiles.every(t => t.type === 'empty');
     if (!isFullyCleared) {
       showToast('You must clear all dirt and rubble before digging deeper!');
       return;
     }
 
-    // Process digging deeper if fully cleared
+    // 2. Check for Miner Population Capacity (Limit to 5)
+    if (plot.miners.length > 5) {
+      showToast('Too many miners! You can only have 5 miners to dig deeper.');
+      return;
+    }
+
+    // 3. Process digging deeper
     plot.depth++;
     plot.tiles = createPlotData(plot.depth).tiles;
 
     const emptyIndices = plot.tiles.map((t, i) => (t.type === 'empty' ? i : -1)).filter((idx) => idx !== -1);
-    plot.miners.forEach((m, i) => (m.tileIndex = emptyIndices[i % emptyIndices.length]));
+
+    // Safety fallback: Ensure we don't try to map to indices that don't exist
+    plot.miners.forEach((m, i) => {
+      m.tileIndex = emptyIndices[i % emptyIndices.length];
+    });
 
     forceGridResetAndRender(appState);
-    saveGameState(appState); // Auto-save the progression instantly
+    markDirty(appState); // Replaces saveGameState
   });
 }
 

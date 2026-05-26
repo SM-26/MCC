@@ -1,0 +1,37 @@
+:root {
+    --bg-primary: #141316;
+    --bg-secondary: #1c1b1f;
+    --bg-surface-variant: #49454f;
+    --text-primary: #e6e1e5;
+    --text-secondary: #cac4d0;
+    --accent-color: #d0bcff;
+    --accent-container: #4f378b;
+    --on-accent-container: #e8def8;
+    --indicator-color: #4a4458;
+    --on-indicator-color: #e8def8;
+    --border-color: #49454f;
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --md-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -40px);
+        opacity: 0;
+    }
+}

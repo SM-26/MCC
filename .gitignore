@@ -31,6 +31,7 @@ out/
 *.njsproj
 *.sln
 *.swp
+.npmrc
 
 # OS Files
 Thumbs.db

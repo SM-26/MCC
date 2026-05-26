@@ -6,7 +6,8 @@ if [ "$GIT_INFO_AMENDING" = "true" ]; then
 fi
 
 # Define the target path
-TARGET_FILE="/home/sm26/MCC/public/git-info.txt"
+GIT_FILE="/home/sm26/MCC/public/MCC/git-info.txt"
+VER_FILE="/home/sm26/MCC/public/MCC/version.txt"
 
 # Get the absolute, real, brand new commit hash (short, 7 characters)
 COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -15,13 +16,16 @@ COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 COMMIT_MSG=$(git log -1 --pretty="%s" 2>/dev/null || echo "Unknown commit")
 
 # Write the true data to the file
-echo "$COMMIT_HASH" > "$TARGET_FILE"
-echo "$COMMIT_MSG" >> "$TARGET_FILE"
+echo "$COMMIT_HASH" > "$GIT_FILE"
+echo "$COMMIT_MSG" >> "$GIT_FILE"
 
-# Stage the updated file
-git add "$TARGET_FILE"
+# This grabs the version from package.json and strips everything else
+grep -Po '"version": "\K[^"]*' /home/sm26/MCC/package.json > "$VER_FILE"
 
-echo "Generated public/git-info.txt with true hash: $COMMIT_HASH"
+# Stage the updated files
+git add "$GIT_FILE" "$VER_FILE"
+
+echo "Generated git-info.txt and version.txt"
 
 # Amend the commit using our environment variable guard to block loops
 export GIT_INFO_AMENDING="true"

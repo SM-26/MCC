@@ -31,6 +31,10 @@ let dom: UIDomCache = {
   tabs: [],
   contents: [],
 };
+
+// Guard flag to bypass double listener bindings caused by environment re-execution
+let isUIInitialized = false;
+
 /**
  * Synchronizes visibility classes and styles for a specific tab
  * Unifies display management and cross-tab UI data requirements.
@@ -65,14 +69,13 @@ function switchTabTo(targetTab: string, appState: AppState): void {
 
 /**
  * Initialize UI Slice
- * * Sets up navigation, layout toggles, and transitions from splash screen.
+ * Sets up navigation, layout toggles, and transitions from splash screen.
  * @param appState - The shared application state object
- * @author Or Gaist
  */
 export function initUISlice(appState: AppState): void {
   console.log('[UI] Initializing UI slice...');
 
-  // 1. Cache elements needed specifically by the UI layer
+  // 1. Cache elements needed specifically by the UI layer (always pull fresh references on reload)
   dom = {
     splash: document.getElementById('splash') as HTMLDivElement | null,
     app: document.getElementById('app') as HTMLDivElement | null,
@@ -93,6 +96,13 @@ export function initUISlice(appState: AppState): void {
   // INITIAL SYNCHRONIZATION: Force DOM layout trees to align with parsed save properties
   const startingTab = appState.currentTab || 'world';
   switchTabTo(startingTab, appState);
+
+  // FAIL-SAFE CIRCUIT BREAKER: Stop duplicate event listeners from attaching if script environment fires twice
+  if (isUIInitialized) {
+    console.warn('[UI] Event listeners already bound. Skipping duplicate setup.');
+    return;
+  }
+  isUIInitialized = true;
 
   // 2. Setup internal layout & navigation event listener bindings
   setupNavigation(appState);
