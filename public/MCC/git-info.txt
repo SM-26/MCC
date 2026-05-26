@@ -1,2 +1,2 @@
-81bb2d9c
-kind of semi working version, can't buy miners
+ca8f8c50
+better looking button with date theme
