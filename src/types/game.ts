@@ -2,55 +2,13 @@
  * ============================================================================
  * Merge & Choo-Choo - Core Application State Types
  * ============================================================================
- * This file defines the central AppState interface that orchestrates all
- * system slices. It serves as the single source of truth for application
- * state across the modular monolith architecture.
- * ============================================================================
  */
 
-/**
- * Application State Interface
- * 
- * The central state object that all slices depend on. Contains:
- * - Navigation state (current tab, nav position)
- * - Build information (version, commit hash)
- * - Feature flags (dev mode)
- * 
- * @export
- * @interface AppState
- */
-export interface AppState {
-  /** Currently active tab ID ('world' | 'mines' | 'station' | 'settings') */
-  currentTab: string;
-
-  /** Developer mode flag for enabling debug features */
-  devMode: boolean;
-
-  /** Application version from package.json */
-  version: string | null;
-
-  /** Git commit hash from git-info.txt */
-  commitHash: string | null;
-
-  /** Git commit message from git-info.txt */
-  commitMessage: string | null;
-
-  /** Navigation bar position ('top' or 'bottom') */
-  navPosition: 'top' | 'bottom';
-}
-
-/**
- * Tab IDs - Valid values for currentTab
- */
 export type TabId = 'world' | 'mines' | 'station' | 'settings';
-
-/**
- * Navigation Position Types
- */
 export type NavPosition = 'top' | 'bottom';
 
 export interface MineTile {
-  type: 'empty' | 'rubble' | 'dirt';
+  type: 'empty' | 'rubble' | 'dirt' | 'blocker'; // | 'coal' | 'oil' | 'copper' | 'superalloy' 
   level: number;
   hp: number;
   maxHp: number;
@@ -78,9 +36,14 @@ export interface MinesState {
   lastTick: number;
 }
 
-// Append this property directly inside your existing AppState interface:
 export interface AppState {
+  currentTab: TabId;
+  devMode: boolean;
+  version: string | null;
+  commitHash: string | null;
+  commitMessage: string | null;
+  navPosition: NavPosition;
   money: number;
+  worldSeed: number;
   mines: MinesState;
-  // ... rest of your existing global state fields
 }

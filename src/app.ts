@@ -23,24 +23,27 @@ let isInitialized = false;
 /**
  * Application State (Single Source of Truth)
  */
-const appState: AppState = {
-  currentTab: 'world',
-  devMode: false,
-  version: null,
-  commitHash: null,
-  commitMessage: null,
-  navPosition: 'top', // 'top' or 'bottom'
+const appState: AppState = createDefaultState();
 
-  money: 0,
-  mines: {
-    activePlot: 0,
-    maxUnlockedPlot: 0,
-    plots: [], // Your initMinesSlice will handle filling this up
-    selectedMiner: null,
-    draggedMiner: null,
-    lastTick: Date.now()
-  }
-};
+// const appState: AppState = {
+//   currentTab: 'world',
+//   devMode: false,
+//   version: null,
+//   commitHash: null,
+//   commitMessage: null,
+//   navPosition: 'top', // 'top' or 'bottom'
+
+//   money: 0,
+//   worldSeed: 123456,
+//   mines: {
+//     activePlot: 0,
+//     maxUnlockedPlot: 0,
+//     plots: [], // Your initMinesSlice will handle filling this up
+//     selectedMiner: null,
+//     draggedMiner: null,
+//     lastTick: Date.now()
+//   }
+// };
 
 /**
  * DOM Elements Cache (Functional/System Elements)
@@ -60,6 +63,7 @@ const dom = {
 export async function initApp(): Promise<AppState> {
   // Guard loop: return the existing state if already initialized
   if (isInitialized) {
+    console.warn('[App] Initialization already in progress or complete.');
     return appState;
   }
 
@@ -75,8 +79,10 @@ export async function initApp(): Promise<AppState> {
 
   // Initialize slices in dependency order
   await initSaveSlice(appState);      // Persistence layer first
+  console.log('[App] State after save load:', appState); // Is mines defined here?
   await initWorldSlice(appState);     // World generation
   await initMinesSlice(appState);     // Mining systems
+  console.log('[App] State after mines init:', appState);
   await initStationSlice(appState);   // Station/logistics systems
 
   // Initialize UI (navigation, tabs, etc.) and pass state
@@ -153,36 +159,27 @@ async function loadAppInfo(): Promise<void> {
  */
 function setupEventListeners(): void {
   // Reset save data button
-  dom.resetSaveData?.addEventListener('click', () => {
+  dom.resetSaveData?.addEventListener('click', async () => {
     if (confirm('Are you sure you want to reset all save data? This cannot be undone!')) {
-      // 1. Wipe target key from storage safely
+      // 1. Wipe persistence
       resetSaveData();
 
-      // 2. Load pristine baseline values
+      // 2. Load fresh defaults
       const defaults = createDefaultState();
 
-      // 3. Mutate runtime state in place to trigger downstream component changes
-      appState.currentTab = defaults.currentTab;
-      appState.devMode = defaults.devMode;
-      appState.navPosition = defaults.navPosition;
-      appState.money = defaults.money;
+      // 3. NUCLEAR RESET: 
+      // Wipe all existing keys from appState and replace with defaults
+      // This keeps the original object reference, so slices don't get "disconnected"
+      for (const key in appState) {
+        delete appState[key as keyof AppState];
+      }
+      Object.assign(appState, defaults);
 
-      // Force structural re-hydration of the mining layouts
-      appState.mines = {
-        activePlot: defaults.mines.activePlot,
-        maxUnlockedPlot: defaults.mines.maxUnlockedPlot,
-        plots: [], // Clears current elements so initMinesSlice rebuilds Plot 1 dynamically
-        selectedMiner: null,
-        draggedMiner: null,
-        lastTick: Date.now()
-      };
+      // 4. Force re-init slices (now that appState is fresh)
+      await initMinesSlice(appState);
 
-      // 4. Update core UI elements immediately
+      // 5. Update UI
       updateGlobalMoneyUI(appState.money);
-
-      const grid = document.getElementById('tile-grid');
-      if (grid) grid.innerHTML = ''; // Force clear view container rendering
-
       showToast('Save data has been reset');
     }
   });
@@ -232,26 +229,8 @@ export function updateGlobalMoneyUI(money: number): void {
   }
 }
 
-// Bootstrap Application
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    await initApp();
-
-    // Explicitly hide splash, show app
-    const splash = document.getElementById('splash');
-    const app = document.getElementById('app');
-
-    if (splash) splash.style.display = 'none';
-    if (app) app.style.display = 'block';
-
-    console.log('[App] UI initialized and splash screen removed');
-  } catch (err) {
-    console.error('[App] Failed to bootstrap:', err);
-  }
-});
-
+/** PWA setup */
 let deferredPrompt: any;
-
 window.addEventListener('beforeinstallprompt', (e) => {
   // Prevent Chrome 67 and earlier from automatically showing the prompt
   e.preventDefault();
@@ -272,3 +251,30 @@ document.getElementById('btn-install')?.addEventListener('click', async () => {
     deferredPrompt = null;
   }
 });
+
+// Bootstrap Application
+const startApp = async () => {
+  try {
+    // If initApp has already run (or is running), bail out
+    if (document.body.dataset.initialized === 'true') return;
+    document.body.dataset.initialized = 'true';
+
+    await initApp();
+
+    const splash = document.getElementById('splash');
+    const app = document.getElementById('app');
+
+    if (splash) splash.style.display = 'none';
+    if (app) app.style.display = 'block';
+
+    console.log('[App] UI initialized and splash screen removed');
+  } catch (err) {
+    console.error('[App] Failed to bootstrap:', err);
+  }
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}

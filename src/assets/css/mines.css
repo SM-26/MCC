@@ -1,29 +1,52 @@
 #tile-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(5, 1fr);
-    gap: 4px;
-    width: 100%;
-    max-width: 400px;
-    aspect-ratio: 1 / 1;
-    margin: 0 auto;
+    grid-template-columns: repeat(5, 60px);
+    /* Adjust 60px to your preferred size */
+    gap: 8px;
+    justify-content: center;
+    margin: 20px auto;
 }
 
+/* 1. Add relative positioning to the container */
 .tile {
+    position: relative;
+    /* CRITICAL: This anchors children like .tile-level and .hp-bar */
+    width: 60px;
+    height: 60px;
     background-color: #2a2a2a;
     border-radius: 4px;
-    position: relative;
-    aspect-ratio: 1 / 1;
+    border: 2px solid #444;
+    transition: background 0.2s;
 }
 
+/* 2. Fix the HP Bar display */
+.hp-bar {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+    display: block;
+    /* Change from 'none' to 'block' */
+    pointer-events: none;
+}
+
+/* 3. Keep the rest of your specific classes */
 .tile.rubble {
     background-color: #666666;
     border: 2px solid #888888;
     background-image: url('../rubble-pile.svg');
-    /* Step up out of css/ into assets/ */
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+}
+
+/* Ensure empty/blocker tiles don't accidentally show HP bars */
+.tile.empty .hp-bar,
+.tile.blocker .hp-bar {
+    display: none;
 }
 
 .tile.dirt {
@@ -31,8 +54,25 @@
     border: 2px solid #a68b6a;
 }
 
+.tile.blocker {
+    background-color: #2a2a2a;
+    border: 2px solid #555;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    /* Adjust emoji size */
+    cursor: not-allowed;
+}
+
+.tile.blocker::after {
+    content: '🗑';
+}
+
 .tile.empty {
-    border: 1px dashed var(--border-color);
+    background-color: #1a1a1a;
+    /* Darker for empty */
+    border: 1px solid #333;
 }
 
 .tile.drag-over {

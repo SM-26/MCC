@@ -1,2 +1,2 @@
-e656cece
-Fix: app info loading and cleanup git index
+81bb2d9c
+kind of semi working version, can't buy miners

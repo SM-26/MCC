@@ -7,7 +7,8 @@
  * ============================================================================
  */
 
-import { AppState } from '@/types/game';
+import { AppState, TabId } from '@/types/game';
+import { handleBuyMiner } from './mines';
 
 /**
  * Internal DOM Cache isolated within the UI slice
@@ -39,7 +40,7 @@ let isUIInitialized = false;
  * Synchronizes visibility classes and styles for a specific tab
  * Unifies display management and cross-tab UI data requirements.
  */
-function switchTabTo(targetTab: string, appState: AppState): void {
+function switchTabTo(targetTab: TabId, appState: AppState): void {
   // 1. Sync navigation button highlights
   for (let i = 0; i < dom.tabs.length; i++) {
     const tab = dom.tabs[i];
@@ -104,6 +105,25 @@ export function initUISlice(appState: AppState): void {
   }
   isUIInitialized = true;
 
+  // 1. Setup Global Event Delegation
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement;
+
+    // Event Delegation: This works even if the buttons are destroyed and recreated
+    if (target.closest('#btn-buy-miner')) {
+      handleBuyMiner(appState);
+      console.log('[UI] Buy Miner clicked');
+    }
+
+    if (target.closest('#btn-buy-north')) {
+      // handleBuyNorthPlot(appState);
+    }
+
+    if (target.closest('#btn-dig-down')) {
+      // handleDigDeeper(appState);
+    }
+  });
+
   // 2. Setup internal layout & navigation event listener bindings
   setupNavigation(appState);
   setupUILayoutToggles(appState);
@@ -125,7 +145,10 @@ function setupNavigation(appState: AppState): void {
   for (let i = 0; i < tabs.length; i++) {
     const tab = tabs[i];
     tab.addEventListener('click', () => {
-      const targetTab = tab.dataset.tab || 'world';
+      // Validate or cast the data-tab to a valid TabId
+      const targetTab = (tab.dataset.tab as TabId) || 'world';
+
+      // Now this call is type-safe
       switchTabTo(targetTab, appState);
     });
   }

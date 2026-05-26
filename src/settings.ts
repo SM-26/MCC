@@ -16,6 +16,7 @@ const dom = {
   resetBtn: document.getElementById('resetSaveData') as HTMLButtonElement | null,
   themeBtn: document.getElementById('themeToggle') as HTMLButtonElement | null,
   devToggle: document.getElementById('devModeToggle') as HTMLInputElement | null,
+  seedInput: document.getElementById('worldSeedInput') as HTMLInputElement | null,
 };
 
 /**
@@ -34,19 +35,33 @@ export function initSettingsSlice(appState: AppState): void {
       showToast('Save data has been reset');
     }
   });
+  // 1. Initialize input value
+  if (dom.seedInput) {
+    dom.seedInput.value = appState.worldSeed.toString();
 
-  // Track dev mode toggle state changes
+    // 2. Set readOnly based on devMode
+    dom.seedInput.readOnly = !appState.devMode;
+
+    // 3. Listen for manual changes
+    dom.seedInput.addEventListener('change', () => {
+      if (appState.devMode) {
+        const newSeed = parseInt(dom.seedInput!.value);
+        if (!isNaN(newSeed)) {
+          appState.worldSeed = newSeed;
+          showToast(`Seed updated to: ${newSeed}`);
+        }
+      }
+    });
+  }
+
+  // 4. Update interactivity when devMode changes
   dom.devToggle?.addEventListener('change', (event: Event) => {
     const target = event.target as HTMLInputElement;
-    
-    // Dynamically change the appState property to true or false
     appState.devMode = target.checked;
 
-    if (appState.devMode) {
-      showToast('Developer Mode Enabled');
-      console.log('[App] devMode is now:', appState.devMode);
-    } else {
-      console.log('[App] devMode is now:', appState.devMode);
+    // Toggle editability of the seed input
+    if (dom.seedInput) {
+      dom.seedInput.readOnly = !appState.devMode;
     }
   });
 }
