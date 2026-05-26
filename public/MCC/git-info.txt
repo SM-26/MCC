@@ -1,2 +1,2 @@
-0fb1bca4
-fix prod build as well as dev build, now with PWA
+e656cece
+Fix: app info loading and cleanup git index

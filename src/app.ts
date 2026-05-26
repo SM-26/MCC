@@ -98,33 +98,35 @@ export async function initApp(): Promise<AppState> {
 async function loadAppInfo(): Promise<void> {
   const baseUrl = import.meta.env.BASE_URL;
 
+  // Helper to fix the path for dev vs prod
+  const getPath = (file: string) => {
+    // If we are in dev (localhost:8080) and BASE_URL is '/MCC/', 
+    // remove '/MCC/' because dev serves from the root.
+    const isDev = window.location.port === '8080';
+    return isDev ? file : `${baseUrl}${file}`;
+  };
+
   try {
     // 1. Fetch version number
     try {
-      const verResponse = await fetch(`${baseUrl}version.txt`);
-      if (verResponse.ok) {
-        appState.version = (await verResponse.text()).trim();
-      } else {
-        appState.version = 'unknown';
-      }
+      const verResponse = await fetch(getPath('MCC/version.txt'));
+      appState.version = verResponse.ok ? (await verResponse.text()).trim() : 'unknown';
     } catch (error) {
       appState.version = 'unknown';
     }
+
     // 2. Fetch git-info.txt
     try {
-      const gitResponse = await fetch(`${baseUrl}git-info.txt`);
+      const gitResponse = await fetch(getPath('MCC/git-info.txt'));
       if (gitResponse.ok) {
         const gitInfo = await gitResponse.text();
-        // Check if the content looks like HTML (indicates a 404 fallback)
-        if (gitInfo.trim().startsWith('<!DOCTYPE')) {
-          throw new Error('Received HTML fallback instead of text');
-        }
+        if (gitInfo.trim().startsWith('<!DOCTYPE')) throw new Error('HTML fallback');
 
         const lines = gitInfo.trim().split('\n');
         appState.commitHash = lines[0] || 'unknown';
         appState.commitMessage = lines[1] || '';
       } else {
-        throw new Error(`Failed to fetch git-info: ${gitResponse.status}`);
+        throw new Error('Failed to fetch');
       }
     } catch (gitError) {
       console.warn('Using fallback commit info');
@@ -137,7 +139,6 @@ async function loadAppInfo(): Promise<void> {
     if (dom.commitHash) {
       dom.commitHash.innerHTML = `<span class="hash-value">${appState.commitHash}</span>`;
     }
-
   } catch (error) {
     console.error('[App] Error loading app info:', error);
     appState.version = 'unknown';
