@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merge & Choo-Choo</title>
-    <link rel="stylesheet" href="/styles.css">
-	<link rel="stylesheet" href="/src/styles.css">
+    <link rel="stylesheet" href="/src/styles.css">
 </head>
+
 <body>
     <!-- Splash screen -->
     <div id="splash">
@@ -18,16 +19,20 @@
         <!-- Header -->
         <header>
             <h1>Merge & Choo-Choo</h1>
-			
+            <div class="global-wallet">
+                <span class="wallet-icon">💰</span>
+                <span id="global-money">$0</span>
+            </div>
         </header>
-<div id="nav-bar">
-        <nav>
-            <button class="nav-tab" data-tab="world">World</button>
-            <button class="nav-tab" data-tab="mines">Mines</button>
-            <button class="nav-tab" data-tab="station">Station</button>
-            <button class="nav-tab" data-tab="settings">Settings</button>
-        </nav>
-    </div>
+
+        <div id="nav-bar"> <!-- Nav Bar -->
+            <nav>
+                <button class="nav-tab" data-tab="world">World</button>
+                <button class="nav-tab" data-tab="mines">Mines</button>
+                <button class="nav-tab" data-tab="station">Station</button>
+                <button class="nav-tab" data-tab="settings">Settings</button>
+            </nav>
+        </div>
         <!-- Main content area -->
         <main>
             <!-- World tab -->
@@ -37,10 +42,51 @@
             </section>
 
             <!-- Mines tab -->
-            <section id="mines" class="tab-content">
-                <h2>Mines</h2>
-                <div id="mines-container"></div>
-            </section>
+            <div id="mines" class="tab-content">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; background: var(--bg-secondary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div id="money-display" style="font-size: 1.5rem; color: #ffd700; font-weight: bold;">$0</div>
+                    <div style="text-align: right;">
+                        <div id="loc-text" style="font-size: 0.875rem; font-weight: 500;">Plot 1, Depth 0</div>
+                        <div id="clear-text" style="font-size: 0.75rem; color: var(--text-secondary);">Cleared: 0%</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <button id="btn-prev-plot" class="btn-primary"
+                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;">◀ Prev Plot</button>
+                        <button id="btn-next-plot" class="btn-primary"
+                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;">Next Plot ▶</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <button id="btn-go-up" class="btn-primary"
+                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;" disabled>▲ Go Up</button>
+                        <button id="btn-go-down" class="btn-primary"
+                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;" disabled>Go Down ▼</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <button id="btn-buy-north" class="btn-primary"
+                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px; background-color: #ffd700; color: #000;">Buy
+                            North Plot</button>
+                        <button id="btn-dig-down" class="btn-primary"
+                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px; background-color: #2196F3; color: #fff;">Dig
+                            Deeper</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; padding: 1rem 0;">
+                    <div id="tile-grid"></div>
+                </div>
+
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <button id="btn-buy-miner" class="btn-primary"
+                        style="width: 100%; padding: 12px; font-size: 1rem;">Buy Miner (Lvl 1) - $50</button>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; opacity: 0.7;">
+                        Select a miner to move or merge. Drag or click empty cells to update positions.
+                    </div>
+                </div>
+            </div>
 
             <!-- Station tab -->
             <section id="station" class="tab-content">
@@ -51,11 +97,11 @@
             <!-- Settings tab -->
             <section id="settings" class="tab-content">
                 <h2>Settings</h2>
-                
+
                 <!-- General Settings -->
                 <section class="settings-section">
                     <h3>General</h3>
-                    
+
                     <!-- Theme Toggle -->
                     <div class="setting-item">
                         <label for="themeToggle" class="setting-label">🎨 Theme</label>
@@ -104,17 +150,17 @@
 
                 <!-- Developer Settings -->
                 <section class="settings-section">
-    <h3>Developer</h3>
-    <div class="setting-item">
-        <label class="setting-label">🔧 Dev Mode</label>
-        <div class="setting-controls">
-            <label class="switch">
-                <input type="checkbox" id="devModeToggle">
-                <span class="slider"></span>
-            </label>
-        </div>
-    </div>
-</section>
+                    <h3>Developer</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">🔧 Dev Mode</label>
+                        <div class="setting-controls">
+                            <label class="switch">
+                                <input type="checkbox" id="devModeToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- About -->
                 <section class="settings-section">
@@ -132,7 +178,7 @@
 
         <!-- Footer -->
         <footer>
-            
+
         </footer>
     </div>
 
@@ -140,6 +186,7 @@
     <div id="toast" class="toast"></div>
 
     <!-- Application logic -->
-    <script type="module" src="/src/app.js"></script>
+    <script type="module" src="/src/app.ts"></script>
 </body>
+
 </html>

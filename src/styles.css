@@ -1,5 +1,7 @@
 /* Full CSS Reset */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -26,23 +28,32 @@ img {
 }
 
 /* Reset form elements */
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font: inherit;
 }
 
 /* Remove list styles */
-ul, ol {
+ul,
+ol {
   list-style: none;
 }
 
-/* Prevent outline on focus (add your own :focus-visible) */
+/* Prevent outline on focus */
 *:focus {
   outline: none;
 }
 
+html,
 body {
   margin: 0;
-  min-width: 320px;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  /* Stops the main viewport window from scrolling away */
 }
 
 html {
@@ -51,22 +62,33 @@ html {
 
 /* Material 3 Dark Theme Baseline Tokens */
 :root {
-  --bg-primary: #141316;                       /* M3 md.sys.color.background */
-  --bg-secondary: #1c1b1f;                     /* M3 md.sys.color.surface */
-  --bg-surface-variant: #49454f;               /* M3 md.sys.color.surface-variant */
-  
-  --text-primary: #e6e1e5;                     /* M3 md.sys.color.on-background */
-  --text-secondary: #cac4d0;                   /* M3 md.sys.color.on-surface-variant */
-  
-  --accent-color: #d0bcff;                     /* M3 md.sys.color.primary (M3 Light Purple) */
-  --accent-container: #4f378b;                 /* M3 md.sys.color.primary-container */
-  --on-accent-container: #e8def8;              /* M3 md.sys.color.on-primary-container */
-  --indicator-color: #4a4458;                  /* M3 md.sys.color.secondary-container */
-  --on-indicator-color: #e8def8;               /* M3 md.sys.color.on-secondary-container */
-  
-  --border-color: #49454f;                     /* M3 md.sys.color.outline */
+  --bg-primary: #141316;
+  /* M3 md.sys.color.background */
+  --bg-secondary: #1c1b1f;
+  /* M3 md.sys.color.surface */
+  --bg-surface-variant: #49454f;
+  /* M3 md.sys.color.surface-variant */
+
+  --text-primary: #e6e1e5;
+  /* M3 md.sys.color.on-background */
+  --text-secondary: #cac4d0;
+  /* M3 md.sys.color.on-surface-variant */
+
+  --accent-color: #d0bcff;
+  /* M3 md.sys.color.primary (M3 Light Purple) */
+  --accent-container: #4f378b;
+  /* M3 md.sys.color.primary-container */
+  --on-accent-container: #e8def8;
+  /* M3 md.sys.color.on-primary-container */
+  --indicator-color: #4a4458;
+  /* M3 md.sys.color.secondary-container */
+  --on-indicator-color: #e8def8;
+  /* M3 md.sys.color.on-secondary-container */
+
+  --border-color: #49454f;
+  /* M3 md.sys.color.outline */
   --shadow-color: rgba(0, 0, 0, 0.5);
-  
+
   /* Standard M3 Easing curves */
   --md-easing-standard: cubic-bezier(0.2, 0, 0, 1);
 }
@@ -114,8 +136,13 @@ body {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Splash content */
@@ -138,25 +165,34 @@ body {
   letter-spacing: 0.25px;
 }
 
-/* Main app container - Constrained to viewport size to handle sticky boundaries */
+/* Main app container - Fixed structure */
 #app {
   height: 100vh;
-  height: -webkit-fill-available; /* Mobile safari bounds fix */
+  height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevents the whole screen canvas from scrolling */
+  overflow: hidden;
 }
 
 /* Global Application Header pinned to slot position 1 */
 #app header {
   order: 1;
-  flex-shrink: 0; /* Keeps header from crushing on tight viewport screens */
+  flex-shrink: 0;
+  background-color: var(--bg-secondary);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+#app header h1 {
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.1px;
 }
 
 /* Navigation bar configuration (Default: Top position, slot 2) */
 #nav-bar {
   order: 2;
-  flex-shrink: 0; /* Keeps navigation deck fixed in structural size scale */
+  flex-shrink: 0;
   background-color: var(--bg-secondary);
   padding: 0.75rem 1rem;
   display: flex;
@@ -168,16 +204,16 @@ body {
   transition: all 0.2s var(--md-easing-standard);
 }
 
-/* Main content viewport isolates all vertical scrolls cleanly inside itself */
+/* Main content viewport isolates all vertical scrolls internally */
 #app main {
   order: 3;
   flex: 1;
-  padding: 1rem;
-  overflow-y: auto; /* Content list items now scroll independently here */
-  -webkit-overflow-scrolling: touch; /* Butter-smooth momentum physics on iOS */
+  padding: 1.5rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Dynamic Bottom Navigation Modifier (Pushes structural slice to layout slot 4) */
+/* Dynamic Bottom Navigation Modifier (Pushes navigation to structural layout slot 4) */
 #nav-bar.nav-bottom {
   order: 4;
   border-bottom: none;
@@ -186,145 +222,164 @@ body {
   padding: 0.75rem 0.5rem;
 }
 
-/* Navigation tabs with pill-box styling (M3 Layout with Custom Game Accents) */
+/* Navigation tabs with pill-box styling */
 .nav-tab {
   background: none;
-  /* Always have a black outline */
-  border: 2px solid #000000; 
-  font-size: 1.5rem;
+  border: 2px solid #000000;
+  font-size: 1.125rem;
+  font-weight: 500;
   cursor: pointer;
   padding: 0.5rem 1.5rem;
   color: var(--text-secondary);
   transition: all 0.2s var(--md-easing-standard);
-  border-radius: 100px; /* Fully stadium pill shape */
+  border-radius: 100px;
   position: relative;
 }
 
 .nav-tab:hover {
   color: var(--text-primary);
-  background-color: rgba(230, 225, 229, 0.08); /* 8% State overlay */
+  background-color: rgba(230, 225, 229, 0.08);
 }
 
 .nav-tab.active {
-  color: #ffd700;              /* Gold text for clarity when selected */
-  background-color: var(--indicator-color); 
-  border-color: #ffd700;       /* Changes the black border to gold when active */
-  box-shadow: 0 0 8px rgba(255, 215, 0, 0.2); /* Optional: Soft gold glow */
+  color: #ffd700;
+  background-color: var(--indicator-color);
+  border-color: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
 }
 
-/* Divider between tabs */
-.nav-bar::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(100% - 2rem);
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-  opacity: 0.2;
-}
-
-/* Navigation toggle button */
-.nav-toggle-btn {
-  position: absolute;
-  top: 50%;
-  right: 1rem;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: var(--text-secondary);
-  transition: all 0.2s var(--md-easing-standard);
-  z-index: 10;
-}
-
-.nav-toggle-btn:hover {
-  color: var(--text-primary);
-  transform: translateY(-50%) scale(1.05);
-}
-
-/* Nav bar toggle button (inside Settings) */
-.nav-bar-toggle-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: var(--text-secondary);
-  transition: all 0.2s var(--md-easing-standard);
-}
-
-.nav-bar-toggle-btn:hover {
-  color: var(--text-primary);
-}
-
-/* Dynamic Bottom Navigation Modifier (Pushes structural slice to layout slot 4) */
-#nav-bar.nav-bottom {
-  order: 4;
-  border-bottom: none;
-  border-top: 1px solid var(--border-color);
-  justify-content: space-around;
-  padding: 0.75rem 0.5rem;
-}
-
-#nav-bar.nav-bottom::after {
-  display: none;
-}
-
-.nav-toggle-btn.active {
-  color: var(--accent-color);
-}
-
-/* Theme toggle button */
-.theme-toggle-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  color: var(--text-secondary);
-  transition: all 0.2s var(--md-easing-standard);
-}
-
-.theme-toggle-btn:hover {
-  color: var(--text-primary);
-}
-
-/* Main content area view logic layout flags */
-.main-content {
-  flex: 1;
-  padding: 1rem;
-}
-
+/* Core Tab Content Layouts */
 .tab-content {
   display: none;
 }
 
 .tab-content.active {
   display: block;
+  /* or flex/grid depending on your layout wrapper */
 }
 
-/* Settings group containers (M3 Card styling) */
-.settings-group {
-  margin-bottom: 1rem;
-  padding: 1rem 1.25rem;
-  background-color: var(--bg-secondary);
-  border-radius: 12px; /* M3 Medium Component Radius */
-  border: 1px solid var(--border-color);
+.tab-content h2 {
+  font-size: 1.75rem;
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+/* Settings Sections & Material Design 3 Alignment Columns */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2rem;
+}
+
+.settings-section h3 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Clean Row Realignment for Settings List Items */
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.setting-controls {
+  display: flex;
+  align-items: center;
+}
+
+/* Material Design 3 Styled Action Buttons */
+.btn-primary,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.625rem 1.25rem;
+  border-radius: 100px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard);
+}
+
+.btn-primary {
+  background-color: var(--accent-container);
+  color: var(--on-accent-container);
+}
+
+.btn-primary:hover {
+  background-color: #5f43a0;
+}
+
+.btn-danger {
+  background-color: #ffb4ab;
+  color: #690005;
+}
+
+.btn-danger:hover {
+  background-color: #ffdad6;
+}
+
+/* Description Text Formats */
+.description-text {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 550px;
+  margin-top: 0.5rem;
+}
+
+/* Version layout group formatting */
+.version-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.version-number {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-variant);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.commit-hash {
+  color: var(--accent-color);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.commit-hash:hover {
+  color: var(--on-accent-container);
 }
 
 /* Material Design 3 Switch Component */
-.switch-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
 .switch {
   position: relative;
   display: inline-block;
   width: 52px;
-  height: 32px; /* Official M3 track target bounds */
+  height: 32px;
 }
 
 .switch input {
@@ -346,7 +401,6 @@ body {
   border-radius: 100px;
 }
 
-/* Unchecked Switch Thumb Knob */
 .slider:before {
   position: absolute;
   content: "";
@@ -359,76 +413,18 @@ body {
   border-radius: 50%;
 }
 
-/* Checked Track state changes */
-input:checked + .slider {
+input:checked+.slider {
   background-color: var(--accent-color);
   border-color: var(--accent-color);
 }
 
-/* Checked Switch Thumb state shifts + expansion animation */
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(20px);
-  height: 24px; /* M3 Thumb grows physically when selected */
+  height: 24px;
   width: 24px;
   left: 2px;
   bottom: 2px;
   background-color: var(--bg-primary);
-}
-
-/* Reset button (M3 Filled Error Button Specification) */
-.reset-button {
-  width: 100%;
-  padding: 0.75rem 1.5rem;
-  background-color: #ffb4ab;                 /* M3 md.sys.color.error Container */
-  color: #690005;                            /* M3 md.sys.color.on-error Container */
-  font-weight: 500;
-  border: none;
-  border-radius: 100px;                      /* M3 full rounded button shape */
-  font-size: 0.875rem;
-  letter-spacing: 0.1px;
-  cursor: pointer;
-  transition: background-color 0.2s var(--md-easing-standard), box-shadow 0.2s var(--md-easing-standard);
-}
-
-.reset-button:hover {
-  background-color: #ffdad6;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-}
-
-/* Version info */
-.version-info {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  letter-spacing: 0.25px;
-}
-
-.version-text {
-  display: none;
-  font-size: 0.85rem;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.commit-hash {
-  color: var(--accent-color);
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color 0.2s var(--md-easing-standard);
-}
-
-.commit-hash:hover {
-  color: var(--on-accent-container);
-}
-
-.commit-hash-link {
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color 0.2s var(--md-easing-standard);
-}
-
-.commit-hash-link:hover {
-  color: var(--on-accent-container);
 }
 
 /* Toast notification (M3 Snackbar Specification) */
@@ -437,12 +433,12 @@ input:checked + .slider:before {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #313033;                 /* M3 Inverse Surface */
-  color: #f4f0f4;                            /* M3 Inverse On Surface */
+  background-color: #313033;
+  color: #f4f0f4;
   font-size: 0.875rem;
   letter-spacing: 0.25px;
   padding: 0.875rem 1.5rem;
-  border-radius: 4px;                        /* M3 Snackbar specific soft corner */
+  border-radius: 4px;
   box-shadow: 0 3px 5px var(--shadow-color);
   z-index: 1001;
   opacity: 0;
@@ -455,19 +451,154 @@ input:checked + .slider:before {
   pointer-events: auto;
 }
 
-/* Responsive adjustments */
+/* Clean Responsive Adjustments */
 @media (max-width: 480px) {
-  .nav-bar {
+  #nav-bar {
     padding: 0.5rem;
     gap: 0.25rem;
   }
-  
+
   .nav-tab {
-    font-size: 1.25rem;
-    padding: 0.5rem 1rem;
+    font-size: 1.125rem;
+    padding: 0.4rem 1rem;
   }
-  
-  .splash-title {
-    font-size: 1.25rem;
+}
+
+/* ============================================================================
+   Mines Tab Grid & Components
+   ============================================================================ */
+#tile-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 4px;
+  width: 100%;
+  max-width: 400px;
+  /* Adjust to fit your screen mobile-first viewport */
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+
+.tile {
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  position: relative;
+  aspect-ratio: 1 / 1;
+}
+
+.tile.rubble {
+  background: #666666;
+  border: 2px solid #888888;
+}
+
+.tile.dirt {
+  background: #8b7355;
+  border: 2px solid #a68b6a;
+}
+
+.tile.empty {
+  border: 1px dashed var(--border-color);
+}
+
+.tile.drag-over {
+  background: rgba(255, 215, 0, 0.15) !important;
+}
+
+.tile-level {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+}
+
+.hp-bar {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  right: 4px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+  display: none;
+  pointer-events: none;
+}
+
+.hp-fill {
+  height: 100%;
+  background: #ff4444;
+  border-radius: 2px;
+  transition: width 0.1s;
+}
+
+/* Miner Entities */
+.miner {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  transition: transform 0.2s var(--md-easing-standard);
+  cursor: grab;
+}
+
+.miner.selected {
+  filter: drop-shadow(0 0 5px #ffd700);
+  transform: scale(1.15);
+  z-index: 20;
+}
+
+.miner:active {
+  cursor: grabbing;
+}
+
+.miner-icon {
+  font-size: 1.5rem;
+  user-select: none;
+}
+
+.miner-level {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: #ffd700;
+  color: #000000;
+  font-size: 0.625rem;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+/* Float Feedback Effects */
+.float-text {
+  position: absolute;
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 0.875rem;
+  pointer-events: none;
+  animation: floatUp 1s ease-out forwards;
+  z-index: 100;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translate(-50%, 0);
+    opacity: 1;
   }
+
+  100% {
+    transform: translate(-50%, -40px);
+    opacity: 0;
+  }
+}
+
+/* Custom visual-only disabled state */
+.btn-disabled-visual {
+  opacity: 0.5;
+  cursor: not-allowed;
+  /* Keep pointer-events default or auto so clicks still register! */
+  pointer-events: auto;
 }
