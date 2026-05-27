@@ -1,11 +1,16 @@
-// vite.config.ts
 /// <reference types="vitest" />
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
+import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   root: '.',
   base: '/MCC/',
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   publicDir: 'public',
   build: {
     outDir: 'dist',
