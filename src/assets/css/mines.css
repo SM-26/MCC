@@ -2,36 +2,39 @@
    Mines Module: Grid, Tiles, and Miner Entities
    ============================================================================ */
 
-/* The Mine Stage */
+/* The Mine Stage - Fixed container to ensure consistent grid behavior */
 #mines {
     background-color: #1a1a2e;
     background-image: radial-gradient(circle at top, #2d2d4a 0%, #1a1a2e 100%);
     padding: 16px;
     border-radius: 20px;
     margin-bottom: 24px;
+    position: relative; /* Context for absolute miners */
+    overflow: hidden;   /* Prevent tiles/miners from spilling out */
 }
 
-/* Fluid Responsive Grid */
+/* Fluid Responsive Grid - Enforces a strict 5x5 layout based on data */
 #tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
     gap: 8px;
     justify-content: center;
     width: 100%;
-    max-width: 400px;
-    margin: 20px auto;
+    max-width: 400px; /* Cap size on large screens */
+    aspect-ratio: 1 / 1; /* Keep it square */
 }
 
-/* Base Tile Archetype */
+/* Base Tile Archetype - Fixed sizing to match grid cells */
 .tile {
     position: relative;
-    aspect-ratio: 1 / 1;
+    width: 100%;
+    height: 100%;
     background-color: #2a2a2a;
     border-radius: 8px;
     border: 2px solid #444;
     transition: background 0.2s, transform 0.1s;
-    /* Add this to prevent collapse */
-    min-width: 60px;
+    /* Remove min-width to respect the grid cell size */
 }
 
 .tile.drag-over {
@@ -92,21 +95,21 @@
     transition: width 0.1s;
 }
 
-/* Miner Entities */
+/* Miner Entities - Absolute positioning relative to tile */
 .miner {
     position: absolute;
-    inset: 10%;
+    inset: 5%; /* Centered with padding */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 10;
     cursor: grab;
-    transition: transform 0.2s;
+    transition: transform 0.2s, filter 0.2s;
 }
 
 .miner.selected {
     filter: drop-shadow(0 0 5px #ffd700);
-    transform: scale(1.2);
+    transform: scale(1.1); /* Slightly smaller scale to fit better */
     z-index: 20;
 }
 
@@ -150,5 +153,17 @@
     100% {
         transform: translateY(-30px);
         opacity: 0;
+    }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+    #mines {
+        padding: 12px;
+    }
+
+    #tile-grid {
+        gap: 6px;
+        max-width: 320px;
     }
 }
