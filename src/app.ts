@@ -229,29 +229,6 @@ export function updateGlobalMoneyUI(money: number): void {
   }
 }
 
-/** PWA setup */
-let deferredPrompt: any;
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent Chrome 67 and earlier from automatically showing the prompt
-  e.preventDefault();
-  // Stash the event so it can be triggered later.
-  deferredPrompt = e;
-
-  // Show your custom "Install" button in the UI
-  const installBtn = document.getElementById('btn-install');
-  if (installBtn) installBtn.style.display = 'block';
-});
-
-// Trigger the prompt when the user clicks your button
-document.getElementById('btn-install')?.addEventListener('click', async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-    deferredPrompt = null;
-  }
-});
-
 // Bootstrap Application
 const startApp = async () => {
   try {
