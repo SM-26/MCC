@@ -9,8 +9,10 @@
     padding: 16px;
     border-radius: 20px;
     margin-bottom: 24px;
-    position: relative; /* Context for absolute miners */
-    overflow: hidden;   /* Prevent tiles/miners from spilling out */
+    position: relative;
+    /* Context for absolute miners */
+    overflow: hidden;
+    /* Prevent tiles/miners from spilling out */
 }
 
 /* Fluid Responsive Grid - Enforces a strict 5x5 layout based on data */
@@ -21,8 +23,10 @@
     gap: 8px;
     justify-content: center;
     width: 100%;
-    max-width: 400px; /* Cap size on large screens */
-    aspect-ratio: 1 / 1; /* Keep it square */
+    max-width: 400px;
+    /* Cap size on large screens */
+    aspect-ratio: 1 / 1;
+    /* Keep it square */
 }
 
 /* Base Tile Archetype - Fixed sizing to match grid cells */
@@ -67,7 +71,12 @@
     border: 2px solid #555;
     background-image: url('../support-pillar.svg');
     background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     cursor: not-allowed;
+
+    /* This now controls the color of the SVG */
+    color: #ffffff;
 }
 
 /* HP Bar Display */
@@ -98,7 +107,8 @@
 /* Miner Entities - Absolute positioning relative to tile */
 .miner {
     position: absolute;
-    inset: 5%; /* Centered with padding */
+    inset: 5%;
+    /* Centered with padding */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -109,7 +119,8 @@
 
 .miner.selected {
     filter: drop-shadow(0 0 5px #ffd700);
-    transform: scale(1.1); /* Slightly smaller scale to fit better */
+    transform: scale(1.1);
+    /* Slightly smaller scale to fit better */
     z-index: 20;
 }
 
