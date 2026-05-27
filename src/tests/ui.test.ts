@@ -47,10 +47,12 @@ describe('UI Slice', () => {
     // Create mock contents
     const content1 = document.createElement('div');
     content1.id = 'world-content';
+    content1.className = 'tab-content';
     document.body.appendChild(content1);
     
     const content2 = document.createElement('div');
     content2.id = 'mines-content';
+    content2.className = 'tab-content';
     document.body.appendChild(content2);
 
     mockAppState = {
