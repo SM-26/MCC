@@ -10,8 +10,6 @@ body {
     line-height: 1.6;
     min-width: 320px;
     -webkit-font-smoothing: antialiased;
-    margin: 0;
-    padding: 0;
 }
 
 /* Main App Frame */
@@ -72,26 +70,6 @@ body {
 
 .tab-content.active {
     display: block;
-}
-
-/* UI Elements & Typography */
-.card {
-    font-size: 1rem;
-    color: var(--text-primary);
-}
-
-.card h1,
-.card h2,
-.card h3 {
-    font-size: 1.25rem;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-}
-
-.settings-section {
-    margin-bottom: 2rem;
-    padding: 1rem;
-    border-radius: 12px;
 }
 
 /* Splash screen */

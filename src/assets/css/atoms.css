@@ -118,3 +118,17 @@
     transition: transform 0.2s;
     border-radius: 50%;
 }
+
+input:checked + .slider {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+    height: 24px;
+    width: 24px;
+    left: 2px;
+    bottom: 2px;
+    background-color: var(--bg-primary);
+}
