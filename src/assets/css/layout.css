@@ -22,7 +22,7 @@ header {
     order: 1;
     flex: 0 0 auto;
     background-color: var(--bg-secondary);
-    padding: 0.5rem;
+    padding: 0.75rem;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -76,9 +76,15 @@ main {
 
 .nav-tab.active {
     background: var(--bg-surface-variant);
-    color: white;
+    color: var(--active-color);
     border: 2px solid var(--active-color);
 }
+
+.nav-tab:hover {
+    background: var(--bg-surface-variant);
+}
+
+
 
 /* Toast Notifications - Modernized */
 .toast {
@@ -171,6 +177,7 @@ main {
     padding: 2px 8px;
     border-radius: 4px;
     font-weight: 500;
+    color: var(--text-secondary);
 }
 
 .version-display {

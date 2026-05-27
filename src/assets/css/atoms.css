@@ -40,9 +40,12 @@
     font-weight: bold;
     margin-bottom: 16px;
     background: #3e3e60;
-    /* Add your button styles here */
     border-radius: 12px;
     color: white;
+}
+
+.btn-action:hover {
+    background-color: #5f43a0;
 }
 
 .grid-controls {
@@ -64,7 +67,7 @@
     color: #ffb4ab;
     background-color: #690005;
     padding: 0.875rem 1.25rem;
-    border-radius: 100px;
+    border-radius: 12px;
     transition: background-color 0.2s;
 }
 
@@ -191,6 +194,7 @@ input:checked+.slider:before {
     color: var(--text-primary);
 }
 
+
 .setting-controls {
     display: flex;
     align-items: center;
@@ -201,4 +205,12 @@ input:checked+.slider:before {
 .version-info {
     font-size: 0.875rem;
     color: var(--text-secondary);
+}
+
+.description-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 600px;
+    margin-top: 0.5rem;
 }
