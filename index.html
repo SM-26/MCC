@@ -52,23 +52,24 @@
                     </div>
                 </div>
 
-                <!-- Unified Navigation Controls -->
+                <!-- Unified Navigation Controls (Single Column) -->
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem;">
+                    <!-- Left Column: Empty/Placeholder to maintain grid balance if needed later, or remove entirely -->
                     <div style="display: flex; flex-direction: column; gap: 6px;">
-                        <button id="btn-prev-plot" class="btn-primary"
-                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;">◀ Prev Plot</button>
-                        <!-- Unified Next Plot / Buy North Button -->
+                        <!-- Removed 'Prev Plot' button as per request to combine logic into single button -->
                         <button id="btn-next-plot" class="btn-primary"
                             style="padding: 8px; font-size: 0.75rem; border-radius: 4px;">Next Plot ▶</button>
                     </div>
-                    <!-- Vertical Controls Column (Go Up/Down) -->
+                    
+                    <!-- Middle Column: Vertical Controls (Go Up/Down) -->
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                         <button id="btn-go-up" class="btn-primary"
                             style="padding: 8px; font-size: 0.75rem; border-radius: 4px;" disabled>▲ Go Up</button>
                         <button id="btn-go-down" class="btn-primary"
                             style="padding: 8px; font-size: 0.75rem; border-radius: 4px;" disabled>Go Down ▼</button>
                     </div>
-                    <!-- Placeholder Column for Balance (or future actions) -->
+
+                    <!-- Right Column: Buy North / Dig Deeper -->
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                         <button id="btn-buy-north" class="btn-primary"
                             style="padding: 8px; font-size: 0.75rem; border-radius: 4px; background-color: #ffd700; color: #000;" disabled>Buy North Plot</button>
