@@ -71,6 +71,38 @@ function updateMinesUIHeaders(appState: AppState): void {
   const cleared = plot.tiles.filter((t) => t.type === 'empty').length;
   const clearText = document.getElementById('clear-text');
   if (clearText) clearText.textContent = `Cleared: ${Math.floor((cleared / plot.tiles.length) * 100)}%`;
+
+  // Update Buy Miner Button
+  const btnBuy = document.getElementById('btn-buy-miner') as HTMLButtonElement | null;
+  if (btnBuy) {
+    const cost = Math.floor(BASE_MINER_COST * Math.pow(1.5, plot.miners.length));
+    btnBuy.textContent = `Buy Miner (Lvl 1) - $${cost}`;
+    btnBuy.disabled = appState.money < cost;
+  }
+
+  // Enable/disable navigation buttons
+  const btnPrev = document.getElementById('btn-prev-plot') as HTMLButtonElement | null;
+  if (btnPrev) btnPrev.disabled = appState.mines.activePlot <= 0;
+
+  const btnNext = document.getElementById('btn-next-plot') as HTMLButtonElement | null;
+  if (btnNext) btnNext.disabled = appState.mines.activePlot >= appState.mines.maxUnlockedPlot;
+
+  // Unlocks for Buy North Plot and Dig Deeper
+  const rubbleCount = plot.tiles.filter((t) => t.type === 'rubble').length;
+  const isSoftClear = rubbleCount === 0;
+
+  const dirtCount = plot.tiles.filter((t) => t.type === 'dirt').length;
+  const isHardClear = rubbleCount === 0 && dirtCount === 0;
+
+  const btnBuyNorth = document.getElementById('btn-buy-north') as HTMLButtonElement | null;
+  if (btnBuyNorth) {
+    btnBuyNorth.disabled = !isSoftClear || appState.money < 500;
+  }
+
+  const btnDigDown = document.getElementById('btn-dig-down') as HTMLButtonElement | null;
+  if (btnDigDown) {
+    btnDigDown.disabled = false;
+  }
 }
 
 function forceGridResetAndRender(appState: AppState) {
@@ -92,9 +124,24 @@ function getValidNeighbors(idx: number): number[] {
 
 function findTargetTile(miner: Miner, plot: MinePlot): number | null {
   const neighbors = getValidNeighbors(miner.tileIndex);
-  const validTargets = neighbors.filter((idx) => plot.tiles[idx].type !== 'empty');
-  validTargets.sort((a, b) => plot.tiles[a].hp - plot.tiles[b].hp);
-  return validTargets.length > 0 ? validTargets[0] : null;
+  const validTargets = neighbors.filter((idx) => {
+    const type = plot.tiles[idx].type;
+    return type !== 'empty' && type !== 'blocker';
+  });
+
+  if (validTargets.length === 0) return null;
+
+  // Priority: Rubble > Dirt, then lowest HP
+  validTargets.sort((a, b) => {
+    const tA = plot.tiles[a];
+    const tB = plot.tiles[b];
+    if (tA.type !== tB.type) {
+      return tA.type === 'rubble' ? -1 : 1;
+    }
+    return tA.hp - tB.hp;
+  });
+
+  return validTargets[0];
 }
 
 function calculateFacingAngle(from: number, to: number): number {
@@ -156,6 +203,14 @@ export async function initMinesSlice(appState: AppState): Promise<void> {
     window.addEventListener('touchend', () => handleTouchEnd(appState));
     bindInputEvents(appState);
     setInterval(() => gameTick(appState), TICK_RATE);
+
+    // Auto-save loop: check for changes and save to localStorage every 5 seconds
+    setInterval(() => {
+      if ((appState as any).isDirty) {
+        saveGameState(appState);
+        (appState as any).isDirty = false;
+      }
+    }, 5000);
   }
 }
 
@@ -207,9 +262,10 @@ function updateMinerLogic(miner: Miner, plot: MinePlot, dt: number, appState: Ap
   target.hp -= damage;
   if (target.hp <= 0) {
     if (target.type === 'rubble') {
-      appState.money = Math.floor((appState.money + RUBBLE_VALUE * (plot.depth + 1)) * 100) / 100;
+      const val = RUBBLE_VALUE * (plot.depth + 1);
+      appState.money = Math.floor((appState.money + val) * 100) / 100;
       updateGlobalMoneyUI(appState.money);
-      createFloatingText(targetIdx, `+$${RUBBLE_VALUE}`);
+      createFloatingText(targetIdx, `+$${val}`);
     }
     target.type = 'empty';
     target.hp = 0;
@@ -220,9 +276,56 @@ function updateMinerLogic(miner: Miner, plot: MinePlot, dt: number, appState: Ap
 function executeDropMovement(tileIndex: number, appState: AppState): void {
   const plot = appState.mines.plots[appState.mines.activePlot];
   const dragged = appState.mines.draggedMiner;
-  if (!dragged || plot.tiles[tileIndex].type !== 'empty') return;
-  dragged.tileIndex = tileIndex;
-  markDirty(appState);
+  if (!dragged) return;
+
+  const targetMiner = plot.miners.find((m) => m.tileIndex === tileIndex);
+
+  if (targetMiner && targetMiner.level === dragged.level && targetMiner !== dragged) {
+    // Merge
+    plot.miners = plot.miners.filter((m) => m !== dragged);
+    targetMiner.level++;
+    createFloatingText(tileIndex, "LEVEL UP!");
+    markDirty(appState);
+  } else if (!targetMiner && plot.tiles[tileIndex].type === 'empty') {
+    // Move
+    dragged.tileIndex = tileIndex;
+    markDirty(appState);
+  }
+}
+
+function handleMinerClick(miner: Miner, appState: AppState): void {
+  const activePlot = appState.mines.plots[appState.mines.activePlot];
+  const selected = appState.mines.selectedMiner;
+
+  if (selected === miner) {
+    appState.mines.selectedMiner = null;
+  } else if (selected && selected.level === miner.level && selected !== miner) {
+    // Click to merge
+    activePlot.miners = activePlot.miners.filter((m) => m !== selected);
+    miner.level++;
+    appState.mines.selectedMiner = null;
+    createFloatingText(miner.tileIndex, "LEVEL UP!");
+    markDirty(appState);
+  } else {
+    appState.mines.selectedMiner = miner;
+  }
+  renderPlotGrid(appState);
+}
+
+function handleTileClick(tileIndex: number, appState: AppState): void {
+  const plot = appState.mines.plots[appState.mines.activePlot];
+  const existingMiner = plot.miners.find((m) => m.tileIndex === tileIndex);
+  const selected = appState.mines.selectedMiner;
+
+  if (selected && !existingMiner && plot.tiles[tileIndex].type === 'empty') {
+    // Move selected miner to empty tile
+    selected.tileIndex = tileIndex;
+    appState.mines.selectedMiner = null;
+    markDirty(appState);
+  } else if (!existingMiner) {
+    appState.mines.selectedMiner = null;
+  }
+  renderPlotGrid(appState);
 }
 
 function renderPlotGrid(appState: AppState): void {
@@ -235,6 +338,7 @@ function renderPlotGrid(appState: AppState): void {
   plot.tiles.forEach((tile, i) => {
     const tileEl = document.createElement('div');
     tileEl.className = `tile ${tile.type}`;
+    tileEl.onclick = () => handleTileClick(i, appState);
 
     // 1. Display Level (for everything except empty and blocker)
     if (tile.type !== 'empty' && tile.type !== 'blocker') {
@@ -244,26 +348,58 @@ function renderPlotGrid(appState: AppState): void {
       tileEl.appendChild(levelEl);
     }
 
-    // 2. Display HP Bar (only for destructible tiles like rubble)
-    if (tile.type === 'rubble') {
+    // 2. Display HP Bar (for destructible tiles like rubble and dirt)
+    if (tile.type === 'rubble' || tile.type === 'dirt') {
       const hpBar = document.createElement('div');
       hpBar.className = 'hp-bar';
       hpBar.style.display = 'block'; // Ensure it's visible
 
       const hpFill = document.createElement('div');
       hpFill.className = 'hp-fill';
-      // Calculate percentage: assume max HP is 100 for this calculation
-      const percent = Math.max(0, Math.min(100, (tile.hp / 100) * 100));
+      // Calculate percentage
+      const percent = Math.max(0, Math.min(100, (tile.hp / tile.maxHp) * 100));
       hpFill.style.width = `${percent}%`;
 
       hpBar.appendChild(hpFill);
       tileEl.appendChild(hpBar);
     }
 
-    // 3. Setup interaction events
+    // 3. Render miner if present
+    const miner = plot.miners.find((m) => m.tileIndex === i);
+    if (miner) {
+      const mEl = document.createElement('div');
+      const isSelected = appState.mines.selectedMiner === miner;
+      mEl.className = `miner ${isSelected ? 'selected' : ''}`;
+      mEl.setAttribute('draggable', 'true');
+      mEl.style.transform = `rotate(${miner.facing || 0}deg)`;
+      mEl.innerHTML = `
+        <span class="miner-icon">⛏️</span>
+        <span class="miner-level" style="transform: rotate(-${miner.facing || 0}deg)">${miner.level}</span>
+      `;
+      mEl.onclick = (e) => {
+        e.stopPropagation();
+        handleMinerClick(miner, appState);
+      };
+      mEl.ondragstart = (e) => {
+        appState.mines.draggedMiner = miner;
+        appState.mines.selectedMiner = null;
+        if (e.dataTransfer) {
+          e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+        }
+      };
+      mEl.ondragend = () => {
+        appState.mines.draggedMiner = null;
+      };
+      mEl.addEventListener('touchstart', () => {
+        appState.mines.draggedMiner = miner;
+        appState.mines.selectedMiner = null;
+      }, { passive: true });
+      tileEl.appendChild(mEl);
+    }
+
+    // 4. Setup interaction events
     tileEl.ondragover = (e) => handleDragOver(e, i, appState);
     tileEl.ondrop = (e) => handleDrop(e, i, appState);
-    tileEl.ondragenter = (e) => (e.currentTarget as HTMLElement).classList.add('drag-over');
     tileEl.ondragleave = (e) => (e.currentTarget as HTMLElement).classList.remove('drag-over');
 
     grid.appendChild(tileEl);
@@ -294,56 +430,123 @@ function handleTouchEnd(appState: AppState): void {
 
 function handleDragOver(e: DragEvent, idx: number, appState: AppState): void {
   e.preventDefault();
+  const dragged = appState.mines.draggedMiner;
+  if (!dragged) return;
+
+  const plot = appState.mines.plots[appState.mines.activePlot];
+  const targetMiner = plot.miners.find((m) => m.tileIndex === idx);
+  if (plot.tiles[idx].type === 'empty' || (targetMiner && targetMiner.level === dragged.level && targetMiner !== dragged)) {
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+    (e.currentTarget as HTMLElement).classList.add('drag-over');
+  }
 }
 
 function handleDrop(e: DragEvent, idx: number, appState: AppState): void {
   e.preventDefault();
+  (e.currentTarget as HTMLElement).classList.remove('drag-over');
   executeDropMovement(idx, appState);
+  appState.mines.draggedMiner = null;
+  appState.mines.selectedMiner = null;
   renderPlotGrid(appState);
 }
 
 function bindInputEvents(appState: AppState): void {
+  document.getElementById('btn-prev-plot')?.addEventListener('click', () => {
+    if (appState.mines.activePlot > 0) {
+      appState.mines.activePlot--;
+      forceGridResetAndRender(appState);
+      updateMinesUIHeaders(appState);
+    }
+  });
+
+  document.getElementById('btn-next-plot')?.addEventListener('click', () => {
+    if (appState.mines.activePlot < appState.mines.maxUnlockedPlot) {
+      appState.mines.activePlot++;
+      forceGridResetAndRender(appState);
+      updateMinesUIHeaders(appState);
+    }
+  });
+
   document.getElementById('btn-buy-north')?.addEventListener('click', () => {
     if (appState.money >= 500) {
       appState.money -= 500;
       appState.mines.plots.push(generatePlot(appState.worldSeed, appState.mines.plots.length));
       appState.mines.activePlot = appState.mines.plots.length - 1;
+      appState.mines.maxUnlockedPlot = appState.mines.plots.length - 1;
       forceGridResetAndRender(appState);
+      updateMinesUIHeaders(appState);
       markDirty(appState);
     }
   });
 
   document.getElementById('btn-dig-down')?.addEventListener('click', () => {
     const plot = appState.mines.plots[appState.mines.activePlot];
+    const rubbleCount = plot.tiles.filter(t => t.type === 'rubble').length;
+    const dirtCount = plot.tiles.filter(t => t.type === 'dirt').length;
+    const isHardClear = rubbleCount === 0 && dirtCount === 0;
+    if (!isHardClear) {
+      showToast('Cannot dig deeper until plot is fully cleared (hard clear).');
+      return;
+    }
     plot.tiles = generatePlot(appState.worldSeed, plot.depth + 1).tiles;
     plot.depth++;
+
+    // Reset miner positions to the new floor's empty bottom row (highest index)
+    const emptyIndices = plot.tiles
+      .map((t, i) => t.type === 'empty' ? i : -1)
+      .filter(idx => idx !== -1);
+
+    plot.miners.forEach((m, idx) => {
+      m.tileIndex = emptyIndices[idx % emptyIndices.length];
+    });
+
     forceGridResetAndRender(appState);
+    updateMinesUIHeaders(appState);
     markDirty(appState);
   });
 }
 
 export function handleBuyMiner(appState: AppState): void {
-  if (appState.money >= BASE_MINER_COST) {
-    appState.money -= BASE_MINER_COST;
-    // Get the currently active plot
-    const activePlot = appState.mines.plots[appState.mines.activePlot];
+  const activePlot = appState.mines.plots[appState.mines.activePlot];
+  const cost = Math.floor(BASE_MINER_COST * Math.pow(1.5, activePlot.miners.length));
 
-    // Create the new miner
-    // We default them to tileIndex 0, or any logic you prefer
-    const newMiner: Miner = {
-      level: 1,
-      tileIndex: 0,
-      facing: 1,
-      progress: 0
-    };
+  if (appState.money >= cost) {
+    // Find empty tiles
+    const emptyIndices = activePlot.tiles
+      .map((_, idx) => idx)
+      .filter((idx) => activePlot.tiles[idx].type === 'empty' && !activePlot.miners.some((m) => m.tileIndex === idx));
 
-    // Add to the active plot's miner list
-    activePlot.miners.push(newMiner);
+    if (emptyIndices.length > 0) {
+      // Prioritize bottom row (highest index)
+      emptyIndices.sort((a, b) => {
+        const rowA = Math.floor(a / GRID_SIZE);
+        const rowB = Math.floor(b / GRID_SIZE);
+        return rowB - rowA;
+      });
 
-    // Update the UI
-    updateGlobalMoneyUI(appState.money);
-    renderPlotGrid(appState);
-    showToast('Miner purchased!');
+      const targetIdx = emptyIndices[0];
+      appState.money -= cost;
+
+      const newMiner: Miner = {
+        level: 1,
+        tileIndex: targetIdx,
+        facing: 0,
+        progress: 0
+      };
+
+      activePlot.miners.push(newMiner);
+
+      // Update UI
+      updateGlobalMoneyUI(appState.money);
+      renderPlotGrid(appState);
+      updateMinesUIHeaders(appState);
+      showToast('Miner purchased!');
+      markDirty(appState);
+    } else {
+      showToast('No room to place a miner! Clear more paths.');
+    }
   } else {
     showToast('Not enough money!');
   }

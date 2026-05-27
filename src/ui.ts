@@ -9,6 +9,7 @@
 
 import { AppState, TabId } from '@/types/game';
 import { handleBuyMiner } from './mines';
+import { saveGameState } from './save';
 
 /**
  * Internal DOM Cache isolated within the UI slice
@@ -58,6 +59,7 @@ function switchTabTo(targetTab: TabId, appState: AppState): void {
 
   // 3. Keep tracking state alive
   appState.currentTab = targetTab;
+  saveGameState(appState);
 
   // 4. WALLET SYNC: Force sub-header context to match global wallet on view load
   if (targetTab === 'mines') {

@@ -550,10 +550,16 @@
             document.getElementById('btn-buy-north').disabled = !isSoftClear || state.money < 500;
             document.getElementById('btn-dig-down').disabled = !isHardClear;
 
-            // Disable nav buttons for Spike #001
-            document.querySelectorAll('nav .nav-btn').forEach(btn => {
-                if (btn.textContent.includes("Up") || btn.textContent.includes("Down")) btn.disabled = true;
-            });
+            // Only disable depth navigation buttons (Up/Down) based on hard/soft clear state
+            const upBtnDepth = document.querySelector('.nav-btn[onclick*="navDepth(-1)"]');
+            const downBtnDepth = document.querySelector('.nav-btn[onclick*="navDepth(1)"]');
+            if (upBtnDepth) upBtnDepth.disabled = plot.depth === 0; // already handled elsewhere but keep safe
+            if (downBtnDepth) downBtnDepth.disabled = false; // will be toggled based on hard clear elsewhere
+
+            // Disable dig down button if not a hard clear
+            const digBtn = document.getElementById('btn-dig-down');
+            if (digBtn) digBtn.disabled = !isHardClear;
+
         }
 
         // --- Interactions ---
@@ -730,14 +736,33 @@
         }
 
         function navDepth(dir) {
-            // Simple fix: prevent navigation if depth is 0 and trying to go up
             const plot = state.plots[state.activePlot];
-            if (dir < 0 && plot.depth === 0) return;
-
-            // For this spike, we'll alert that historical depth navigation 
-            // requires the 'Station View' spike to persist floor states.
-            console.log("Depth navigation triggered. Floor persistence is part of Spike #002.");
+            if (dir < 0) {
+                // Go up a floor if possible
+                if (plot.depth === 0) return;
+                plot.depth--;
+            } else {
+                // Go down a floor
+                plot.depth++;
+            }
+            // Regenerate tiles for the new depth
+            plot.tiles = initPlot(plot.depth).tiles;
+            // Reposition miners on the new empty bottom row
+            const emptyIndices = plot.tiles
+                .map((t, i) => t.type === 'empty' ? i : -1)
+                .filter(idx => idx !== -1);
+            plot.miners.forEach((m, i) => {
+                m.tileIndex = emptyIndices[i % emptyIndices.length];
+            });
+            renderAll();
         }
+
+            // ... later in updateUI ...
+            // Update navigation depth buttons enable/disable state
+            const upBtn = document.querySelector('.nav-btn[onclick*="navDepth(-1)"]');
+            const downBtn = document.querySelector('.nav-btn[onclick*="navDepth(1)"]');
+            if (upBtn) upBtn.disabled = plot.depth === 0;
+            if (downBtn) downBtn.disabled = false;
 
         function buyNorthPlot() {
             const cost = 500;

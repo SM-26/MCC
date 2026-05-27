@@ -57,16 +57,11 @@
 .tile.blocker {
     background-color: #2a2a2a;
     border: 2px solid #555;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2rem;
-    /* Adjust emoji size */
+    background-image: url('../support-pillar.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     cursor: not-allowed;
-}
-
-.tile.blocker::after {
-    content: '🗑';
 }
 
 .tile.empty {
@@ -110,6 +105,8 @@
 /* Miner Entities */
 .miner {
     position: absolute;
+    top: 10%;
+    left: 10%;
     width: 80%;
     height: 80%;
     display: flex;

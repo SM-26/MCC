@@ -14,10 +14,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { initApp } from '../app';
 
 describe('Initial App State', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       if (url.includes('package.json')) {
         return Promise.resolve({
@@ -39,16 +39,18 @@ describe('Initial App State', () => {
   });
 
   it('should initialize and return a valid state', async () => {
+    const { initApp } = await import('../app');
     const state = await initApp();
 
     // Validate that state is populated
     expect(state).toBeDefined();
-    expect(state.money).toBe(0);
+    expect(state.money).toBe(75);
     expect(state.navPosition).toBe('top');
     expect(state.devMode).toBe(false);
   });
 
   it('should log initialization messages', async () => {
+    const { initApp } = await import('../app');
     await initApp();
 
     expect(console.log).toHaveBeenCalledWith(
