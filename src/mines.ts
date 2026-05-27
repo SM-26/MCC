@@ -89,19 +89,42 @@ function updateMinesUIHeaders(appState: AppState): void {
 
   // Unlocks for Buy North Plot and Dig Deeper
   const rubbleCount = plot.tiles.filter((t) => t.type === 'rubble').length;
-  const isSoftClear = rubbleCount === 0;
-
   const dirtCount = plot.tiles.filter((t) => t.type === 'dirt').length;
-  const isHardClear = rubbleCount === 0 && dirtCount === 0;
+  const blockerCount = plot.tiles.filter((t) => t.type === 'blocker').length;
+
+  // Soft clear: all rubble must be gone (dirt and blockers can remain)
+  const isSoftClear = rubbleCount === 0;
 
   const btnBuyNorth = document.getElementById('btn-buy-north') as HTMLButtonElement | null;
   if (btnBuyNorth) {
-    btnBuyNorth.disabled = !isSoftClear || appState.money < 500;
+    // Buy North requires: Depth 1 AND Soft Clear AND Enough Money
+    const canBuyNorth = plot.depth === 1 && isSoftClear && appState.money >= 500;
+    btnBuyNorth.disabled = !canBuyNorth;
+    
+    // Update button text to show requirements if disabled
+    if (!canBuyNorth) {
+      if (plot.depth !== 1) {
+        btnBuyNorth.textContent = `Buy North Plot (Depth ${plot.depth} / 1)`;
+      } else if (!isSoftClear) {
+        const remaining = rubbleCount + blockerCount;
+        btnBuyNorth.textContent = `Buy North Plot (${remaining} obstacles remain)`;
+      } else {
+        btnBuyNorth.textContent = `Buy North Plot (Ready - $500)`;
+      }
+    }
   }
 
   const btnDigDown = document.getElementById('btn-dig-down') as HTMLButtonElement | null;
   if (btnDigDown) {
-    btnDigDown.disabled = false;
+    // Dig Deeper requires: Soft Clear (no rubble)
+    const isHardClear = rubbleCount === 0;
+    btnDigDown.disabled = !isHardClear;
+    
+    if (!isHardClear) {
+      btnDigDown.textContent = `Dig Deeper (${rubbleCount} rubble remains)`;
+    } else {
+      btnDigDown.textContent = `Dig Deeper`;
+    }
   }
 }
 
@@ -155,28 +178,6 @@ function calculateFacingAngle(from: number, to: number): number {
 
 // --- LOGIC ---
 
-// export async function initMinesSlice(appState: AppState): Promise<void> {
-//   if (isMinesInitialized) return;
-//   isMinesInitialized = true;
-
-//   if (!appState.mines?.plots?.length) {
-//     appState.mines = {
-//       activePlot: 0,
-//       maxUnlockedPlot: 0,
-//       plots: [generatePlot(appState.worldSeed, 0)],
-//       selectedMiner: null,
-//       draggedMiner: null,
-//       lastTick: Date.now()
-//     };
-//   } else {
-//     handleOfflineProgress(appState);
-//   }
-
-//   window.addEventListener('touchmove', (e) => handleTouchMove(e, appState), { passive: false });
-//   window.addEventListener('touchend', () => handleTouchEnd(appState));
-//   bindInputEvents(appState);
-//   setInterval(() => gameTick(appState), TICK_RATE);
-// }
 export async function initMinesSlice(appState: AppState): Promise<void> {
   // 1. Data Initialization: Always run this if plots are empty (e.g., after Reset)
   if (!appState.mines?.plots?.length) {
@@ -226,32 +227,6 @@ function gameTick(appState: AppState): void {
     updateMinesUIHeaders(appState);
   }
 }
-
-// function updateMinerLogic(miner: Miner, plot: MinePlot, dt: number, appState: AppState): void {
-//   const targetIdx = findTargetTile(miner, plot);
-//   if (targetIdx === null) return;
-
-//   const target = plot.tiles[targetIdx];
-//   const damage = (1 << (miner.level - 1)) * 5 * dt;
-
-//   miner.facing = calculateFacingAngle(miner.tileIndex, targetIdx);
-//   target.hp -= damage;
-
-//   if (target.hp <= 0) {
-//     if (target.type === 'rubble') {
-//       const value = RUBBLE_VALUE * (plot.depth + 1);
-//       appState.money = Math.floor((appState.money + value) * 100) / 100;
-//       updateGlobalMoneyUI(appState.money);
-//       markDirty(appState);
-
-//       if (appState.mines.plots[appState.mines.activePlot] === plot) {
-//         createFloatingText(targetIdx, `+$${value}`);
-//       }
-//     }
-//     target.type = 'empty';
-//     target.hp = 0;
-//   }
-// }
 
 function updateMinerLogic(miner: Miner, plot: MinePlot, dt: number, appState: AppState): void {
   const targetIdx = findTargetTile(miner, plot);
@@ -470,24 +445,50 @@ function bindInputEvents(appState: AppState): void {
   });
 
   document.getElementById('btn-buy-north')?.addEventListener('click', () => {
+    const activePlot = appState.mines.plots[appState.mines.activePlot];
+    
+    // Check requirements: Must be depth 1 and soft clear (no rubble)
+    if (activePlot.depth !== 1) {
+      showToast(`Cannot buy north plot at depth ${activePlot.depth}. Must be at depth 1.`);
+      return;
+    }
+
+    const rubbleCount = activePlot.tiles.filter(t => t.type === 'rubble').length;
+    if (rubbleCount > 0) {
+      showToast(`Cannot buy north plot. Plot is not soft cleared (${rubbleCount} rubble remains).`);
+      return;
+    }
+
+    // If we get here, requirements are met
     if (appState.money >= 500) {
       appState.money -= 500;
-      appState.mines.plots.push(generatePlot(appState.worldSeed, appState.mines.plots.length));
+      updateGlobalMoneyUI(appState.money);
+      
+      // Generate new plot at depth 1
+      const newPlot = generatePlot(appState.worldSeed, activePlot.depth + 1);
+      activePlot.tiles = newPlot.tiles;
+      activePlot.miners = []; // Clear miners as they are on the old floor
+      activePlot.depth++; // Increment depth
+      
+      // Add to plots array and switch to it
+      appState.mines.plots.push(newPlot);
       appState.mines.activePlot = appState.mines.plots.length - 1;
       appState.mines.maxUnlockedPlot = appState.mines.plots.length - 1;
+      
       forceGridResetAndRender(appState);
       updateMinesUIHeaders(appState);
       markDirty(appState);
+      showToast('North plot bought!');
+    } else {
+      showToast(`Not enough money to buy north plot ($500 required).`);
     }
   });
 
   document.getElementById('btn-dig-down')?.addEventListener('click', () => {
     const plot = appState.mines.plots[appState.mines.activePlot];
     const rubbleCount = plot.tiles.filter(t => t.type === 'rubble').length;
-    const dirtCount = plot.tiles.filter(t => t.type === 'dirt').length;
-    const isHardClear = rubbleCount === 0 && dirtCount === 0;
-    if (!isHardClear) {
-      showToast('Cannot dig deeper until plot is fully cleared (hard clear).');
+    if (rubbleCount > 0) {
+      showToast(`Cannot dig deeper. Clear all rubble first.`);
       return;
     }
     plot.tiles = generatePlot(appState.worldSeed, plot.depth + 1).tiles;
@@ -528,6 +529,7 @@ export function handleBuyMiner(appState: AppState): void {
 
       const targetIdx = emptyIndices[0];
       appState.money -= cost;
+      updateGlobalMoneyUI(appState.money);
 
       const newMiner: Miner = {
         level: 1,
@@ -538,8 +540,6 @@ export function handleBuyMiner(appState: AppState): void {
 
       activePlot.miners.push(newMiner);
 
-      // Update UI
-      updateGlobalMoneyUI(appState.money);
       renderPlotGrid(appState);
       updateMinesUIHeaders(appState);
       showToast('Miner purchased!');
