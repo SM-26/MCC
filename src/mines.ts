@@ -100,7 +100,7 @@ function updateMinesUIHeaders(appState: AppState): void {
     // Buy North requires: Depth 1 AND Soft Clear AND Enough Money
     const canBuyNorth = plot.depth === 1 && isSoftClear && appState.money >= 500;
     btnBuyNorth.disabled = !canBuyNorth;
-    
+
     // Update button text to show requirements if disabled
     if (!canBuyNorth) {
       if (plot.depth !== 1) {
@@ -119,7 +119,7 @@ function updateMinesUIHeaders(appState: AppState): void {
     // Dig Deeper requires: Soft Clear (no rubble)
     const isHardClear = rubbleCount === 0;
     btnDigDown.disabled = !isHardClear;
-    
+
     if (!isHardClear) {
       btnDigDown.textContent = `Dig Deeper (${rubbleCount} rubble remains)`;
     } else {
@@ -183,6 +183,7 @@ export async function initMinesSlice(appState: AppState): Promise<void> {
   if (!appState.mines?.plots?.length) {
     appState.mines = {
       activePlot: 0,
+      plotid: 'A',
       maxUnlockedPlot: 0,
       plots: [generatePlot(appState.worldSeed, 0)],
       selectedMiner: null,
@@ -439,7 +440,7 @@ function bindInputEvents(appState: AppState): void {
   document.getElementById('btn-next-plot')?.addEventListener('click', () => {
     // Check if we can buy a new plot first
     const activePlot = appState.mines.plots[appState.mines.activePlot];
-    
+
     // Check requirements: Must be depth 1 and soft clear (no rubble)
     if (activePlot.depth !== 1) {
       showToast(`Cannot buy north plot at depth ${activePlot.depth}. Must be at depth 1.`);
@@ -456,18 +457,18 @@ function bindInputEvents(appState: AppState): void {
     if (appState.money >= 500) {
       appState.money -= 500;
       updateGlobalMoneyUI(appState.money);
-      
+
       // Generate new plot at depth 1
       const newPlot = generatePlot(appState.worldSeed, activePlot.depth + 1);
       activePlot.tiles = newPlot.tiles;
       activePlot.miners = []; // Clear miners as they are on the old floor
       activePlot.depth++; // Increment depth
-      
+
       // Add to plots array and switch to it
       appState.mines.plots.push(newPlot);
       appState.mines.activePlot = appState.mines.plots.length - 1;
       appState.mines.maxUnlockedPlot = appState.mines.plots.length - 1;
-      
+
       forceGridResetAndRender(appState);
       updateMinesUIHeaders(appState);
       markDirty(appState);
@@ -479,7 +480,7 @@ function bindInputEvents(appState: AppState): void {
 
   document.getElementById('btn-buy-north')?.addEventListener('click', () => {
     const activePlot = appState.mines.plots[appState.mines.activePlot];
-    
+
     // Check requirements: Must be depth 1 and soft clear (no rubble)
     if (activePlot.depth !== 1) {
       showToast(`Cannot buy north plot at depth ${activePlot.depth}. Must be at depth 1.`);
@@ -496,18 +497,18 @@ function bindInputEvents(appState: AppState): void {
     if (appState.money >= 500) {
       appState.money -= 500;
       updateGlobalMoneyUI(appState.money);
-      
+
       // Generate new plot at depth 1
       const newPlot = generatePlot(appState.worldSeed, activePlot.depth + 1);
       activePlot.tiles = newPlot.tiles;
       activePlot.miners = []; // Clear miners as they are on the old floor
       activePlot.depth++; // Increment depth
-      
+
       // Add to plots array and switch to it
       appState.mines.plots.push(newPlot);
       appState.mines.activePlot = appState.mines.plots.length - 1;
       appState.mines.maxUnlockedPlot = appState.mines.plots.length - 1;
-      
+
       forceGridResetAndRender(appState);
       updateMinesUIHeaders(appState);
       markDirty(appState);

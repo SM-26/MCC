@@ -12,6 +12,7 @@ export interface MineTile {
   level: number;
   hp: number;
   maxHp: number;
+  value: number;
 }
 
 export interface Miner {
@@ -29,6 +30,7 @@ export interface MinePlot {
 
 export interface MinesState {
   activePlot: number;
+  plotid: string;
   maxUnlockedPlot: number;
   plots: MinePlot[];
   selectedMiner: Miner | null;
