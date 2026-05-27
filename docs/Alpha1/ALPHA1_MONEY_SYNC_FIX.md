@@ -11,15 +11,15 @@
 **Problem:** Each slice (mines, station) had its own money counter instead of using the global state.
 
 **Solution:** 
-- Updated `mines.html` to read `state.money` from main.ts
-- Updated `station.html` to read `state.money` from main.ts
+- Updated `./public/mines.html` to read `state.money` from main.ts
+- Updated `./public/station.html` to read `state.money` from main.ts
 - Both slices now display the same money value as the header
 
 ### ✅ Mining Broken Issue
 **Problem:** The mines slice wasn't connected to the main state, so mining didn't work.
 
 **Solution:**
-- Rewrote `mines.html` to use ES modules and import from `src/main.js`
+- Rewrote `./public/mines.html` to use ES modules and import from `src/main.js`
 - Connected miner placement, merging, and resource collection to global state
 - Mining now properly adds money to `state.money`
 - Tile generation uses depth-based mixing (rubble/dirt/oil/copper/super-alloy)
@@ -28,14 +28,14 @@
 
 ## Files Updated
 
-### ✅ `/mnt/c/users/or_ga/Documents/MCC/public/mines.html`
+### ✅ `./public/mines.html`
 - Now imports state from `src/main.js`
 - Reads money from global state
 - Mining adds to global state.money
 - Proper tile generation with depth-based mixing
 - Miner merge mechanics working
 
-### ✅ `/mnt/c/users/or_ga/Documents/MCC/public/station.html`
+### ✅ `./public/station.html`
 - Now imports state from `src/main.js`
 - Reads money from global state
 - Train dispatch and payouts add to global state.money
@@ -61,7 +61,7 @@
 
 ### Local Development:
 ```bash
-cd /mnt/c/users/or_ga/Documents/MCC/public
+cd ./public
 python3 -m http.server 8000
 # Open http://localhost:8000
 ```
