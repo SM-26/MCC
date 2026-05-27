@@ -16,6 +16,7 @@
     --border-color: #49454f;
     --shadow-color: rgba(0, 0, 0, 0.5);
     --md-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+    --active-color: #ffd700;
 }
 
 @keyframes spin {

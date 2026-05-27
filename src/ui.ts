@@ -53,7 +53,9 @@ function switchTabTo(targetTab: TabId, appState: AppState): void {
     const content = dom.contents[i];
     const isActive = content.id === targetTab;
 
+    // Replace the toggle logic for classList
     content.classList.toggle('active', isActive);
+    // Use the CSS display property cleanly
     content.style.display = isActive ? 'block' : 'none';
   }
 

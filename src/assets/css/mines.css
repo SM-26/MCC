@@ -51,7 +51,7 @@
     background-color: #666;
     border-color: #888;
     background-image: url('../rubble-pile.svg');
-    background-size: 70%;
+    background-size: 200%;
     background-repeat: no-repeat;
     background-position: center;
 }
@@ -117,23 +117,31 @@
     transition: transform 0.2s, filter 0.2s;
 }
 
+.miner-icon {
+    font-size: 2rem;
+    /* Using font-size for emojis, not 'size' */
+    line-height: 1;
+    display: block;
+}
+
 .miner.selected {
     filter: drop-shadow(0 0 5px #ffd700);
     transform: scale(1.1);
-    /* Slightly smaller scale to fit better */
     z-index: 20;
 }
 
 .miner-level {
     position: absolute;
-    bottom: -4px;
-    right: -4px;
+    bottom: 2px;
+    right: 2px;
     background: #ffd700;
     color: #000;
-    font-size: 0.625rem;
-    padding: 1px 5px;
+    font-size: 0.65rem;
+    padding: 1px 4px;
     border-radius: 10px;
     font-weight: bold;
+    /* This counter-rotation logic is already handled in your JS */
+    pointer-events: none;
 }
 
 /* HUD and Feedback */
@@ -167,14 +175,42 @@
     }
 }
 
-/* Responsive adjustments for smaller screens */
-@media (max-width: 480px) {
-    #mines {
-        padding: 12px;
-    }
 
-    #tile-grid {
-        gap: 6px;
-        max-width: 320px;
-    }
+/* The Mine Stage - Flex container ensures children are centered */
+#mines {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* This centers the grid horizontally */
+    background-color: #1a1a2e;
+    background-image: radial-gradient(circle at top, #16213e 0%, #0f3460 100%);
+    padding: 12px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.center-container {
+    display: flex;
+    justify-content: center;
+    /* Centers grid horizontally */
+    align-items: center;
+    /* Centers grid vertically */
+    width: 100%;
+    background: #1c1c1f;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+/* Fluid Responsive Grid */
+#tile-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 400px;
+    /* Limits the size of the grid */
+    aspect-ratio: 1 / 1;
 }

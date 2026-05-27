@@ -68,7 +68,7 @@ export async function initSaveSlice(appState: AppState): Promise<void> {
         appState.mines = {
           activePlot: d.mines.activePlot ?? 0,
           maxUnlockedPlot: d.mines.maxUnlockedPlot ?? 0,
-          plotid: d.mines.plotid ?? 'Unknown',
+          plotid: d.mines.plotid,
           plots: d.mines.plots ?? [],
           selectedMiner: null, // Reset transient UI states
           draggedMiner: null,
