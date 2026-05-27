@@ -437,10 +437,43 @@ function bindInputEvents(appState: AppState): void {
   });
 
   document.getElementById('btn-next-plot')?.addEventListener('click', () => {
-    if (appState.mines.activePlot < appState.mines.maxUnlockedPlot) {
-      appState.mines.activePlot++;
+    // Check if we can buy a new plot first
+    const activePlot = appState.mines.plots[appState.mines.activePlot];
+    
+    // Check requirements: Must be depth 1 and soft clear (no rubble)
+    if (activePlot.depth !== 1) {
+      showToast(`Cannot buy north plot at depth ${activePlot.depth}. Must be at depth 1.`);
+      return;
+    }
+
+    const rubbleCount = activePlot.tiles.filter(t => t.type === 'rubble').length;
+    if (rubbleCount > 0) {
+      showToast(`Cannot buy north plot. Plot is not soft cleared (${rubbleCount} rubble remains).`);
+      return;
+    }
+
+    // If we get here, requirements are met
+    if (appState.money >= 500) {
+      appState.money -= 500;
+      updateGlobalMoneyUI(appState.money);
+      
+      // Generate new plot at depth 1
+      const newPlot = generatePlot(appState.worldSeed, activePlot.depth + 1);
+      activePlot.tiles = newPlot.tiles;
+      activePlot.miners = []; // Clear miners as they are on the old floor
+      activePlot.depth++; // Increment depth
+      
+      // Add to plots array and switch to it
+      appState.mines.plots.push(newPlot);
+      appState.mines.activePlot = appState.mines.plots.length - 1;
+      appState.mines.maxUnlockedPlot = appState.mines.plots.length - 1;
+      
       forceGridResetAndRender(appState);
       updateMinesUIHeaders(appState);
+      markDirty(appState);
+      showToast('North plot bought!');
+    } else {
+      showToast(`Not enough money to buy north plot ($500 required).`);
     }
   });
 
