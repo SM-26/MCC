@@ -4,5 +4,6 @@
 
 @import "./assets/css/reset.css";
 @import "./assets/css/tokens.css";
-@import "./assets/css/components.css";
+@import "./assets/css/layout.css";
+@import "./assets/css/atoms.css";
 @import "./assets/css/mines.css";

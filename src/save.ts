@@ -27,6 +27,7 @@ export function createDefaultState(): AppState {
     mines: {
       activePlot: 0,
       maxUnlockedPlot: 0,
+      plotid: 'A',
       plots: [],
       selectedMiner: null,
       draggedMiner: null,
@@ -67,6 +68,7 @@ export async function initSaveSlice(appState: AppState): Promise<void> {
         appState.mines = {
           activePlot: d.mines.activePlot ?? 0,
           maxUnlockedPlot: d.mines.maxUnlockedPlot ?? 0,
+          plotid: d.mines.plotid ?? 'Unknown',
           plots: d.mines.plots ?? [],
           selectedMiner: null, // Reset transient UI states
           draggedMiner: null,

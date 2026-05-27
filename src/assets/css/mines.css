@@ -1,25 +1,73 @@
+/* ============================================================================
+   Mines Module: Grid, Tiles, and Miner Entities
+   ============================================================================ */
+
+/* The Mine Stage */
+#mines {
+    background-color: #1a1a2e;
+    background-image: radial-gradient(circle at top, #2d2d4a 0%, #1a1a2e 100%);
+    padding: 16px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+}
+
+/* Fluid Responsive Grid */
 #tile-grid {
     display: grid;
-    grid-template-columns: repeat(5, 60px);
-    /* Adjust 60px to your preferred size */
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
     gap: 8px;
     justify-content: center;
+    width: 100%;
+    max-width: 400px;
     margin: 20px auto;
 }
 
-/* 1. Add relative positioning to the container */
+/* Base Tile Archetype */
 .tile {
     position: relative;
-    /* CRITICAL: This anchors children like .tile-level and .hp-bar */
-    width: 60px;
-    height: 60px;
+    aspect-ratio: 1 / 1;
     background-color: #2a2a2a;
-    border-radius: 4px;
+    border-radius: 8px;
     border: 2px solid #444;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.1s;
+    /* Add this to prevent collapse */
+    min-width: 60px;
 }
 
-/* 2. Fix the HP Bar display */
+.tile.drag-over {
+    background: rgba(255, 215, 0, 0.2) !important;
+    border-color: #ffd700;
+}
+
+/* Tile Variations */
+.tile.rubble {
+    background-color: #666;
+    border-color: #888;
+    background-image: url('../rubble-pile.svg');
+    background-size: 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.tile.dirt {
+    background: #8b7355;
+    border-color: #a68b6a;
+}
+
+.tile.empty {
+    background-color: #1a1a1a;
+    border-color: #333;
+}
+
+.tile.blocker {
+    background-color: #2a2a2a;
+    border: 2px solid #555;
+    background-image: url('../support-pillar.svg');
+    background-size: contain;
+    cursor: not-allowed;
+}
+
+/* HP Bar Display */
 .hp-bar {
     position: absolute;
     bottom: 4px;
@@ -29,70 +77,12 @@
     background: rgba(0, 0, 0, 0.5);
     border-radius: 2px;
     display: block;
-    /* Change from 'none' to 'block' */
     pointer-events: none;
 }
 
-/* 3. Keep the rest of your specific classes */
-.tile.rubble {
-    background-color: #666666;
-    border: 2px solid #888888;
-    background-image: url('../rubble-pile.svg');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-
-/* Ensure empty/blocker tiles don't accidentally show HP bars */
 .tile.empty .hp-bar,
 .tile.blocker .hp-bar {
     display: none;
-}
-
-.tile.dirt {
-    background: #8b7355;
-    border: 2px solid #a68b6a;
-}
-
-.tile.blocker {
-    background-color: #2a2a2a;
-    border: 2px solid #555;
-    background-image: url('../support-pillar.svg');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    cursor: not-allowed;
-}
-
-.tile.empty {
-    background-color: #1a1a1a;
-    /* Darker for empty */
-    border: 1px solid #333;
-}
-
-.tile.drag-over {
-    background: rgba(255, 215, 0, 0.15) !important;
-}
-
-.tile-level {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    font-size: 0.625rem;
-    color: rgba(255, 255, 255, 0.6);
-    pointer-events: none;
-}
-
-.hp-bar {
-    position: absolute;
-    bottom: 4px;
-    left: 4px;
-    right: 4px;
-    height: 4px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 2px;
-    display: none;
-    pointer-events: none;
 }
 
 .hp-fill {
@@ -105,31 +95,19 @@
 /* Miner Entities */
 .miner {
     position: absolute;
-    top: 10%;
-    left: 10%;
-    width: 80%;
-    height: 80%;
+    inset: 10%;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 10;
-    transition: transform 0.2s var(--md-easing-standard);
     cursor: grab;
+    transition: transform 0.2s;
 }
 
 .miner.selected {
     filter: drop-shadow(0 0 5px #ffd700);
-    transform: scale(1.15);
+    transform: scale(1.2);
     z-index: 20;
-}
-
-.miner:active {
-    cursor: grabbing;
-}
-
-.miner-icon {
-    font-size: 1.5rem;
-    user-select: none;
 }
 
 .miner-level {
@@ -137,14 +115,22 @@
     bottom: -4px;
     right: -4px;
     background: #ffd700;
-    color: #000000;
+    color: #000;
     font-size: 0.625rem;
     padding: 1px 5px;
     border-radius: 10px;
     font-weight: bold;
 }
 
-/* Float Feedback Effects */
+/* HUD and Feedback */
+.tile-level {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 0.625rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
 .float-text {
     position: absolute;
     color: #ffd700;
@@ -153,4 +139,16 @@
     pointer-events: none;
     animation: floatUp 1s ease-out forwards;
     z-index: 100;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
 }

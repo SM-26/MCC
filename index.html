@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merge &amp; Choo-Choo</title>
     <link rel="stylesheet" href="/src/styles.css">
+    <script type="module" src="/src/app.ts"></script>
 </head>
 
 <body>
@@ -43,54 +44,42 @@
 
             <!-- Mines tab -->
             <div id="mines" class="tab-content">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; background: var(--bg-secondary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <div id="money-display" style="font-size: 1.5rem; color: #ffd700; font-weight: bold;">$0</div>
-                    <div style="text-align: right;">
-                        <div id="loc-text" style="font-size: 0.875rem; font-weight: 500;">Plot 1, Depth 0</div>
-                        <div id="clear-text" style="font-size: 0.75rem; color: var(--text-secondary);">Cleared: 0%</div>
+                <div class="card-elevated" style="background: #252540; border: 1px solid #444477; margin-bottom: 16px;">
+                    <div class="flex-row-between">
+                        <div id="plot-name-display" style="font-size: 1.25rem; font-weight: 800; color: #ffd700;">Plot A
+                        </div>
+                        <div style="text-align: right; color: #aaa;">
+                            <div id="loc-text" class="text-body-sm">Plot 1, Depth 2</div>
+                            <div id="clear-text" class="text-caption" style="color: #4caf50;">00% Cleared</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Unified Navigation Controls (Single Column) -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem;">
-                    <!-- Left Column: Empty/Placeholder to maintain grid balance if needed later, or remove entirely -->
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
-                        <!-- Removed 'Prev Plot' button as per request to combine logic into single button -->
-                        <button id="btn-next-plot" class="btn-primary"
-                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;">Next Plot ▶</button>
-                    </div>
-                    
-                    <!-- Middle Column: Vertical Controls (Go Up/Down) -->
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
-                        <button id="btn-go-up" class="btn-primary"
-                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;" disabled>▲ Go Up</button>
-                        <button id="btn-go-down" class="btn-primary"
-                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px;" disabled>Go Down ▼</button>
-                    </div>
+                <button id="btn-dig-down" class="btn-action"
+                    style="width: 100%; min-height: 60px; font-weight: bold; margin-bottom: 16px;">
+                    ⛏️ Dig Deeper (6 rubble remains)
+                </button>
 
-                    <!-- Right Column: Buy North / Dig Deeper -->
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
-                        <button id="btn-buy-north" class="btn-primary"
-                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px; background-color: #ffd700; color: #000;" disabled>Buy North Plot</button>
-                        <button id="btn-dig-down" class="btn-primary"
-                            style="padding: 8px; font-size: 0.75rem; border-radius: 4px; background-color: #2196F3; color: #fff;">Dig Deeper</button>
+                <div class="grid-controls" style="margin-bottom: 16px;">
+                    <button id="btn-next-plot" class="btn-primary">Next Plot ▶</button>
+                    <div class="flex-col">
+                        <button id="btn-go-up" class="btn-primary" disabled>▲ Up</button>
+                        <button id="btn-go-down" class="btn-primary" disabled>▼ Down</button>
                     </div>
+                    <button id="btn-buy-north" class="btn-primary" disabled>Buy North</button>
                 </div>
 
-                <div style="display: flex; justify-content: center; padding: 1rem 0;">
+                <div class="center-container" style="background: #1c1c1f; border-radius: 12px; padding: 16px;">
                     <div id="tile-grid"></div>
                 </div>
 
-                <div style="margin-top: 1.5rem; text-align: center;">
-                    <button id="btn-buy-miner" class="btn-primary"
-                        style="width: 100%; padding: 12px; font-size: 1rem;">Buy Miner (Lvl 1) - $50</button>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; opacity: 0.7;">
+                <div class="card" style="margin-top: 16px; text-align: center;">
+                    <button id="btn-buy-miner" class="btn-primary" style="width: 100%;">Buy Miner (Lvl 1) - $50</button>
+                    <p class="text-caption" style="margin-top: 8px;">
                         Select a miner to move or merge. Drag or click empty cells to update positions.
-                    </div>
+                    </p>
                 </div>
             </div>
-
             <!-- Station tab -->
             <section id="station" class="tab-content">
                 <h2>Station</h2>
@@ -198,7 +187,6 @@
     <div id="toast" class="toast"></div>
 
     <!-- Application logic -->
-    <script type="module" src="/src/app.ts"></script>
     <script>
         // Fail-safe: if the app doesn't load within 5 seconds, 
         // show the app container anyway so the user can inspect errors

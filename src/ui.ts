@@ -63,7 +63,13 @@ function switchTabTo(targetTab: TabId, appState: AppState): void {
 
   // 4. WALLET SYNC: Force sub-header context to match global wallet on view load
   if (targetTab === 'mines') {
-    const subMoneyDisplay = document.getElementById('money-display');
+    const plotNameDisplay = document.getElementById('plot-name-display');
+    const subMoneyDisplay = document.getElementById('money-display'); // If you still want money shown elsewhere
+
+    if (plotNameDisplay) {
+      plotNameDisplay.textContent = appState.mines.plotid;
+    }
+
     if (subMoneyDisplay) {
       subMoneyDisplay.textContent = `$${Math.floor(appState.money).toLocaleString()}`;
     }

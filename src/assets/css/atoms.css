@@ -1,0 +1,120 @@
+/* ============================================================================
+   UI Atoms: Reusable Design System Elements
+   ============================================================================ */
+
+/* Cards - Use for grouping related information */
+.card {
+    background-color: var(--bg-secondary);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.card-elevated {
+    background-color: #2b2930;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons - Consistent interaction style */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.875rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: #3e3e60;
+    border: 1px solid #555580;
+    color: white;
+    transition: transform 0.1s, background-color 0.2s;
+}
+
+.btn-primary:active {
+    transform: translateY(2px);
+}
+
+.btn-primary:hover {
+    background-color: #5f43a0;
+}
+
+.btn-danger {
+    color: #ffb4ab;
+    background-color: #690005;
+    padding: 0.875rem 1.25rem;
+    border-radius: 100px;
+    transition: background-color 0.2s;
+}
+
+/* Utility Classes */
+.flex-row-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flex-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Typography Helpers */
+.text-headline {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.text-body-sm {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.text-caption {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* M3 Slide Switches */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 32px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    transition: background-color 0.2s;
+    border-radius: 100px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 6px;
+    bottom: 6px;
+    background-color: var(--text-secondary);
+    transition: transform 0.2s;
+    border-radius: 50%;
+}
