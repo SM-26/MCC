@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { initStationSlice } from '../station';
+import { initStationSlice } from '../stations/station';
 import { AppState } from '../types/game';
 
 describe('Station Slice', () => {
@@ -23,17 +23,17 @@ describe('Station Slice', () => {
   });
 
   it('should initialize station slice without errors', async () => {
-    const { initStationSlice } = await import('../station');
-    
+    const { initStationSlice } = await import('../stations/station');
+
     // This should not throw even if logic is TODO
     await initStationSlice(mockAppState as AppState);
-    
+
     expect(console.log).toHaveBeenCalledWith('[Station] Initializing station slice...');
   });
 
   it('should handle station construction placeholder', async () => {
-    const { initStationSlice } = await import('../station');
-    
+    const { initStationSlice } = await import('../stations/station');
+
     // Verify no runtime errors occur during initialization
     await expect(initStationSlice(mockAppState as AppState)).resolves.not.toThrow();
   });

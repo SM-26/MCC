@@ -10,11 +10,11 @@
 import { AppState } from '@/types/game';
 import { initWorldSlice } from './world';
 import { initMinesSlice } from './mines';
-import { initStationSlice } from './station';
+import { initStationSlice } from './stations/station';
 import { initUISlice, showToast } from './ui';
 import { initSaveSlice } from './save';
 import { resetSaveData, createDefaultState } from './save';
-import { initPlatformSlice } from './platform';
+import { initPlatformSlice } from './envAdapter';
 import { initSettingsSlice } from './settings';
 
 // Global execution blocker to explicitly kill ghost double-init tracking loops

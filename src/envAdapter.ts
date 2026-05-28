@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * Merge & Choo-Choo - Platform Slice
+ * Merge & Choo-Choo - envAdapter Slice
  * ============================================================================
  * Browser, PWA, storage, and runtime adapters.
  * Isolates environment details from game systems.
@@ -111,7 +111,7 @@ function setupPWAPrompts(state: PlatformState): void {
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
         deferredPrompt = null;
-        
+
         // Update platform state
         state.deferredPrompt = null;
       }
@@ -132,10 +132,10 @@ export function getPlatformState(): PlatformState | undefined {
 export async function isAppInstalled(): Promise<boolean> {
   const state = getPlatformState();
   if (!state) return false;
-  
+
   // If deferredPrompt exists, it's not yet installed
   if (state.deferredPrompt) return false;
-  
+
   // Check for the install manifest or similar indicator if needed
   // For now, we assume if no prompt is pending and supportsPWA is true,
   // it might be installed, but this is a best-effort check.

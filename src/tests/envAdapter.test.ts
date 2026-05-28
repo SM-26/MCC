@@ -1,11 +1,11 @@
 /**
- * Platform Slice Tests
+ * envAdapter Slice Tests
  * 
  * Validates PWA state, feature detection, and install prompt handling.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as platformModule from '../platform';
+import * as platformModule from '../envAdapter';
 import { AppState } from '../types/game';
 
 describe('Platform Slice', () => {
