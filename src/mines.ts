@@ -288,7 +288,7 @@ function handleMinerClick(miner: Miner, appState: AppState): void {
   renderPlotGrid(appState);
 }
 
-function handleTileClick(tileIndex: number, appState: AppState): void {
+export function handleTileClick(tileIndex: number, appState: AppState): void {
   const plot = appState.mines.plots[appState.mines.activePlot];
   const existingMiner = plot.miners.find((m) => m.tileIndex === tileIndex);
   const selected = appState.mines.selectedMiner;

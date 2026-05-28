@@ -5,88 +5,89 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { initMinesSlice, handleBuyMiner } from '../mines';
+import * as minesModule from '../mines';
 import { AppState } from '../types/game';
 
 describe('Mines Slice', () => {
-  let mockAppState: Partial<AppState>;
+  let mockAppState: AppState;
 
   beforeEach(() => {
     vi.resetModules();
-    
-    // Mock DOM elements required by mines.ts functions
-    const grid = document.createElement('div');
-    grid.id = 'tile-grid';
-    document.body.appendChild(grid);
-    
-    const moneyDisplay = document.createElement('div');
-    moneyDisplay.id = 'money-display';
-    document.body.appendChild(moneyDisplay);
-    
-    const locText = document.createElement('div');
-    locText.id = 'loc-text';
-    document.body.appendChild(locText);
-    
-    const clearText = document.createElement('div');
-    clearText.id = 'clear-text';
-    document.body.appendChild(clearText);
+    document.body.innerHTML = `
+      <div id="tile-grid"></div>
+      <div id="money-display"></div>
+      <div id="loc-text"></div>
+      <div id="clear-text"></div>
+    `;
 
     mockAppState = {
-      currentTab: 'mines',
       money: 100,
+      currentTab: 'mines',
+      devMode: false,
+      navPosition: 'top',
+      worldSeed: 12345,
       mines: {
         activePlot: 0,
         plotid: 'A',
         maxUnlockedPlot: 0,
-        plots: [],
+        plots: [{
+          depth: 0,
+          tiles: Array(25).fill(null).map(() => ({ type: 'empty', level: 1, hp: 0, maxHp: 100, value: 0 })),
+          miners: []
+        }],
         selectedMiner: null,
         draggedMiner: null,
         lastTick: Date.now(),
-      } as any,
-    };
+      }
+    } as any;
   });
 
-  it('should initialize mines slice with a default plot', async () => {
-    const { initMinesSlice } = await import('../mines');
-    
-    // We expect this to not throw and to populate appState.mines.plots
-    await initMinesSlice(mockAppState as AppState);
-    
+  it('should initialize and render grid', async () => {
+    await minesModule.initMinesSlice(mockAppState);
+    const grid = document.getElementById('tile-grid');
+    expect(grid?.children.length).toBe(25);
+  });
+  it('should initialize mines slice and populate plots', async () => {
+    await minesModule.initMinesSlice(mockAppState);
+
     expect(mockAppState.mines.plots).toBeDefined();
     expect(mockAppState.mines.plots.length).toBeGreaterThan(0);
   });
 
-  it('should handle miner purchase correctly', () => {
-    const mockMinerCost = 50; // BASE_MINER_COST
-    mockAppState.money = mockMinerCost + 10; // Enough to buy
-    
-    const { initMinesSlice } = require('../mines');
-    
-    // Initialize mines first to set up the grid
-    initMinesSlice(mockAppState as any);
-    
-    // Mock the handleBuyMiner function (it's exported)
-    const handleBuyMinerSpy = vi.spyOn(window, 'handleBuyMiner');
-    
-    // This test verifies the function exists and can be called without crashing
-    expect(() => {
-      // We assume handleBuyMiner is exported or accessible via window for this test context
-      // If it's internal, we just verify the module loads correctly
-    }).not.toThrow();
+  it('should decrease money and add miner when buying', () => {
+    // Initial cost for 0 miners is 50
+    minesModule.handleBuyMiner(mockAppState);
+
+    expect(mockAppState.money).toBe(50); // 100 - 50
+    expect(mockAppState.mines.plots[0].miners.length).toBe(1);
   });
 
-  it('should handle tile click to move miner', () => {
-    const mockMiner = { level: 1, tileIndex: -1, facing: 0, progress: 0 } as any; // -1 means not on grid yet
-    mockAppState.mines.plots[0] = {
-      depth: 0,
-      tiles: [{ type: 'empty', level: 0, hp: 0, maxHp: 0, value: 0 }],
-      miners: [mockMiner],
-    };
+  it('should not buy if money is insufficient', () => {
+    mockAppState.money = 10;
+    minesModule.handleBuyMiner(mockAppState);
 
-    const handleTileClickSpy = vi.spyOn(window, 'handleTileClick');
-    
-    expect(() => {
-      // Similar to above, verifying the function exists and doesn't crash on basic call
-    }).not.toThrow();
+    expect(mockAppState.money).toBe(10);
+    expect(mockAppState.mines.plots[0].miners.length).toBe(0);
   });
+  it('should move the selected miner to an empty tile when clicked', () => {
+    // 1. Setup: Select a miner and define an empty tile
+    const mockMiner = { level: 1, tileIndex: 5, facing: 0, progress: 0 };
+    mockAppState.mines.selectedMiner = mockMiner;
+    mockAppState.mines.activePlot = 0;
+
+    // Set up a grid where tile 10 is 'empty'
+    mockAppState.mines.plots[0].tiles = Array(25).fill(null).map((_, i) => ({
+      type: i === 10 ? 'empty' : 'dirt',
+      level: 1, hp: 10, maxHp: 10, value: 0
+    }));
+
+    // 2. Perform action: Click on tile 10
+    // Note: handleTileClick(tileIndex, appState)
+    minesModule.handleTileClick(10, mockAppState);
+
+    // 3. Assert: Miner is now at tileIndex 10 and selection is cleared
+    expect(mockMiner.tileIndex).toBe(10);
+    expect(mockAppState.mines.selectedMiner).toBeNull();
+  });
+
 });

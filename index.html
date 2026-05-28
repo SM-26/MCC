@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merge &amp; Choo-Choo</title>
+    <title>Mines &amp; Choo-Choo</title>
     <link rel="stylesheet" href="/src/styles.css">
     <script type="module" src="/src/app.ts"></script>
 </head>
@@ -19,7 +19,7 @@
     <div id="app" style="display: none;">
         <!-- Header -->
         <header>
-            <h1>Merge &amp; Choo-Choo</h1>
+            <h1>Mines &amp; Choo-Choo</h1>
             <div class="global-wallet">
                 <span class="wallet-icon">💰</span>
                 <span id="global-money">$0</span>
@@ -29,10 +29,11 @@
         <!-- Nav Bar -->
         <div id="nav-bar">
             <nav>
-                <button class="nav-tab" data-tab="world">World</button>
-                <button class="nav-tab" data-tab="mines">Mines</button>
-                <button class="nav-tab" data-tab="station">Station</button>
-                <button class="nav-tab" data-tab="settings">Settings</button>
+                <button class="nav-tab" data-tab="world">🌍 World</button>
+                <button class="nav-tab" data-tab="mines">⛏️ Mines</button>
+                <button class="nav-tab" data-tab="station">🚉 Station</button>
+                <button class="nav-tab" data-tab="engineeringIdeas">💡 E.I.</button>
+                <button class="nav-tab" data-tab="settings">⚙️ Settings</button>
             </nav>
         </div>
         <!-- Main content area -->
@@ -85,6 +86,12 @@
             <section id="station" class="tab-content">
                 <h2>Station</h2>
                 <div id="station-container"></div>
+            </section>
+
+            <!-- World tab -->
+            <section id="engineeringIdeas" class="tab-content">
+                <h2>Engineering Ideas</h2>
+                <div></div>
             </section>
 
             <!-- Settings tab -->
@@ -170,7 +177,7 @@
                     <div class="setting-item">
                         <label class="setting-label">📝 Description</label>
                         <p class="description-text">
-                            Merge &amp; Choo-Choo is a mobile-first idle railway tycoon game.
+                            Mines &amp; Choo-Choo is a mobile-first idle railway tycoon game.
                             Build your empire from rubble to rail dominance!
                         </p>
                     </div>

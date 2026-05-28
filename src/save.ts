@@ -8,6 +8,7 @@
  */
 
 import { AppState } from '@/types/game';
+import * as self from './save';
 
 /**
  * Default empty state for recovery scenarios
@@ -127,4 +128,28 @@ export function resetSaveData(): void {
  */
 export function hasSave(): boolean {
   return !!localStorage.getItem('mcc_save');
+}
+
+/**
+ * Triggers a full reset and reloads the app
+ */
+export function handleCorruptedSave(reason: string): void {
+  console.error(`[Save] CRITICAL: Save corrupted. Reason: ${reason}`);
+  resetSaveData();
+  // In a real browser, this reloads the page.
+  // In tests, this will throw a reference error, so we guard it. 
+  if (typeof window !== 'undefined') {
+    window.location.reload();
+  }
+}
+
+/**
+ * Validates the state object
+ */
+export function validateState(appState: AppState): boolean {
+  if (appState.money < 0) {
+    self.handleCorruptedSave('Negative balance');
+    return false;
+  }
+  return true;
 }

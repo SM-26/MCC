@@ -36,6 +36,16 @@ header {
     justify-content: center;
     gap: 1rem;
     border-bottom: 1px solid var(--border-color);
+
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    padding-left: 0.5rem;
+
+}
+
+#nav-bar::-webkit-scrollbar {
+    display: none;
 }
 
 /* If toggled to bottom, move to order 3 */
@@ -52,7 +62,6 @@ main {
     order: 3;
     flex: 1;
     width: 100%;
-    max-width: 800px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
     overflow-y: auto;
@@ -72,6 +81,10 @@ main {
     /* Pill shape */
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.nav-tab:first-child {
+    margin-left: 0.5rem;
 }
 
 .nav-tab.active {
@@ -148,13 +161,13 @@ main {
 }
 
 /* Responsive adjustments */
-@media (max-width: 480px) {
+@media (max-width: 580px) {
     #nav-bar {
         order: 2;
         background-color: var(--bg-secondary);
         padding: 1rem;
         display: flex;
-        justify-content: center;
+        justify-content: start;
         /* Centers the pills */
         gap: 0.5rem;
         /* Tight spacing between pills */
