@@ -24,7 +24,8 @@
     "esModuleInterop": true,
     "types": [
       "vitest/globals",
-      "vite/client"
+      "vite/client",
+      "svelte"
     ],
     "baseUrl": ".",
     "paths": {
@@ -37,7 +38,10 @@
   "include": [
     "src/**/*",
     "vite.config.ts",
-    "src/**/*.test.ts" // Ensure your test files are included
+    "src/**/*.test.ts",
+    "src/**/*.d.ts",
+    "src/**/*.svelte",
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",

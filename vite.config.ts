@@ -3,6 +3,7 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
   root: '.',
@@ -37,6 +38,7 @@ export default defineConfig({
     setupFiles: ['./src/tests/setup.ts']
   },
   plugins: [
+    svelte(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
