@@ -1,4 +1,5 @@
-import './styles/variables.css';
-import './styles/reset.css';
-import './styles/material3.css';
-import './styles/responsive.css';
+/* src/styles/main.css */
+@import './variables.css';
+@import './reset.css';
+@import './material3.css';
+@import './responsive.css';

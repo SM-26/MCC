@@ -14,10 +14,15 @@ export const gameState = writable<GameState>({
   currentWorld: 1,
   mineLevel: 0,
   settings: {
+    navbarPosition: 'top',
+    devMode: false,
     soundEnabled: true,
-    vibrationEnabled: true,
-    notificationsEnabled: true
-  }
+    notificationsEnabled: true,
+    appVersion: '0.0.1',
+    commitHash: 'd0bd966',
+    theme: 'dark',
+    worldSeed: undefined
+  },
 });
 
 // Navigation store

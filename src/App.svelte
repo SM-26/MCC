@@ -3,7 +3,10 @@
   import Navbar from "$components/Navbar.svelte";
   import Splash from "$components/Splash.svelte";
   import TabContent from "$components/TabContent.svelte";
+  import Footer from "$components/Footer.svelte";
   import { navigation, appContext } from "$stores/index";
+  import { gameState } from "$stores/index";
+  import Header from "$components/AppHeader.svelte";
 
   // Touch and gesture handling
   let touchStartX = 0;
@@ -84,33 +87,16 @@
   {#if !$appContext?.splashVisible}
     <div class="app-container">
       <!-- Navigation Bar -->
-      <Navbar />
+      <Header />
+      <Navbar navbarPosition={$gameState.settings.navbarPosition} />
 
       <!-- Main Content Area -->
       <main aria-label="Main content">
         <TabContent />
       </main>
 
-      <!-- Bottom Action Bar (Mobile) -->
-      <footer class="action-footer">
-        <div class="footer-spacer"></div>
-
-        <div class="footer-actions">
-          <button
-            class="fab"
-            aria-label="Quick actions"
-            onclick={() => alert("Quick actions menu")}
-          >
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-              <circle cx="12" cy="12" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="12" r="3" />
-            </svg>
-          </button>
-        </div>
-
-        <div class="footer-spacer"></div>
-      </footer>
+      <!-- Footer with FAB -->
+      <Footer />
     </div>
   {/if}
 </div>
@@ -128,58 +114,10 @@
     min-height: 100vh;
   }
 
-  .main-content {
-    flex: 1;
-    padding-bottom: calc(
-      var(--md-sys-spacing-lg) + env(safe-area-inset-bottom, 0px)
-    );
-  }
-
-  /* Action Footer for Mobile */
-  .action-footer {
-    display: none;
-    background-color: var(--md-sys-color-surface);
-    border-top: 1px solid var(--md-sys-color-outline-variant);
-  }
-
-  .footer-spacer {
-    flex: 1;
-  }
-
-  .footer-actions {
-    display: flex;
-    justify-content: center;
-    padding: var(--md-sys-spacing-sm);
-  }
-
-  @media (max-width: 767px) {
-    .action-footer {
-      display: flex;
-    }
-  }
-
-  /* Touch-friendly spacing */
-  .gesture-spacer {
-    margin-left: calc(
-      env(safe-area-inset-left, 0px) + var(--md-sys-spacing-sm)
-    );
-    margin-right: calc(
-      env(safe-area-inset-right, 0px) + var(--md-sys-spacing-sm)
-    );
-  }
-
   /* Prevent text selection on gestures */
   .main-app {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-  }
-
-  /* Allow text selection in content areas */
-  .content-section,
-  .world-card,
-  .settings-card {
-    -webkit-user-select: text;
-    user-select: text;
   }
 </style>

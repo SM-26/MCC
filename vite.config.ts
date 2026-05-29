@@ -33,9 +33,9 @@ export default defineConfig({
     includeAssets: ['favicon.ico'],
     manifest: {
       id: '/',
-      name: 'Mines & Choo-Choo',
+      name: 'Mines & Choo-Choos',
       short_name: 'MCC',
-      description: 'Mines & Choo-Choo - Alpha 2',
+      description: 'Mines & Choo-Choos - Alpha 2',
       theme_color: '#1a1a1a',
       background_color: '#1a1a1a',
       display: 'standalone',

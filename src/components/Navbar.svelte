@@ -1,31 +1,26 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { navigation, appContext } from "$stores/index";
+  import AppHeader from "./AppHeader.svelte";
+
+  // Tab configuration
+  const tabs = [
+    { id: "world", label: "World", emoji: "🌍" },
+    { id: "mine", label: "Mine", emoji: "⛏️" },
+    { id: "settings", label: "Settings", emoji: "⚙️" },
+  ];
 
   let activeTab = $derived($navigation.activeTab);
-  let isLargeScreen = $derived(window.innerWidth >= 768);
+  let isLargeScreen = $derived(window.innerWidth >= 400);
 
-  const tabLabels: Record<string, string> = {
-    world: "World",
-    mine: "Mine",
-    settings: "Settings",
-  };
-
-  const tabEmojis: Record<string, string> = {
-    world: "🌍",
-    mine: "⛏️",
-    settings: "⚙️",
-  };
-
-  function handleTabChange(tab: "world" | "mine" | "settings") {
-    $navigation.activeTab = tab;
+  function handleTabChange(tabId: string) {
+    $navigation.activeTab = tabId;
   }
 
-  onMount(() => {
-    // Handle window resize for responsive navbar
+  // Handle window resize for responsive navbar
+  $effect(() => {
     const handleResize = () => {
       const newWidth = window.innerWidth;
-      if (newWidth >= 768) {
+      if (newWidth >= 400) {
         // Desktop - show text labels
       } else {
         // Mobile - emojis already shown
@@ -39,107 +34,38 @@
 
 <nav class="navbar">
   <div class="nav-container">
-    <!-- App Title / Logo -->
-    <a
-      href="#!"
-      class="nav-logo"
-      onclick={(e) => {
-        e.preventDefault();
-        handleTabChange("world");
-      }}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        width="32"
-        height="32"
-        fill="var(--md-sys-color-primary)"
-      >
-        <path
-          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"
-        />
-      </svg>
-      <span class="nav-title">WebGame</span>
+    <!-- App Logo -->
+    <a href="/" class="nav-logo" aria-label="Go to home">
+      <img src="/pwa-512x512.png" alt="App Logo" />
     </a>
-
+    
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
       {#if isLargeScreen}
         <!-- Desktop: Show text labels -->
-        <button
-          class="nav-tab {activeTab === 'world' ? 'active' : ''}"
-          onclick={() => handleTabChange("world")}
-        >
-          World
-        </button>
-        <button
-          class="nav-tab {activeTab === 'mine' ? 'active' : ''}"
-          onclick={() => handleTabChange("mine")}
-        >
-          Mine
-        </button>
-        <button
-          class="nav-tab {activeTab === 'settings' ? 'active' : ''}"
-          onclick={() => handleTabChange("settings")}
-        >
-          Settings
-        </button>
+        {#each tabs as tab (tab.id)}
+          <button
+            class={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+            onclick={() => handleTabChange(tab.id)}
+            aria-label={`Go to ${tab.label} tab`}
+          >
+            <span class="tab-emoji">{tab.emoji}</span>
+            <span class="tab-label">{tab.label}</span>
+          </button>
+        {/each}
       {:else}
-        <!-- Mobile: Show emojis -->
-        <button
-          class="nav-tab nav-tab-emoji {activeTab === 'world' ? 'active' : ''}"
-          onclick={() => handleTabChange("world")}
-        >
-          {tabEmojis.world}
-        </button>
-        <button
-          class="nav-tab nav-tab-emoji {activeTab === 'mine' ? 'active' : ''}"
-          onclick={() => handleTabChange("mine")}
-        >
-          {tabEmojis.mine}
-        </button>
-        <button
-          class="nav-tab nav-tab-emoji {activeTab === 'settings'
-            ? 'active'
-            : ''}"
-          onclick={() => handleTabChange("settings")}
-        >
-          {tabEmojis.settings}
-        </button>
+        <!-- Mobile: Show emojis only -->
+        {#each tabs as tab (tab.id)}
+          <button
+            class={`nav-tab nav-tab-emoji ${activeTab === tab.id ? 'active' : ''}`}
+            onclick={() => handleTabChange(tab.id)}
+            aria-label={`Go to ${tab.label} tab`}
+          >
+            {tab.emoji}
+          </button>
+        {/each}
       {/if}
     </div>
-
-    <!-- Theme Toggle -->
-    <button
-      class="nav-theme-toggle"
-      aria-label="Toggle theme"
-      onclick={() =>
-        ($appContext.theme = $appContext.theme === "dark" ? "light" : "dark")}
-    >
-      {#if $appContext.theme === "dark"}
-        <!-- Sun icon -->
-        <svg
-          viewBox="0 0 24 24"
-          width="24"
-          height="24"
-          fill="var(--md-sys-color-on-background)"
-        >
-          <circle cx="12" cy="12" r="5" />
-          <path
-            d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
-          />
-        </svg>
-      {:else}
-        <!-- Moon icon -->
-        <svg
-          viewBox="0 0 24 24"
-          width="24"
-          height="24"
-          fill="var(--md-sys-color-on-background)"
-        >
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      {/if}
-    </button>
   </div>
 </nav>
 
@@ -165,31 +91,19 @@
   .nav-logo {
     display: flex;
     align-items: center;
-    gap: var(--md-sys-spacing-sm);
-    text-decoration: none;
-    color: var(--md-sys-color-on-background);
-    font-size: var(--md-sys-typescale-title-large);
-    font-weight: 500;
+    padding: var(--md-sys-spacing-sm) var(--md-sys-spacing-md);
+    border-radius: var(--md-sys-shape-corner-medium);
+    transition: background-color var(--md-sys-transition-fast);
   }
 
-  .nav-title {
-    display: none;
+  .nav-logo:hover {
+    background-color: var(--md-sys-color-surface-container);
   }
 
-  @media (min-width: 480px) {
-    .nav-logo {
-      padding: var(--md-sys-spacing-sm) var(--md-sys-spacing-md);
-      border-radius: var(--md-sys-shape-corner-medium);
-      transition: background-color var(--md-sys-transition-fast);
-    }
-
-    .nav-logo:hover {
-      background-color: var(--md-sys-color-surface-container);
-    }
-
-    .nav-title {
-      display: inline;
-    }
+  .nav-logo img {
+    height: 40px;
+    width: auto;
+    display: block;
   }
 
   .nav-tabs {
@@ -211,6 +125,7 @@
     justify-content: center;
     border-radius: var(--md-sys-shape-corner-full);
     transition: all var(--md-sys-transition-fast);
+    cursor: pointer;
   }
 
   .nav-tab:hover {
@@ -223,26 +138,21 @@
     color: var(--md-sys-color-on-primary-container);
   }
 
-  .nav-tab-emoji {
+  .tab-emoji {
     font-size: 24px;
+    margin-right: var(--md-sys-spacing-xs);
   }
 
-  .nav-theme-toggle {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background-color: transparent;
-    color: var(--md-sys-color-on-surface-variant);
-    border-radius: var(--md-sys-shape-corner-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--md-sys-transition-fast);
+  .nav-tab-emoji {
+    padding: var(--md-sys-spacing-sm) var(--md-sys-spacing-md);
   }
 
-  .nav-theme-toggle:hover {
-    background-color: var(--md-sys-color-surface-container);
-    color: var(--md-sys-color-on-background);
+  .nav-tab-emoji .tab-label {
+    display: none;
+  }
+
+  .nav-tab-emoji .tab-emoji {
+    font-size: 28px;
   }
 
   @media (max-width: 479px) {

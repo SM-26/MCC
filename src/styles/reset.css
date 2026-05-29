@@ -1,5 +1,7 @@
 /* Reset and Base Styles */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -25,17 +27,22 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: var(--md-sys-color-background);
+
 }
 
 /* Touch-friendly targets */
-button, a, [role="button"] {
+button,
+a,
+[role="button"] {
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
 /* Prevent text selection on interactive elements */
-button, a {
+button,
+a {
   -webkit-user-select: none;
   user-select: none;
 }
@@ -52,6 +59,8 @@ html {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }

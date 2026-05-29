@@ -37,6 +37,9 @@
       "$components/*": [
         "./src/components/*"
       ],
+      "$logic/*": [
+        "./src/logic/*"
+      ]
     }
   },
   "include": [

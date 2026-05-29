@@ -110,7 +110,7 @@
     <div class="splash-content">
       <img
         src="/favicon.svg"
-        alt="WebGame Logo"
+        alt="MCC Logo"
         class="splash-logo"
         draggable="false"
       />
