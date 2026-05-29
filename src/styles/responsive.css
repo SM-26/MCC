@@ -1,0 +1,99 @@
+/* Responsive Design */
+
+/* Breakpoints */
+@media (max-width: 479px) {
+  :root {
+    --md-sys-typescale-display-large: 400 32px/40px 'Roboto', sans-serif;
+    --md-sys-typescale-headline-large: 400 24px/32px 'Roboto', sans-serif;
+    --md-sys-typescale-title-large: 400 18px/24px 'Roboto', sans-serif;
+    --md-sys-typescale-body-large: 400 14px/20px 'Roboto', sans-serif;
+    --md-sys-typescale-label-large: 500 12px/16px 'Roboto', sans-serif;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  :root {
+    --md-sys-typescale-display-large: 400 40px/48px 'Roboto', sans-serif;
+    --md-sys-typescale-headline-large: 400 28px/36px 'Roboto', sans-serif;
+    --md-sys-typescale-title-large: 400 20px/28px 'Roboto', sans-serif;
+    --md-sys-typescale-body-large: 400 15px/22px 'Roboto', sans-serif;
+    --md-sys-typescale-label-large: 500 13px/18px 'Roboto', sans-serif;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --md-sys-typescale-display-large: 400 48px/56px 'Roboto', sans-serif;
+    --md-sys-typescale-headline-large: 400 32px/40px 'Roboto', sans-serif;
+    --md-sys-typescale-title-large: 400 22px/30px 'Roboto', sans-serif;
+    --md-sys-typescale-body-large: 400 16px/24px 'Roboto', sans-serif;
+    --md-sys-typescale-label-large: 500 14px/20px 'Roboto', sans-serif;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --md-sys-typescale-display-large: 400 56px/64px 'Roboto', sans-serif;
+    --md-sys-typescale-headline-large: 400 32px/40px 'Roboto', sans-serif;
+    --md-sys-typescale-title-large: 400 24px/32px 'Roboto', sans-serif;
+    --md-sys-typescale-body-large: 400 16px/24px 'Roboto', sans-serif;
+    --md-sys-typescale-label-large: 500 14px/20px 'Roboto', sans-serif;
+  }
+}
+
+/* Touch target sizes */
+@media (hover: hover) and (pointer: fine) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 767px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  .no-horizontal-scroll {
+    overflow-x: hidden;
+  }
+}
+
+/* Landscape orientation adjustments for mobile */
+@media (max-width: 767px) and (orientation: landscape) {
+  :root {
+    --md-sys-spacing-lg: 20px;
+    --md-sys-spacing-xl: 28px;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  body, main, .safe-area {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(
+      env(safe-area-inset-bottom),
+      var(--md-sys-spacing-md)
+    );
+  }
+}
+
+/* Gesture-friendly spacing */
+@media (max-width: 767px) {
+  .gesture-spacer {
+    margin-left: calc(env(safe-area-inset-left, 0px) + var(--md-sys-spacing-sm));
+    margin-right: calc(env(safe-area-inset-right, 0px) + var(--md-sys-spacing-sm));
+  }
+}

@@ -1,0 +1,19 @@
+# LHCI Configuration for WebGame
+
+command: npm exec lhci@latest collect
+targetPattern: dist/**/*.{html,js,css,json}
+uploadTarget: default
+collectSettings:
+  categories:
+    - performance
+    - accessibility
+    - best-practices
+    - seo
+  onlyCategories:
+    - performance
+    - accessibility
+  puppeteer:
+    timeout: 60000
+  chrome:
+    channel: stable
+  outputPath: ./lighthouse-results

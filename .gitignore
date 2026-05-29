@@ -1,0 +1,26 @@
+# Dependencies that should not be committed to version control
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.lighthouse-ci*/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lighthouse results (optional - uncomment to include)
+# lighthouse-results/
+
+# Environment files
+.env
+.env.local
+.env.*.local
