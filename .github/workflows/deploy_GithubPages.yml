@@ -29,7 +29,7 @@ jobs:
             - run: pnpm install --frozen-lockfile
             - run: pnpm run build
             - run: pnpm test
-            - uses: actions/upload-pages-artifact@v3
+            - uses: actions/upload-pages-artifact@v5
               with:
                   path: "dist"
 
