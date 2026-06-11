@@ -1,0 +1,27 @@
+/* MCC V2 Main Styles */
+@import './styles/theme.css';
+
+/* Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--mcc-background);
+  color: var(--mcc-text);
+  line-height: 1.5;
+}
+
+/* App Container */
+#app {
+  min-height: 100vh;
+}

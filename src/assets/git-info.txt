@@ -1,0 +1,2 @@
+3021e7a
+debug: Add alert to dialog action click handler

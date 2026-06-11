@@ -1,0 +1,39 @@
+/* MCC V2 Theme Variables */
+:root {
+  /* Dark theme (default) */
+  --mcc-background: #1a1a2e;
+  --mcc-surface: #16213e;
+  --mcc-primary: #0f3460;
+  --mcc-accent: #e94560;
+  --mcc-text: #e0e0e0;
+  --mcc-text-muted: #a0a0a0;
+  --mcc-border: #2a2a4a;
+  
+  /* Light theme */
+  --mcc-background-light: #f5f5f5;
+  --mcc-surface-light: #ffffff;
+  --mcc-primary-light: #1976d2;
+  --mcc-accent-light: #f44336;
+  --mcc-text-light: #212121;
+  --mcc-text-muted-light: #757575;
+  --mcc-border-light: #e0e0e0;
+}
+
+/* Apply theme based on setting */
+body {
+  background: var(--mcc-background);
+  color: var(--mcc-text);
+}
+
+body[data-theme="light"] {
+  --mcc-background: var(--mcc-background-light);
+  --mcc-surface: var(--mcc-surface-light);
+  --mcc-primary: var(--mcc-primary-light);
+  --mcc-accent: var(--mcc-accent-light);
+  --mcc-text: var(--mcc-text-light);
+  --mcc-text-muted: var(--mcc-text-muted-light);
+  --mcc-border: var(--mcc-border-light);
+  
+  background: var(--mcc-background);
+  color: var(--mcc-text);
+}

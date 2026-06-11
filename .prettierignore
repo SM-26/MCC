@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+
+# Lockfiles
+pnpm-lock.yaml
+LICENSE
+
+# docs folder
+docs/

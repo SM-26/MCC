@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "src/index.{ts,tsx,js,jsx}",
+    "src/main.{ts,tsx,js,jsx}"
+  ],
+  "ignorePatterns": [
+    "svelte.config.js",
+    "lhci.config.js"
+  ],
+  "ignoreDependencies": [
+    "@sveltejs/eslint-config",
+    "@typescript-eslint/eslint-plugin",
+    "@typescript-eslint/parser",
+    "svelte-check",
+    "lighthouse"
+  ],
+  "duplicates": {
+    "minOccurrences": 3
+  },
+  "rules": {
+    "unused-dependencies": "warn"
+  }
+}
