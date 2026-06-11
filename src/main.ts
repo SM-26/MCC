@@ -1,8 +1,12 @@
-import './app.css'
-import App from './App.svelte'
+import './app.css';
+import App from './App.svelte';
+import { mount } from 'svelte';
 
-const app = new App({
-  target: document.getElementById('app'),
-})
+const target = document.getElementById('app');
 
-export default app
+if (target) {
+  // 2. Mount your app into the target container
+  mount(App, {
+    target: target,
+  });
+}

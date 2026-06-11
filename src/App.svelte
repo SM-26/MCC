@@ -1,54 +1,93 @@
-<script>
-  const screenSize = $state('md');
-  
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { appContext, navigation, gameState } from './stores/index.svelte.js';
+  import { Tabs } from 'bits-ui';
+
+  const tabConfig: Record<string, { label: string; icon: string }> = {
+    world: { label: 'World', icon: '🌍' },
+    mine: { label: 'Mine', icon: '⛏️' },
+    station: { label: 'Station', icon: '🚉' },
+    engineeringIdeas: { label: 'Engineering', icon: '💡' },
+    settings: { label: 'Settings', icon: '⚙️' },
+  };
+
   function updateScreenSize() {
     const width = window.innerWidth;
-    if (width < 576) {
-      screenSize = 'xs';
-    } else if (width < 768) {
-      screenSize = 'sm';
+    if (width < 388) {
+      appContext.screenSize = 'xs';
+    } else if (width < 610) {
+      appContext.screenSize = 'sm';
     } else if (width < 1024) {
-      screenSize = 'md';
+      appContext.screenSize = 'md';
     } else if (width < 1280) {
-      screenSize = 'lg';
+      appContext.screenSize = 'lg';
     } else {
-      screenSize = 'xl';
+      appContext.screenSize = 'xl';
     }
-    
-    // Update app context
-    appContext.update(ctx => ({ ...ctx, screenSize }));
-    
-    // Update navbar position based on screen size
-    navigation.update(nav => ({
-      ...nav,
-      navbarPosition: nav.navbarPosition === 'top' ? 'bottom' : 'top',
-      showActiveLabel: screenSize === 'xs' || screenSize === 'sm'
-    }));
   }
-  
+
   onMount(() => {
     window.addEventListener('resize', updateScreenSize);
-    updateScreenSize(); // Initial measurement
-    
-    // Simulate loading complete
+    updateScreenSize();
     setTimeout(() => {
-      appContext.update(ctx => ({ ...ctx, isLoading: false, splashVisible: false }));
+      appContext.isLoading = false;
+      appContext.splashVisible = false;
     }, 1000);
+
+    return () => window.removeEventListener('resize', updateScreenSize);
   });
-  
+
   $effect(() => {
-    const navPos = navigation($).navbarPosition;
-    if (navPos !== gameState($).settings.navbarPosition) {
-      gameState.update(gs => ({
-        ...gs,
-        settings: { ...gs.settings, navbarPosition: navPos }
-      }));
+    if (navigation.navbarPosition !== gameState.settings.navbarPosition) {
+      gameState.settings.navbarPosition = navigation.navbarPosition;
     }
   });
+
+  const views = {
+    world: WorldView,
+    mine: MineView,
+    station: StationView,
+    engineeringIdeas: EngineeringView,
+    settings: SettingsView,
+  };
 </script>
 
+{#snippet WorldView()}
+  <div>
+    <h2>World Map</h2>
+    <p>Train routes and layout go here.</p>
+  </div>
+{/snippet}
+
+{#snippet MineView()}
+  <div>
+    <h2>The Mine</h2>
+    <p>Manage your miners and extraction plots.</p>
+  </div>
+{/snippet}
+
+{#snippet StationView()}
+  <div>
+    <h2>Train Station</h2>
+    <p>Upgrade tracks and manage cargo.</p>
+  </div>
+{/snippet}
+
+{#snippet EngineeringView()}
+  <div>
+    <h2>Engineering Laboratory</h2>
+    <p>Spend your ideas on upgrades.</p>
+  </div>
+{/snippet}
+
+{#snippet SettingsView()}
+  <div>
+    <h2>Settings Configuration</h2>
+    <p>Theme: {gameState.settings.theme}</p>
+  </div>
+{/snippet}
+
 <div class="app-container">
-  <!-- Splash Screen -->
   {#if appContext.isLoading || appContext.splashVisible}
     <div class="splash-screen">
       <div class="logo-area">
@@ -59,53 +98,49 @@
       <p>A railway tycoon game built with Svelte 5</p>
     </div>
   {/if}
-  
-  <!-- Main App -->
+
   <div class="app-main">
-    <!-- Top Bar (always visible) -->
     <header class="top-bar">
       <h1>Merge & Choo-Choo</h1>
-      <div class="top-actions">
-        <button class="icon-btn" title="Dev Tools">⚙️</button>
-        {#if gameState.settings.devMode}
-          <span class="dev-badge">DEV MODE</span>
-        {/if}
-      </div>
     </header>
-    
-    <!-- Navigation (position based on screen size) -->
-    <nav class={`nav-bar nav-${navigation.navbarPosition}`} role="tablist">
-      {#each navigation.tabs as tab, index of tabs}
-        <button
-          class={`nav-tab ${navigation.activeTab === tab ? 'active' : ''}`}
-          role="tab"
-          aria-selected={navigation.activeTab === tab}
-          on:click={() => navigation.update(nav => ({ ...nav, activeTab: tab }))}
-        >
-          {#if navigation.showActiveLabel || screenSize !== 'xs'}
-            <span class="tab-icon">{getTabIcon(tab)}</span>
-            <span class="tab-label">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-          {:else}
-            <span class="tab-icon">{getTabIcon(tab)}</span>
-          {/if}
-        </button>
-      {/each}
-    </nav>
-    
-    <!-- Tab Content Area -->
-    <main class="tab-content">
-      {#if navigation.activeTab === 'settings'}
-        <Settings />
-      {:else}
-        <div class="placeholder-content">
-          <p>Coming soon...</p>
-        </div>
-      {/if}
-    </main>
+
+    <Tabs.Root bind:value={navigation.activeTab}>
+      <Tabs.List class="nav-{navigation.navbarPosition}">
+        {#each navigation.tabs as tab}
+          {@const config = tabConfig[tab]}
+
+          <Tabs.Trigger value={tab} title={config?.label || tab}>
+            <span class="tab-icon">{config?.icon || '🚂'}</span>
+            {#if (appContext.screenSize !== 'xs' && appContext.screenSize !== 'sm') || navigation.activeTab === tab}
+              <span class="tab-label">{config?.label || tab}</span>
+            {/if}
+          </Tabs.Trigger>
+        {/each}
+      </Tabs.List>
+
+      <main class="tab-content">
+        {#if views[navigation.activeTab]}
+          <Tabs.Content value={navigation.activeTab}>
+            {@render views[navigation.activeTab]()}
+          </Tabs.Content>
+        {:else}
+          <div class="placeholder-content"><p>Coming soon...</p></div>
+        {/if}
+      </main>
+    </Tabs.Root>
+
+    <footer class="bottom-bar"></footer>
   </div>
 </div>
 
 <style>
+  /* 1. Active Tab State */
+  :global([role='tab'][data-state='active']) {
+    color: var(--mcc-text);
+    background: rgba(255, 215, 0, 0.05);
+    box-shadow: inset 0 0 0 1px #ffd700;
+  }
+  /* 2. Global Layout Structure */
   .app-container {
     min-height: 100vh;
     background: var(--mcc-background);
@@ -113,8 +148,14 @@
     font-family: inherit;
     overflow-x: hidden;
   }
-  
-  /* Splash Screen */
+
+  .app-main {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* 3. Splash Screen (Destroyed reactively, no .hidden needed) */
   .splash-screen {
     position: fixed;
     inset: 0;
@@ -126,40 +167,24 @@
     z-index: 1000;
     transition: opacity 0.5s ease;
   }
-  
-  .splash-screen.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-  
   .logo-area {
     display: flex;
     gap: 24px;
     margin-bottom: 32px;
   }
-  
   .logo-area img {
     height: 64px;
   }
-  
   .splash-screen h1 {
     font-size: 2rem;
     margin: 0 0 8px 0;
   }
-  
   .splash-screen p {
     color: var(--mcc-text-muted);
     margin: 0;
   }
-  
-  /* App Main */
-  .app-main {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-  }
-  
-  /* Top Bar */
+
+  /* 4. Top Header Layout */
   .top-bar {
     display: flex;
     justify-content: space-between;
@@ -168,64 +193,24 @@
     background: var(--mcc-surface);
     border-bottom: 1px solid var(--mcc-border);
   }
-  
   .top-bar h1 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
   }
-  
-  .top-actions {
+
+  /* 5. Navigation Bar & Tabs Mapped to Bits UI Attributes */
+  :global([role='tablist']) {
     display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .icon-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: transparent;
-    color: var(--mcc-text);
-    font-size: 1.25rem;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-  }
-  
-  .icon-btn:hover {
-    background: var(--mcc-primary);
-    color: white;
-  }
-  
-  .dev-badge {
-    padding: 4px 12px;
-    background: var(--mcc-accent);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 12px;
-    text-transform: uppercase;
-  }
-  
-  /* Navigation Bar */
-  .nav-bar {
-    display: flex;
+    width: 100%;
     background: var(--mcc-surface);
     border-bottom: 1px solid var(--mcc-border);
     overflow-x: auto;
+    padding: 6px;
+    gap: 4px;
   }
-  
-  .nav-top {
-    border-bottom: 1px solid var(--mcc-border);
-  }
-  
-  .nav-bottom {
-    border-top: 1px solid var(--mcc-border);
-    flex-direction: column-reverse;
-  }
-  
-  .nav-tab {
+
+  :global([role='tab']) {
     flex: 1;
     min-width: 60px;
     display: flex;
@@ -241,32 +226,26 @@
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    border-radius: 8px;
   }
-  
-  .nav-tab.active {
-    color: var(--mcc-primary);
-    background: rgba(15, 52, 96, 0.1);
-  }
-  
-  .nav-tab:hover:not(.active) {
+
+  :global([role='tab']:hover:not([data-state='active'])) {
     background: rgba(255, 255, 255, 0.05);
   }
-  
+
   .tab-icon {
     font-size: 1.5rem;
   }
-  
   .tab-label {
-    display: none;
+    font-size: 0.75rem;
   }
-  
-  /* Tab Content */
+
+  /* 6. Active View Shells */
   .tab-content {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
   }
-  
   .placeholder-content {
     display: flex;
     align-items: center;

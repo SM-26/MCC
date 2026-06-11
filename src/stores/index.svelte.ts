@@ -1,31 +1,30 @@
-import { writable } from 'svelte/store';
 import type { AppContext, GameState, NavigationState, PWAInstallState } from '../types';
 import { TabsList } from '../types';
 
-// Application context store
-export const appContext = writable<AppContext>({
+// 1. Application context store
+export const appContext = $state<AppContext>({
   isPWAInstalled: false,
   isLoading: true,
   splashVisible: true,
   screenSize: 'md',
 });
 
-// Game state store - Initialize with one plot
+// 2. Game state store
 const minesInitialState = {
   activePlot: 0,
-  plots: [], // Will be initialized by MineGen when needed
+  plots: [],
   selectedMiner: null,
   draggedMiner: null,
   lastTick: 0,
 };
 
-export const gameState = writable<GameState>({
+export const gameState = $state<GameState>({
   money: 0,
   mines: minesInitialState,
   meta: {
     engineeringIdeas: 0,
     resetCount: 0,
-    MaxnorthExpansions: 1, // Roman numeral I (starting)
+    MaxnorthExpansions: 1,
     MaxundergroundLevels: 0,
   },
   settings: {
@@ -40,18 +39,18 @@ export const gameState = writable<GameState>({
   },
 });
 
-// Navigation store
-export const navigation = writable<NavigationState>({
-  activeTab: 'settings', // Start with settings as per dev preference
+// 3. Navigation store
+export const navigation = $state<NavigationState>({
+  activeTab: 'settings',
   tabs: [...TabsList],
   navbarPosition: 'top',
-  showLabels: true, // Desktop mode: show text labels
-  showEmojis: true, // Emoji fallback: always show emojis
-  showActiveLabel: false, // Will be initialized in App.svelte based on screen size
+  showLabels: true,
+  showEmojis: true,
+  showActiveLabel: false,
 });
 
-// PWA installation store
-export const pwaInstall = writable<PWAInstallState>({
+// 4. PWA installation store
+export const pwaInstall = $state<PWAInstallState>({
   visible: false,
   shouldShow: true,
 });

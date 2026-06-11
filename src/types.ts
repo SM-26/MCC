@@ -1,4 +1,3 @@
-
 export const TabsList = ['world', 'mine', 'station', 'engineeringIdeas', 'settings'] as const;
 
 export type TabId = (typeof TabsList)[number];
