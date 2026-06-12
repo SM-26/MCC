@@ -1,28 +1,66 @@
 /* MCC V2 Main Styles */
 @import './styles/theme.css';
 
-/* Reset & Base */
-* {
+/* 1. Global Box Model Reset */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html,
+/* 2. Document Base Layout */
+html {
+  height: 100%;
+  width: 100%;
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   height: 100%;
   width: 100%;
+  min-height: 100vh;
   overflow-x: hidden;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  background: var(--mcc-background);
-  color: var(--mcc-text);
   line-height: 1.5;
+  font-size: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+
+  /* Aligned perfectly to your V2 Theme variables */
+  background-color: var(--mcc-bg-primary);
+  color: var(--mcc-text-main);
 }
 
-/* App Container */
+/* 3. Root Application Root Node */
 #app {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 4. Mobile & Click Optimization (Essential for Games) */
+button,
+a,
+[role='button'],
+[role='tab'] {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 5. Utility Utility classes */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari and Opera */
 }

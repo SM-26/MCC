@@ -1,29 +1,27 @@
-// Theme tokens - centralized color system
 export const THEME = {
-  // Dark theme (default)
-  dark: {
-    background: '#1a1a2e',
-    surface: '#16213e',
-    primary: '#0f3460',
-    accent: '#e94560',
-    text: '#e0e0e0',
-    textMuted: '#a0a0a0',
-    border: '#2a2a4a',
+  modes: {
+    // Dark theme (default)
+    dark: {
+      bgPrimary: '#1A1A1A',
+      bgSurface: '#14213D',
+      textMain: '#f0f0f0',
+      textMuted: '#89A7A7',
+      accent: '#3B00DB',
+    },
+
+    // Light theme
+    light: {
+      bgPrimary: '#f8f9fa',
+      bgSurface: '#ffffff',
+      textMain: '#1A1A1A',
+      textMuted: '#4a6b6b',
+      accent: '#3B00DB',
+    },
   },
 
-  // Light theme
-  light: {
-    background: '#f5f5f5',
-    surface: '#ffffff',
-    primary: '#1976d2',
-    accent: '#f44336',
-    text: '#212121',
-    textMuted: '#757575',
-    border: '#e0e0e0',
-  },
-
-  // System theme (auto)
+  // System theme configuration
   system: 'system',
-};
+} as const;
 
-export type ThemeName = keyof typeof THEME;
+export type ThemeMode = 'dark' | 'light';
+export type ThemeColors = typeof THEME.modes.dark;

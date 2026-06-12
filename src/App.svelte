@@ -1,7 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { appContext, navigation, gameState } from './stores/index.svelte.js';
+  import { appContext, navigation, gameState } from './stores/index.svelte';
   import { Tabs } from 'bits-ui';
+  import { getScreenSize } from './lib/sizes';
+  import Splash from './components/Splash.svelte';
+  import { debouncedSave, getSaveSnapshot } from './logic/save.svelte';
+
+  // State flag to prevent the initial boot tracking from triggering an instant disk save
+  let isReadyToSave = false;
 
   const tabConfig: Record<string, { label: string; icon: string }> = {
     world: { label: 'World', icon: '🌍' },
@@ -12,23 +18,22 @@
   };
 
   function updateScreenSize() {
-    const width = window.innerWidth;
-    if (width < 388) {
-      appContext.screenSize = 'xs';
-    } else if (width < 610) {
-      appContext.screenSize = 'sm';
-    } else if (width < 1024) {
-      appContext.screenSize = 'md';
-    } else if (width < 1280) {
-      appContext.screenSize = 'lg';
-    } else {
-      appContext.screenSize = 'xl';
-    }
+    appContext.screenSize = getScreenSize(window.innerWidth);
   }
 
   onMount(() => {
+    // Sync the navigation UI layout state to match whatever was loaded in main.ts
+    navigation.navbarPosition = gameState.settings.navbarPosition;
+
+    // Allow a single microtask tick for Svelte's reactivity engine to settle
+    // before turning on the autosave listener
+    Promise.resolve().then(() => {
+      isReadyToSave = true;
+    });
+
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
+
     setTimeout(() => {
       appContext.isLoading = false;
       appContext.splashVisible = false;
@@ -37,19 +42,30 @@
     return () => window.removeEventListener('resize', updateScreenSize);
   });
 
+  // Effect 1: Handle synchronization between your navigation layout and state settings safely
   $effect(() => {
-    if (navigation.navbarPosition !== gameState.settings.navbarPosition) {
-      gameState.settings.navbarPosition = navigation.navbarPosition;
+    const targetPos = navigation.navbarPosition;
+    if (gameState.settings.navbarPosition !== targetPos) {
+      gameState.settings.navbarPosition = targetPos;
     }
   });
 
-  const views = {
-    world: WorldView,
-    mine: MineView,
-    station: StationView,
-    engineeringIdeas: EngineeringView,
-    settings: SettingsView,
-  };
+  // Effect 2: Deeply watch the entire state tree for any changes
+  $effect(() => {
+    // Stringifying a snapshot forces Svelte 5 to watch every deep object/array change
+    JSON.stringify(getSaveSnapshot());
+
+    // Exit early if the application is just running its initial dependency registration loop
+    if (!isReadyToSave) return;
+
+    debouncedSave();
+  });
+
+  const currency = $derived(gameState?.money ?? 0);
+
+  function formatCurrency(amount: number): string {
+    return `$${amount}`;
+  }
 </script>
 
 {#snippet WorldView()}
@@ -87,21 +103,22 @@
   </div>
 {/snippet}
 
+{#snippet appHeaderContents(title = 'Mines & Choo-Choo', goldAmount = 0)}
+  <h1 class="app-title">{title}</h1>
+  <div class="currency-display">
+    <span class="currency-icon">🪙</span>
+    <span class="currency-value">{formatCurrency(goldAmount)}</span>
+  </div>
+{/snippet}
+
 <div class="app-container">
   {#if appContext.isLoading || appContext.splashVisible}
-    <div class="splash-screen">
-      <div class="logo-area">
-        <img src="/assets/svelte.svg" alt="Svelte" />
-        <img src="/assets/vite.svg" alt="Vite" />
-      </div>
-      <h1>Merge & Choo-Choo v2</h1>
-      <p>A railway tycoon game built with Svelte 5</p>
-    </div>
+    <Splash />
   {/if}
 
-  <div class="app-main">
+  <div class="app-main" role="application" aria-label="Web Game: Mines and Choo Choos">
     <header class="top-bar">
-      <h1>Merge & Choo-Choo</h1>
+      {@render appHeaderContents('Mines & Choo-Choo', currency)}
     </header>
 
     <Tabs.Root bind:value={navigation.activeTab}>
@@ -119,12 +136,26 @@
       </Tabs.List>
 
       <main class="tab-content">
-        {#if views[navigation.activeTab]}
-          <Tabs.Content value={navigation.activeTab}>
-            {@render views[navigation.activeTab]()}
-          </Tabs.Content>
+        {#if navigation.activeTab === 'world'}
+          <Tabs.Content value="world">{@render WorldView()}</Tabs.Content>
         {:else}
-          <div class="placeholder-content"><p>Coming soon...</p></div>
+          {#if navigation.activeTab === 'mine'}
+            <Tabs.Content value="mine">{@render MineView()}</Tabs.Content>
+          {:else}
+            {#if navigation.activeTab === 'station'}
+              <Tabs.Content value="station">{@render StationView()}</Tabs.Content>
+            {:else}
+              {#if navigation.activeTab === 'engineeringIdeas'}
+                <Tabs.Content value="engineeringIdeas">{@render EngineeringView()}</Tabs.Content>
+              {:else}
+                {#if navigation.activeTab === 'settings'}
+                  <Tabs.Content value="settings">{@render SettingsView()}</Tabs.Content>
+                {:else}
+                  <div class="placeholder-content"><p>Coming soon...</p></div>
+                {/if}
+              {/if}
+            {/if}
+          {/if}
         {/if}
       </main>
     </Tabs.Root>
@@ -134,17 +165,18 @@
 </div>
 
 <style>
-  /* 1. Active Tab State */
+  /* --- 1. Active Tab State --- */
   :global([role='tab'][data-state='active']) {
-    color: var(--mcc-text);
-    background: rgba(255, 215, 0, 0.05);
-    box-shadow: inset 0 0 0 1px #ffd700;
+    color: var(--mcc-text-main) !important;
+    background: rgba(59, 0, 219, 0.08) !important;
+    box-shadow: inset 0 0 0 1px var(--mcc-accent, gold) !important;
   }
-  /* 2. Global Layout Structure */
+
+  /* --- 2. Global Layout Structure --- */
   .app-container {
     min-height: 100vh;
-    background: var(--mcc-background);
-    color: var(--mcc-text);
+    background: var(--mcc-bg-primary);
+    color: var(--mcc-text-main);
     font-family: inherit;
     overflow-x: hidden;
   }
@@ -155,59 +187,50 @@
     height: 100vh;
   }
 
-  /* 3. Splash Screen (Destroyed reactively, no .hidden needed) */
-  .splash-screen {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: var(--mcc-background);
-    z-index: 1000;
-    transition: opacity 0.5s ease;
-  }
-  .logo-area {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 32px;
-  }
-  .logo-area img {
-    height: 64px;
-  }
-  .splash-screen h1 {
-    font-size: 2rem;
-    margin: 0 0 8px 0;
-  }
-  .splash-screen p {
-    color: var(--mcc-text-muted);
-    margin: 0;
-  }
-
-  /* 4. Top Header Layout */
+  /* --- 3. Top Header Layout --- */
   .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
-    background: var(--mcc-surface);
-    border-bottom: 1px solid var(--mcc-border);
+    padding: 12px var(--spacing-lg, 24px);
+    background: var(--mcc-bg-surface);
+    border-bottom: 1px solid var(--outline-variant, #49454f);
   }
-  .top-bar h1 {
+
+  .app-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
   }
 
-  /* 5. Navigation Bar & Tabs Mapped to Bits UI Attributes */
+  .currency-display {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+    background-color: var(--mcc-bg-primary);
+    padding: 6px 12px;
+    border-radius: var(--spacing-sm, 8px);
+    border: 1px solid var(--mcc-border, rgba(255, 255, 255, 0.05));
+  }
+
+  .currency-icon {
+    font-size: 1.1rem;
+  }
+
+  .currency-value {
+    font-weight: 600;
+    color: var(--mcc-text-main);
+  }
+
+  /* --- 4. Navigation Bar & Tabs --- */
   :global([role='tablist']) {
     display: flex;
     width: 100%;
-    background: var(--mcc-surface);
-    border-bottom: 1px solid var(--mcc-border);
+    background: var(--mcc-bg-surface);
+    border-bottom: 1px solid var(--outline, #938f99);
     overflow-x: auto;
-    padding: 6px;
-    gap: 4px;
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+    gap: var(--spacing-xs, 4px);
   }
 
   :global([role='tab']) {
@@ -217,8 +240,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 12px 8px;
+    gap: var(--spacing-xs, 4px);
+    padding: 12px var(--spacing-sm, 8px);
     border: none;
     background: transparent;
     color: var(--mcc-text-muted);
@@ -226,7 +249,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
-    border-radius: 8px;
+    border-radius: var(--spacing-sm, 8px);
   }
 
   :global([role='tab']:hover:not([data-state='active'])) {
@@ -236,16 +259,18 @@
   .tab-icon {
     font-size: 1.5rem;
   }
+
   .tab-label {
     font-size: 0.75rem;
   }
 
-  /* 6. Active View Shells */
+  /* --- 5. Active View Shells --- */
   .tab-content {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: var(--spacing-lg, 24px);
   }
+
   .placeholder-content {
     display: flex;
     align-items: center;

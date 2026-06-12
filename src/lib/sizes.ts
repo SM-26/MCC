@@ -1,15 +1,32 @@
 // Centralized breakpoint constants - use everywhere instead of magic numbers
-export const MOBILE_BREAKPOINT = 768; // px
+export const MOBILE_BREAKPOINT = 610; // px
 
 // Responsive size classes (mirrors Tailwind/Material Design)
 export type ScreenSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
+// export const screenSizeMap: Record<number, ScreenSize> = {
+//   1280: 'xl',
+//   1024: 'lg',
+//   768: 'md',
+//   576: 'sm',
+//   0: 'xs',
+// };
 export const screenSizeMap: Record<number, ScreenSize> = {
-  0: 'xs', // < 576px
-  576: 'sm', // >= 576px
-  768: 'md', // >= 768px
-  1024: 'lg', // >= 1024px
-  1280: 'xl', // >= 1280px
+  1280: 'xl',
+  1024: 'lg',
+  610: 'md',
+  388: 'sm',
+  0: 'xs',
+};
+
+// Helper to get size based on window width
+export const getScreenSize = (width: number): ScreenSize => {
+  const breakpoints = Object.keys(screenSizeMap)
+    .map(Number)
+    .sort((a, b) => b - a); // Sort descending: [1280, 1024, 768, 576, 0]
+
+  const activeBreakpoint = breakpoints.find(bp => width >= bp) ?? 0;
+  return screenSizeMap[activeBreakpoint];
 };
 
 // Navigation position based on screen size

@@ -1,14 +1,15 @@
-import { defineConfig } from 'vite'
+// import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte'
-
+// import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
-   resolve: {
-     tsconfigPaths: true
-    },
-   publicDir: 'public',
-   server: {
+  resolve: {
+    tsconfigPaths: true
+  },
+  publicDir: 'public',
+  server: {
     port: 8080,
     host: '0.0.0.0',
     watch: {

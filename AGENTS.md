@@ -1,4 +1,4 @@
-# MCC V2 - Merge & Choo-Choo v2
+# MCC V2 - Mines & Choo-Choos v2
 
 A mobile-first idle railway tycoon game built with Svelte 5 and Bits-UI.
 
