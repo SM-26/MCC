@@ -2,7 +2,7 @@
   import { Toggle, Switch, Button, AlertDialog, Select } from 'bits-ui';
   import { gameState, navigation } from '../stores/index.svelte';
   import { manualSave, resetProgress } from '../logic/save.svelte';
-  import GameTooltip from './GameTooltip.svelte';
+  import GameTooltip from '../components/GameTooltip.svelte';
   import type { NavPosition, Themes } from '../types';
 
   import appVersion from '../assets/version.txt?raw';
@@ -34,7 +34,8 @@
   ] satisfies SelectOption<Themes>[];
 
   const currentPositionLabel = $derived(
-    positionOptions.find((o) => o.value === navigation.navbarPosition)?.label ?? 'Select Position',
+    positionOptions.find((o) => o.value === gameState.settings.navbarPosition)?.label ??
+      'Select Position',
   );
 
   const currentThemeLabel = $derived(
@@ -59,7 +60,7 @@
         >
       </div>
 
-      <Select.Root type="single" bind:value={navigation.navbarPosition}>
+      <Select.Root type="single" bind:value={gameState.settings.navbarPosition}>
         <Select.Trigger class="select-trigger">
           <span>{currentPositionLabel}</span>
           <span class="select-arrow">▼</span>
@@ -114,7 +115,24 @@
 
   <section class="settings-section">
     <h2 class="section-title">System Controls</h2>
+    <div class="setting-item flex-row">
+      <div class="setting-info">
+        <span class="setting-label">Default View</span>
+        <span class="setting-description"
+          >Select whether to start at the World map or return to your previous tab.</span
+        >
+      </div>
 
+      <Toggle.Root
+        pressed={gameState.settings.defaultView === 'last-active'}
+        onPressedChange={(pressed) => {
+          gameState.settings.defaultView = pressed ? 'last-active' : 'world';
+        }}
+        class="toggle-root"
+      >
+        <span>{gameState.settings.defaultView === 'last-active' ? 'Last Active' : 'World'}</span>
+      </Toggle.Root>
+    </div>
     <div class="setting-item flex-row">
       <div class="setting-info">
         <span class="setting-label">Audio Effects</span>
@@ -144,7 +162,7 @@
         <span class="setting-label">Developer Mode</span>
         <span class="setting-description">Unlocks Dev mode and raw seed modifications.</span>
       </div>
-      <Toggle.Root bind:pressed={gameState.settings.devMode} class="toggle-root">
+      <Toggle.Root class="toggle-root dev-mode" bind:pressed={gameState.settings.devMode}>
         <span>{gameState.settings.devMode ? 'Active' : 'Disabled'}</span>
       </Toggle.Root>
     </div>
@@ -300,8 +318,7 @@
     border-radius: 6px;
     font-family: monospace;
     font-size: 0.9rem;
-    width: 100%;
-    max-width: 240px;
+    width: 90px;
     outline: none;
     box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
   }
@@ -424,7 +441,8 @@
     transition: all 0.2s ease;
   }
 
-  :global(.toggle-root[data-state='on']) {
+  /* Add this specific override for the Dev Mode toggle */
+  :global(.toggle-root.dev-mode[data-state='on']) {
     background: rgba(245, 158, 11, 0.15);
     border-color: #f59e0b;
     color: #fbbf24;

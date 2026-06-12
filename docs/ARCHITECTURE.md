@@ -8,7 +8,7 @@ The application is built on a modular, reactive architecture using Svelte 5 (Run
 
 * **Data Layer (`src/types.ts` & `src/stores/`):** The "Source of Truth." Defines the shape of data and handles reactive state using `$state` and `$derived`.
 * **Logic Layer (`src/logic/`):** The "Brain." Pure TypeScript functions for game mechanics (e.g., world generation, simulation). These are decoupled from the UI.
-* **Orchestrator (`TabContent.svelte`):** The "Router." Watches the active tab state and dynamically mounts the corresponding View.
+<!-- * **Orchestrator (`TabContent.svelte`):** The "Router." Watches the active tab state and dynamically mounts the corresponding View. -->
 * **View Layer (`src/views/*.svelte`):** The "Content." Focused, self-contained screens representing the 5 major game tabs.
 * **Layout Layer (`App.svelte`):** The "Shell." The main container structure containing the Header, Footer, and the Orchestrator.
 
@@ -17,9 +17,9 @@ The application is built on a modular, reactive architecture using Svelte 5 (Run
 The Orchestrator is the heartbeat of the app. Rather than using a complex library-based router, we use a custom reactive controller:
 
 1. **State Initiation:** The `uiStore` holds the `activeTab` rune.
-2. **The Orchestrator:** `TabContent.svelte` acts as a dynamic component switch. It uses a Svelte 5 snippet or a keyed reactive block to swap views when the `activeTab` changes.
+<!-- 2. **The Orchestrator:** `TabContent.svelte` acts as a dynamic component switch. It uses a Svelte 5 snippet or a keyed reactive block to swap views when the `activeTab` changes. -->
 3. **Encapsulation:** Because each `View` (e.g., `MineView`) owns its specific lifecycle, switching tabs effectively "pauses" or "unmounts" the previous logic slice, ensuring high performance.
-4. **Logging Hook:** The Orchestrator wraps every tab-switch event with a `log.info` call, providing a clean audit trail in the console whenever the player navigates the interface.
+<!-- 4. **Logging Hook:** The Orchestrator wraps every tab-switch event with a `log.info` call, providing a clean audit trail in the console whenever the player navigates the interface. -->
 
 ## 3. File Structure Map
 

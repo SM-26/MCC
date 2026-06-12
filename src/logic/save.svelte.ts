@@ -5,7 +5,7 @@
  * All save events are logged via logger.ts for audit trail.
  */
 
-import { gameState } from '../stores/index.svelte';
+import { gameState, navigation } from '../stores/index.svelte';
 import { log } from '../lib/logger';
 
 // Centralized Version Control
@@ -36,10 +36,11 @@ function getInitialState() {
     },
     settings: {
       navbarPosition: 'top' as const,
+      defaultView: 'world' as const,
       devMode: false,
       soundEnabled: false,
       notificationsEnabled: true,
-      appVersion: '0.0.0',
+      appVersion: '0.0.1',
       commitHash: 'abc#123',
       commitMessage: 'Initial build commit',
       theme: 'dark' as const,
@@ -149,7 +150,11 @@ export function loadGame(): void {
     gameState.mines = finalState.mines;
     gameState.meta = finalState.meta;
     gameState.settings = finalState.settings;
-
+    // Apply navigation state from load
+    const savedNav = (parsed.data as any)?.navigation;
+    if (savedNav?.activeTab) {
+      navigation.activeTab = savedNav.activeTab;
+    }
     log.info(
       'load',
       `Full game state loaded from localStorage (version ${String(parsed.version)}, timestamp ${String(parsed.timestamp)})`,
@@ -206,6 +211,9 @@ export function getSaveSnapshot() {
     mines: $state.snapshot(gameState.mines),
     meta: $state.snapshot(gameState.meta),
     settings: $state.snapshot(gameState.settings),
+    navigation: {
+      activeTab: navigation.activeTab,
+    },
   };
 }
 /**

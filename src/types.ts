@@ -30,6 +30,7 @@ export interface GameState {
   // mineLevel: number; // I don't think we need this
   settings: {
     navbarPosition: NavPosition;
+    defaultView: 'world' | 'last-active';
     devMode: boolean;
     soundEnabled: boolean;
     notificationsEnabled: boolean;
@@ -44,7 +45,6 @@ export interface GameState {
 export interface NavigationState {
   activeTab: TabId;
   tabs: TabId[];
-  navbarPosition: NavPosition;
   showLabels: boolean; // Desktop mode (true = text labels, false = emojis only)
   showEmojis: boolean; // Emoji fallback (true = show emojis, false = hide)
   showActiveLabel: boolean; // Will be initialized in App.svelte based on screen size

@@ -5,7 +5,7 @@
   import { getScreenSize } from './lib/sizes';
   import Splash from './components/Splash.svelte';
   import { debouncedSave, getSaveSnapshot } from './logic/save.svelte';
-  import SettingsView from './components/SettingsView.svelte';
+  import SettingsView from './views/SettingsView.svelte';
   import { toastState } from './components/GameTooltip.svelte';
 
   // State flag to prevent the initial boot tracking from triggering an instant disk save
@@ -24,14 +24,12 @@
   }
 
   onMount(() => {
-    // Sync the navigation UI layout state to match whatever was loaded in main.ts
-    navigation.navbarPosition = gameState.settings.navbarPosition;
-
-    // Allow a single microtask tick for Svelte's reactivity engine to settle
-    // before turning on the autosave listener
-    Promise.resolve().then(() => {
-      isReadyToSave = true;
-    });
+    // Logic: Respect the user's saved preference
+    if (gameState.settings.defaultView === 'world') {
+      navigation.activeTab = 'world';
+    }
+    // If 'last-active', we do nothing because navigation.activeTab
+    // was already set to the saved value by loadGame() in your save logic.
 
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
@@ -39,29 +37,22 @@
     setTimeout(() => {
       appContext.isLoading = false;
       appContext.splashVisible = false;
-    }, 1000);
+      isReadyToSave = true;
+    }, 2500);
 
     return () => window.removeEventListener('resize', updateScreenSize);
   });
 
-  // Effect 1: Handle synchronization between your navigation layout and state settings safely
   $effect(() => {
-    const targetPos = navigation.navbarPosition;
-    if (gameState.settings.navbarPosition !== targetPos) {
-      gameState.settings.navbarPosition = targetPos;
-    }
-  });
+    // Snapshot everything, including the active tab
+    const snapshot = {
+      ...getSaveSnapshot(),
+      activeTab: navigation.activeTab,
+    };
 
-  // Effect 2: Deeply watch the entire state tree for any changes
-  $effect(() => {
-    // Stringifying a snapshot forces Svelte 5 to watch every deep object/array change
-    JSON.stringify(getSaveSnapshot());
+    JSON.stringify(snapshot);
 
-    // Exit early if the application is just running its initial dependency registration loop
-    if (!isReadyToSave) {
-      return;
-    }
-
+    if (!isReadyToSave) return;
     debouncedSave();
   });
 
@@ -126,43 +117,28 @@
     </header>
 
     <Tabs.Root bind:value={navigation.activeTab}>
-      <Tabs.List class="nav-{navigation.navbarPosition}">
+      <Tabs.List class="nav-{gameState.settings.navbarPosition}">
         {#each navigation.tabs as tab (tab)}
-          {@const config = tabConfig[tab]}
+          {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
+          {@const isCompact = appContext.screenSize === 'xs' || appContext.screenSize === 'sm'}
+          {@const isVisible = !isCompact || navigation.activeTab === tab}
 
-          <Tabs.Trigger value={tab} title={config?.label || tab}>
-            <span class="tab-icon">{config?.icon || '🚂'}</span>
-            {#if (appContext.screenSize !== 'xs' && appContext.screenSize !== 'sm') || navigation.activeTab === tab}
-              <span class="tab-label">{config?.label || tab}</span>
+          <Tabs.Trigger value={tab} title={config.label}>
+            <span class="tab-icon">{config.icon}</span>
+
+            {#if isVisible}
+              <span class="tab-label">{config.label}</span>
             {/if}
           </Tabs.Trigger>
         {/each}
       </Tabs.List>
 
       <main class="tab-content">
-        {#if navigation.activeTab === 'world'}
-          <Tabs.Content value="world">{@render WorldView()}</Tabs.Content>
-        {:else}
-          {#if navigation.activeTab === 'mine'}
-            <Tabs.Content value="mine">{@render MineView()}</Tabs.Content>
-          {:else}
-            {#if navigation.activeTab === 'station'}
-              <Tabs.Content value="station">{@render StationView()}</Tabs.Content>
-            {:else}
-              {#if navigation.activeTab === 'engineeringIdeas'}
-                <Tabs.Content value="engineeringIdeas">{@render EngineeringView()}</Tabs.Content>
-              {:else}
-                {#if navigation.activeTab === 'settings'}
-                  <Tabs.Content value="settings">
-                    <SettingsView />
-                  </Tabs.Content>
-                {:else}
-                  <div class="placeholder-content"><p>Coming soon...</p></div>
-                {/if}
-              {/if}
-            {/if}
-          {/if}
-        {/if}
+        <Tabs.Content value="world">{@render WorldView()}</Tabs.Content>
+        <Tabs.Content value="mine">{@render MineView()}</Tabs.Content>
+        <Tabs.Content value="station">{@render StationView()}</Tabs.Content>
+        <Tabs.Content value="engineeringIdeas">{@render EngineeringView()}</Tabs.Content>
+        <Tabs.Content value="settings"><SettingsView /></Tabs.Content>
       </main>
     </Tabs.Root>
 
@@ -274,15 +250,6 @@
   .tab-content {
     flex: 1;
     overflow-y: auto;
-  }
-
-  .placeholder-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--mcc-text-muted);
-    font-size: 1.25rem;
   }
 
   /* --- 6. Toast --- */
