@@ -4,7 +4,17 @@ export type TabId = (typeof TabsList)[number];
 export type NavPosition = 'top' | 'bottom' | 'left' | 'right' | 'hidden';
 export type Themes = 'dark' | 'light' | 'system' | 'user';
 export type DestinationTypes = 'city' | 'factory' | 'plot';
-export type ResourcesType = 'money' | 'coal' | 'oil' | 'copper' | 'super-alloy';
+export type ResourcesType = 'none' | 'money' | 'coal' | 'oil' | 'copper' | 'super-alloy';
+export type MineTileType =
+  | 'empty'
+  | 'dirt'
+  | 'blocker'
+  | 'rubble'
+  | 'coal'
+  | 'oil'
+  | 'copper'
+  | 'superalloy';
+
 export type Ages = 'Mechanical' | 'Steam' | 'Diesel' | 'Electric' | 'Maglev';
 
 export interface AppContext {
@@ -94,7 +104,7 @@ export interface MinePlot {
 }
 
 export interface MineTile {
-  type: 'empty' | 'rubble' | 'dirt' | 'blocker'; // | 'coal' | 'oil' | 'copper' | 'superalloy'
+  type: MineTileType;
   level: number;
   hp: number;
   maxHp: number;

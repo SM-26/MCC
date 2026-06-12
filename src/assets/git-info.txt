@@ -1,2 +1,2 @@
-51384e0
-fixed hash message
+fdc3225
+MineGen and docs and test - basic

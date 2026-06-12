@@ -35,6 +35,13 @@ export default tseslint.config(
     },
   },
   {
+    // EXCEPTION: Disable curly for Svelte files
+    files: ['**/*.svelte'],
+    rules: {
+      'curly': 'off',
+    },
+  },
+  {
     // Ignore files that don't need linting
     ignores: ['dist/', 'node_modules/', '.svelte-kit/', 'vite.config.ts'],
   }

@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run --passWithNoTests",
     "predeploy": "pnpm run build",
@@ -27,6 +27,7 @@
     "@testing-library/svelte": "^5.3.1",
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^25.9.3",
+    "@types/seedrandom": "^3.0.8",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.61.0",
     "eslint": "^10.4.1",
@@ -45,6 +46,7 @@
     "vitest": "^4.1.8"
   },
   "dependencies": {
-    "bits-ui": "^2.18.1"
+    "bits-ui": "^2.18.1",
+    "seedrandom": "^3.0.5"
   }
 }

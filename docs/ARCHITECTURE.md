@@ -12,30 +12,27 @@ The application is built on a modular, reactive architecture using Svelte 5 (Run
 * **View Layer (`src/views/*.svelte`):** The "Content." Focused, self-contained screens representing the 5 major game tabs.
 * **Layout Layer (`App.svelte`):** The "Shell." The main container structure containing the Header, Footer, and the Orchestrator.
 
-## 2. Orchestration & Navigation Flow
+## 2. Navigation & View Loading
 
-The Orchestrator is the heartbeat of the app. Rather than using a complex library-based router, we use a custom reactive controller:
+Navigation is handled through a reactive `activeTab` state in `navigation` store.
 
-1. **State Initiation:** The `uiStore` holds the `activeTab` rune.
-<!-- 2. **The Orchestrator:** `TabContent.svelte` acts as a dynamic component switch. It uses a Svelte 5 snippet or a keyed reactive block to swap views when the `activeTab` changes. -->
-3. **Encapsulation:** Because each `View` (e.g., `MineView`) owns its specific lifecycle, switching tabs effectively "pauses" or "unmounts" the previous logic slice, ensuring high performance.
-<!-- 4. **Logging Hook:** The Orchestrator wraps every tab-switch event with a `log.info` call, providing a clean audit trail in the console whenever the player navigates the interface. -->
+1. **Dynamic Switching:** `App.svelte` conditionally renders the view matching the `navigation.activeTab` state.
+2. **Encapsulation:** Because each `View` (e.g., `SettingsView`) owns its specific lifecycle, switching tabs effectively manages the mount/unmount state, ensuring high performance.
 
 ## 3. File Structure Map
 
 ```text
-/public/         # Static assets (favicon, manifest, robots.txt)
+/public/        # Static assets (favicon, manifest, robots.txt)
 /src/
-├── assets/      # Processed images, icons (optimized by Vite)
-├── components/  # Reusable UI bits (Buttons, Inputs, Cards)
-├── views/       # Full-page content (WorldView, MineView, etc.)
-├── stores/      # Reactive application state (gameStore.ts, uiStore.ts)
-├── logic/       # Pure TS game rules (worldGen.ts, mineGen.ts)
-├── lib/         # Generic utilities (formatNumber.ts, logger.ts)
-├── styles/      # Global CSS (reset.css, responsive.css)
-├── types.ts     # Central data structures (Interfaces, Enums)
-└── app.svelte   # Main shell
-
+├── assets/     # Processed images, icons (optimized by Vite)
+├── components/ # Reusable UI bits (Buttons, Tooltips)
+├── views/      # Full-page tab content (WorldView, SettingsView, etc.)
+├── stores/     # Reactive application state (index.svelte.ts)
+├── logic/      # Pure TS game rules (save.svelte.ts, worldGen.ts)
+├── lib/        # Generic utilities (logger.ts)
+├── styles/     # Global CSS (theme.css)
+├── types.ts    # Central data structures (Interfaces, Enums)
+└── App.svelte  # Main shell
 ```
 
 ## 4. Folder Breakdown & Decision Matrix
@@ -67,11 +64,3 @@ The Orchestrator is the heartbeat of the app. Rather than using a complex librar
 
 * **YES:** It is a utility → **`src/lib/`**
 * **NO:** It is game-specific business logic → **`src/logic/`**
-
----
-
-### Changes and Justifications:
-
-* **Orchestration Section:** Added specific details on how the Orchestrator works (the "dynamic switch" concept) to make it feel less "boring" and more functional.
-* **Logging Integration:** Explicitly linked the logging strategy (defined in section 5) to the `lib/` folder structure, ensuring your console preference is built into the architecture.
-* **Architecture Sync:** Integrated the "Logic vs. Lib" decision test directly into the structure to ensure the `logic/` folder doesn't get cluttered with general-purpose code.

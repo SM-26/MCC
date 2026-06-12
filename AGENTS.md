@@ -7,11 +7,11 @@ A mobile-first idle railway tycoon game built with Svelte 5 and Bits-UI.
 ### Current Phase: Foundation + Settings Tab Complete
 
 #### ✅ Completed Components
-- **Settings Tab** (`src/lib/components/Settings.svelte`)
+- **Settings Tab** (`src/views/SettingsView.svelte`)
   - Theme selection (dark/light/system/user)
   - Navbar position toggle (top/bottom)
   - Dev mode, sound, notifications toggles
-  - Circular navigation controls
+  - Global save and reset management
   
 - **App Shell** (`src/App.svelte`)
   - Responsive layout with adaptive navbar
@@ -24,11 +24,15 @@ A mobile-first idle railway tycoon game built with Svelte 5 and Bits-UI.
 src/
 ├── lib/
 │   ├── components/
-│   │   └── Settings.svelte          # ✅ Complete
+│   │   └── GameTooltip.svelte       # ✅ Tooltip UI
+│   ├── logic/
+│   │   └── save.svelte.ts           # ✅ Persistence logic
 │   ├── sizes.ts                     # ✅ Breakpoint constants
 │   └── theme.ts                     # ✅ Theme tokens
 ├── stores/
-│   └── index.ts                     # ✅ State stores
+│   └── index.svelte.ts              # ✅ Svelte 5 state stores
+├── views/
+│   └── SettingsView.svelte          # ✅ Settings Implementation
 ├── types.ts                         # ✅ TypeScript types
 ├── App.svelte                       # ✅ Main shell
 └── styles/
@@ -46,9 +50,8 @@ src/
 4. **Engineering Ideas** - Tech tree UI
 
 ### Phase 3: Polish
-5. **Settings Integration** - Persist settings to localStorage
-6. **PWA Install Prompt** - Manifest setup
-7. **Dev Tools** - Debug panel integration
+5. **PWA Install Prompt** - Manifest setup
+6. **Dev Tools** - Debug panel integration
 
 ---
 
@@ -60,7 +63,7 @@ src/
 - Settings persisted via store updates
 
 ### Responsive Design
-- Mobile-first approach (default: bottom nav)
+- Mobile-first approach
 - Breakpoints defined in `src/lib/sizes.ts`
 - Adaptive navbar position based on screen size
 
@@ -77,7 +80,7 @@ src/
 pnpm dev
 ```
 
-Open `http://localhost:5173` to view the app.
+Open `http://localhost:8080` to view the app.
 
 ---
 
