@@ -7,6 +7,7 @@
   import { debouncedSave, getSaveSnapshot } from './logic/save.svelte';
   import SettingsView from './views/SettingsView.svelte';
   import { toastState } from './components/GameTooltip.svelte';
+  import MineView from './views/MineView.svelte';
 
   // State flag to prevent the initial boot tracking from triggering an instant disk save
   let isReadyToSave = false;
@@ -70,13 +71,6 @@
   </div>
 {/snippet}
 
-{#snippet MineView()}
-  <div>
-    <h2>The Mine</h2>
-    <p>Manage your miners and extraction plots.</p>
-  </div>
-{/snippet}
-
 {#snippet StationView()}
   <div>
     <h2>Train Station</h2>
@@ -135,7 +129,7 @@
 
       <main class="tab-content">
         <Tabs.Content value="world">{@render WorldView()}</Tabs.Content>
-        <Tabs.Content value="mine">{@render MineView()}</Tabs.Content>
+        <Tabs.Content value="mine"><MineView /></Tabs.Content>
         <Tabs.Content value="station">{@render StationView()}</Tabs.Content>
         <Tabs.Content value="engineeringIdeas">{@render EngineeringView()}</Tabs.Content>
         <Tabs.Content value="settings"><SettingsView /></Tabs.Content>

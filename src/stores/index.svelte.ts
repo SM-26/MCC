@@ -1,10 +1,4 @@
-import type {
-  AppContext,
-  GameState,
-  NavigationState,
-  PWAInstallState,
-  NavPosition,
-} from '../types';
+import type { AppContext, GameState, NavigationState, PWAInstallState } from '../types';
 import { TabsList } from '../types';
 import { log } from '../lib/logger';
 

@@ -1,2 +1,2 @@
-fdc3225
-MineGen and docs and test - basic
+dc93392
+Basic Mines view

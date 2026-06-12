@@ -116,7 +116,7 @@ export interface Miner {
   level: number;
   tileIndex: number;
   facing: number;
-  // progress: number; // I don't think we really nned this.
+  progress: number; // I don't think we really nned this.
 }
 
 // Stations

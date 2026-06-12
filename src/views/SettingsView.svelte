@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Toggle, Switch, Button, AlertDialog, Select } from 'bits-ui';
-  import { gameState, navigation } from '../stores/index.svelte';
+  import { gameState } from '../stores/index.svelte';
   import { manualSave, resetProgress } from '../logic/save.svelte';
   import GameTooltip from '../components/GameTooltip.svelte';
   import type { NavPosition, Themes } from '../types';
