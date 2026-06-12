@@ -14,11 +14,11 @@
   --spacing-xl: 32px;
 
   /* Dark theme (default) */
-  --mcc-bg-primary: #1A1A1A;
-  --mcc-bg-surface: #14213D;
+  --mcc-bg-primary: #1a1a1a;
+  --mcc-bg-surface: #14213d;
   --mcc-text-main: #f0f0f0;
-  --mcc-text-muted: #89A7A7;
-  --mcc-accent: #3B00DB;
+  --mcc-text-muted: #89a7a7;
+  --mcc-accent: #3b00db;
 
   --mcc-primary: #0f3460;
   --mcc-border: #2a2a4a;
@@ -26,10 +26,9 @@
   /* Light theme */
   --mcc-bg-primary-light: #f8f9fa;
   --mcc-bg-surface-light: #ffffff;
-  --mcc-text-main-light: #1A1A1A;
+  --mcc-text-main-light: #1a1a1a;
   --mcc-text-muted-light: #4a6b6b;
   --mcc-accent-light: #6750a4;
-
 }
 
 /* Apply theme based on setting */

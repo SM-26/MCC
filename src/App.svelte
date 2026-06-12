@@ -5,6 +5,8 @@
   import { getScreenSize } from './lib/sizes';
   import Splash from './components/Splash.svelte';
   import { debouncedSave, getSaveSnapshot } from './logic/save.svelte';
+  import SettingsView from './components/SettingsView.svelte';
+  import { toastState } from './components/GameTooltip.svelte';
 
   // State flag to prevent the initial boot tracking from triggering an instant disk save
   let isReadyToSave = false;
@@ -56,7 +58,9 @@
     JSON.stringify(getSaveSnapshot());
 
     // Exit early if the application is just running its initial dependency registration loop
-    if (!isReadyToSave) return;
+    if (!isReadyToSave) {
+      return;
+    }
 
     debouncedSave();
   });
@@ -96,13 +100,6 @@
   </div>
 {/snippet}
 
-{#snippet SettingsView()}
-  <div>
-    <h2>Settings Configuration</h2>
-    <p>Theme: {gameState.settings.theme}</p>
-  </div>
-{/snippet}
-
 {#snippet appHeaderContents(title = 'Mines & Choo-Choo', goldAmount = 0)}
   <h1 class="app-title">{title}</h1>
   <div class="currency-display">
@@ -110,6 +107,13 @@
     <span class="currency-value">{formatCurrency(goldAmount)}</span>
   </div>
 {/snippet}
+
+{#if toastState.activeText}
+  <div class="global-toast-notification">
+    <span class="toast-icon">ℹ️</span>
+    <p class="toast-content">{toastState.activeText}</p>
+  </div>
+{/if}
 
 <div class="app-container">
   {#if appContext.isLoading || appContext.splashVisible}
@@ -123,7 +127,7 @@
 
     <Tabs.Root bind:value={navigation.activeTab}>
       <Tabs.List class="nav-{navigation.navbarPosition}">
-        {#each navigation.tabs as tab}
+        {#each navigation.tabs as tab (tab)}
           {@const config = tabConfig[tab]}
 
           <Tabs.Trigger value={tab} title={config?.label || tab}>
@@ -149,7 +153,9 @@
                 <Tabs.Content value="engineeringIdeas">{@render EngineeringView()}</Tabs.Content>
               {:else}
                 {#if navigation.activeTab === 'settings'}
-                  <Tabs.Content value="settings">{@render SettingsView()}</Tabs.Content>
+                  <Tabs.Content value="settings">
+                    <SettingsView />
+                  </Tabs.Content>
                 {:else}
                   <div class="placeholder-content"><p>Coming soon...</p></div>
                 {/if}
@@ -169,7 +175,7 @@
   :global([role='tab'][data-state='active']) {
     color: var(--mcc-text-main) !important;
     background: rgba(59, 0, 219, 0.08) !important;
-    box-shadow: inset 0 0 0 1px var(--mcc-accent, gold) !important;
+    box-shadow: inset 0 0 0 1px gold !important;
   }
 
   /* --- 2. Global Layout Structure --- */
@@ -192,7 +198,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px var(--spacing-lg, 24px);
+    padding: var(--spacing-sm) var(--spacing-md);
     background: var(--mcc-bg-surface);
     border-bottom: 1px solid var(--outline-variant, #49454f);
   }
@@ -268,7 +274,6 @@
   .tab-content {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-lg, 24px);
   }
 
   .placeholder-content {
@@ -278,5 +283,48 @@
     height: 100%;
     color: var(--mcc-text-muted);
     font-size: 1.25rem;
+  }
+
+  /* --- 6. Toast --- */
+  .global-toast-notification {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    border: 1px solid #38bdf8;
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.5),
+      0 0 12px rgba(56, 189, 248, 0.2);
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    max-width: 90vw;
+    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .toast-icon {
+    font-size: 1.1rem;
+  }
+
+  .toast-content {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #f3f4f6;
+    font-family: monospace;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translate(-50%, 12px);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
   }
 </style>

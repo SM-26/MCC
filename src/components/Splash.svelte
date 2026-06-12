@@ -1,9 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  // Assuming these are reactive objects/runes exported from your svelte.ts file
   import { appContext, pwaInstall } from '../stores/index.svelte';
+  import { log } from '../lib/logger';
+  import { triggerMobileToast } from './GameTooltip.svelte';
 
-  let deferredPrompt: any = $state(null);
+  // Custom interface extending the standard DOM Event for modern PWA installations
+  interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: string[];
+    readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+    prompt(): Promise<void>;
+  }
+
+  let deferredPrompt: BeforeInstallPromptEvent | null = $state(null);
 
   onMount(() => {
     // Hide splash screen after fixed duration
@@ -15,20 +23,20 @@
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
     if (isStandalone) {
-      console.log('PWA: App is already running in standalone mode.');
+      log.info('PWA', 'App is already running in standalone mode.');
       return;
     }
 
     // Listen for PWA installability
-    window.addEventListener('beforeinstallprompt', (e: any) => {
+    window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
-      console.debug('PWA DEBUG: beforeinstallprompt received!');
-      deferredPrompt = e;
+      log.debug('PWA', 'beforeinstallprompt received!');
+      deferredPrompt = e as BeforeInstallPromptEvent;
 
       // Mutate your Svelte 5 reactive object directly
       pwaInstall.visible = true;
       pwaInstall.shouldShow = true;
-      console.log('PWA: Installation prompt is available.');
+      log.info('PWA', 'Installation prompt is available.');
     });
 
     // Listen for PWA app already installed
@@ -39,8 +47,9 @@
     // If the event never fires, log why it might be missing
     setTimeout(() => {
       if (!deferredPrompt) {
-        console.warn("PWA: 'beforeinstallprompt' did not fire.");
-        console.info(
+        log.warn('PWA', "'beforeinstallprompt' did not fire.");
+        log.info(
+          'PWA',
           'Possible reasons: 1. Manifest is missing or invalid. 2. Service worker is not active. 3. Browser does not support PWA installation (e.g., iOS Safari). 4. App is already installed.',
         );
       }
@@ -48,34 +57,24 @@
   });
 
   async function handleInstallPWA() {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      return;
+    }
 
     deferredPrompt.prompt();
-    console.log('Attempting to show prompt. DeferredPrompt exists:', !!deferredPrompt);
+    log.debug('PWA', 'Attempting to show prompt. DeferredPrompt exists:', !!deferredPrompt);
 
     try {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         appContext.isPWAInstalled = true;
-        showToast('App installed! 🎉');
+        triggerMobileToast('App installed! 🎉');
       }
     } catch (err) {
-      console.error('PWA Installation error:', err);
+      log.error('PWA', 'Installation error occurred', err as Error);
     } finally {
       deferredPrompt = null;
     }
-  }
-
-  function showToast(message: string) {
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.style.cssText = `
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
-      padding: 16px 24px; border-radius: 12px; z-index: 10000;
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
   }
 
   function handleOpenStore() {
@@ -162,7 +161,7 @@
   .splash-screen {
     position: fixed;
     inset: 0;
-    background-color: var(--mcc-bg-primary); /* Fixed variable path alignment */
+    background-color: var(--mcc-bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -185,7 +184,7 @@
 
   .splash-title {
     font-size: 2rem;
-    color: var(--mcc-text-main); /* Fixed variable path alignment */
+    color: var(--mcc-text-main);
     margin: 0 0 12px 0;
   }
 
@@ -206,7 +205,7 @@
   .close-splash {
     margin-top: 24px;
     background: transparent;
-    border: 2px solid var(--mcc-bg-surface); /* Swapped border fallback to safe primary asset surface color token */
+    border: 2px solid var(--mcc-bg-surface);
     color: var(--mcc-text-main);
     padding: 6px 16px;
     border-radius: 9999px;
@@ -225,7 +224,7 @@
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     right: 16px;
-    background-color: var(--mcc-bg-surface); /* Fixed variable path alignment */
+    background-color: var(--mcc-bg-surface);
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -250,7 +249,7 @@
 
   .pwa-text h2 {
     font-size: 1.25rem;
-    color: var(--mcc-text-main); /* Fixed variable path alignment */
+    color: var(--mcc-text-main);
     margin: 0 0 8px 0;
   }
 
@@ -285,9 +284,7 @@
   }
 
   .pwa-actions .btn-secondary {
-    background-color: var(
-      --mcc-bg-primary
-    ); /* Swapped old .pwa-primary layout fallback button skin */
+    background-color: var(--mcc-bg-primary);
     color: var(--mcc-text-main);
   }
 

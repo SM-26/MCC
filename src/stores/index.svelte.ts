@@ -1,5 +1,6 @@
 import type { AppContext, GameState, NavigationState, PWAInstallState } from '../types';
 import { TabsList } from '../types';
+import { log } from '../lib/logger';
 
 // 1. Application context store
 export const appContext = $state<AppContext>({
@@ -38,6 +39,7 @@ function bootstrapState(): GameState {
       notificationsEnabled: true,
       appVersion: '0.0.1',
       commitHash: 'abc#123',
+      commitMessage: 'Initial build commit',
       theme: 'dark',
       worldSeed: '123456',
     },
@@ -50,18 +52,32 @@ function bootstrapState(): GameState {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.data) {
-          // Merge historical disk data onto our template structure safely
-          return {
-            ...baseData,
-            ...parsed.data,
-            settings: { ...baseData.settings, ...parsed.data.settings },
-            meta: { ...baseData.meta, ...parsed.data.meta },
-            mines: { ...baseData.mines, ...parsed.data.mines }
-          };
+          baseData.money = parsed.data.money ?? baseData.money;
+          baseData.settings = { ...baseData.settings, ...parsed.data.settings };
+          baseData.meta = { ...baseData.meta, ...parsed.data.meta };
+          baseData.mines = { ...baseData.mines, ...parsed.data.mines };
         }
       }
     } catch (e) {
-      console.error('Failed to bootstrap state from localStorage:', e);
+      log.error('bootstrapState', 'Failed to read localStorage:', e);
+    }
+
+    // 2. Read runtime text payloads from your local static asset build file
+    try {
+      fetch('/src/assets/git-info.txt')
+        .then((res) => res.text())
+        .then((text) => {
+          const lines = text
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean);
+          if (lines.length >= 2) {
+            baseData.settings.commitHash = lines[0];
+            baseData.settings.commitMessage = lines[1];
+          }
+        });
+    } catch (e) {
+      log.error('fetch git-info', 'Could not fetch compile telemetry info:', e);
     }
   }
 

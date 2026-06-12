@@ -4,13 +4,6 @@ export const MOBILE_BREAKPOINT = 610; // px
 // Responsive size classes (mirrors Tailwind/Material Design)
 export type ScreenSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
-// export const screenSizeMap: Record<number, ScreenSize> = {
-//   1280: 'xl',
-//   1024: 'lg',
-//   768: 'md',
-//   576: 'sm',
-//   0: 'xs',
-// };
 export const screenSizeMap: Record<number, ScreenSize> = {
   1280: 'xl',
   1024: 'lg',
@@ -25,7 +18,7 @@ export const getScreenSize = (width: number): ScreenSize => {
     .map(Number)
     .sort((a, b) => b - a); // Sort descending: [1280, 1024, 768, 576, 0]
 
-  const activeBreakpoint = breakpoints.find(bp => width >= bp) ?? 0;
+  const activeBreakpoint = breakpoints.find((bp) => width >= bp) ?? 0;
   return screenSizeMap[activeBreakpoint];
 };
 

@@ -1,7 +1,7 @@
 export const TabsList = ['world', 'mine', 'station', 'engineeringIdeas', 'settings'] as const;
 
 export type TabId = (typeof TabsList)[number];
-export type NavPosition = 'top' | 'bottom'; // | 'left' | 'right' | 'hidden'
+export type NavPosition = 'top' | 'bottom' | 'left' | 'right' | 'hidden';
 export type Themes = 'dark' | 'light' | 'system' | 'user';
 export type DestinationTypes = 'city' | 'factory' | 'plot';
 export type ResourcesType = 'money' | 'coal' | 'oil' | 'copper' | 'super-alloy';
@@ -35,6 +35,7 @@ export interface GameState {
     notificationsEnabled: boolean;
     appVersion: string;
     commitHash: string;
+    commitMessage: string;
     theme: Themes;
     worldSeed: string;
   };

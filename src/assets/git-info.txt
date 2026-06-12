@@ -1,2 +1,2 @@
-3021e7a
-debug: Add alert to dialog action click handler
+9e6a668
+working settings tab
