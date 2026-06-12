@@ -5,6 +5,10 @@
   import GameTooltip from './GameTooltip.svelte';
   import type { NavPosition, Themes } from '../types';
 
+  import appVersion from '../assets/version.txt?raw';
+  import gitInfo from '../assets/git-info.txt?raw';
+  const [commitHash, commitMessage] = gitInfo.trim().split('\n');
+
   let isResetDialogOpen = $state(false);
 
   interface SelectOption<T> {
@@ -204,16 +208,13 @@
     <div class="telemetry-line">Mines & Choo-Choos — Alpha Architecture</div>
 
     <div class="telemetry-line">
-      Version: v{gameState.settings.appVersion} Commit hash:
-      <GameTooltip
-        message={gameState.settings.commitMessage || 'No data generated'}
-        trigger={triggerTemplate}
-      />
+      Version: v{appVersion.trim()} | Commit hash:
+      <GameTooltip message={commitMessage || 'No data generated'} trigger={triggerTemplate} />
     </div>
   </section>
 
   {#snippet triggerTemplate()}
-    <code>{gameState.settings.commitHash}</code>
+    <code>{commitHash || 'unknown'}</code>
   {/snippet}
 </div>
 

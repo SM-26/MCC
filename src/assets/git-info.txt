@@ -1,2 +1,2 @@
-9e6a668
-working settings tab
+51384e0
+fixed hash message
