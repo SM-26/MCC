@@ -4,7 +4,7 @@
   import { Tabs } from 'bits-ui';
   import { getScreenSize } from './lib/sizes';
   import Splash from './components/Splash.svelte';
-  import { debouncedSave, getSaveSnapshot } from './logic/save.svelte';
+  import { debouncedSave } from './logic/save.svelte';
   import SettingsView from './views/SettingsView.svelte';
   import { toastState } from './components/GameTooltip.svelte';
   import MineView from './views/MineView.svelte';
@@ -45,15 +45,14 @@
   });
 
   $effect(() => {
-    // Snapshot everything, including the active tab
-    const snapshot = {
-      ...getSaveSnapshot(),
-      activeTab: navigation.activeTab,
-    };
-
-    JSON.stringify(snapshot);
-
     if (!isReadyToSave) return;
+
+    gameState.money;
+    gameState.mines;
+    gameState.meta;
+    gameState.settings;
+    navigation.activeTab;
+
     debouncedSave();
   });
 
@@ -183,6 +182,14 @@
 
   /* --- 3. Navigation Bar & Tabs --- */
 
+  :global(.tabs-root) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+  }
+
   :global([role='tablist']) {
     display: flex;
     flex: 0 0 auto;
@@ -192,6 +199,23 @@
     border-bottom: 1px solid var(--outline, #938f99);
     padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
     gap: var(--spacing-xs, 4px);
+  }
+
+  :global([role='tabpanel']) {
+    display: none;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  :global([role='tabpanel'][data-state='active']) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
   :global([role='tab']) {
@@ -216,7 +240,7 @@
     box-shadow: inset 0 0 0 1px gold !important;
   }
 
-  :global([role='tabpanel']) {
+  :global(.tab-panel) {
     display: none;
     flex: 1 1 0;
     min-height: 0;
@@ -224,7 +248,7 @@
     overflow: hidden;
   }
 
-  :global([role='tabpanel'][data-state='active']) {
+  :global(.tab-panel[data-state='active']) {
     display: flex;
     flex-direction: column;
     flex: 1 1 0;

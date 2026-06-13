@@ -264,7 +264,12 @@
     <div class="mine-board">
       <div
         class="tile-grid"
-        style="grid-template-columns: repeat({activePlot.cols}, 1fr); grid-template-rows: repeat({activePlot.tiles.length}, 1fr);"
+        style="
+    --grid-cols: {activePlot.cols};
+    --grid-rows: {activePlot.tiles.length};
+    grid-template-columns: repeat({activePlot.cols}, 1fr);
+    grid-template-rows: repeat({activePlot.tiles.length}, 1fr);
+  "
         role="grid"
         aria-label="Mine grid"
       >
@@ -343,11 +348,14 @@
     justify-content: center;
     align-items: flex-start;
     overflow: auto;
-    padding: 0 var(--mine-padding);
+    padding: 8px var(--mine-padding) 0;
+  }
+  .mine-board > .tile-grid {
+    align-self: center;
   }
 
   .mine-view {
-    --tile-size: 60px;
+    --tile-size: clamp(56px, 10dvh, 120px);
     --mine-gap: var(--spacing-md);
     --mine-padding: var(--spacing-md);
     --mine-header-padding: 12px;
@@ -358,16 +366,13 @@
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
-    min-height: 300px;
+    min-height: 0;
     min-width: 0;
     overflow: hidden;
-    background: var(--mcc-bg-primary);
-    color: var(--mcc-text-main);
-    gap: var(--mine-gap);
   }
 
   .mine-view.size-xs {
-    --tile-size: 46px;
+    --tile-size: 60px;
     --mine-gap: var(--spacing-sm);
     --mine-padding: var(--spacing-sm);
     --mine-header-padding: 8px;
@@ -377,9 +382,9 @@
   }
 
   .mine-view.size-sm {
-    --tile-size: 52px;
-    --mine-gap: 12px;
-    --mine-padding: 12px;
+    --tile-size: 80px;
+    --mine-gap: 10px;
+    --mine-padding: 8px;
     --mine-header-padding: 10px;
     --mine-nav-columns: 2;
     --mine-miner-size: 1.15rem;
@@ -387,21 +392,21 @@
   }
 
   .mine-view.size-md {
-    --tile-size: 60px;
+    --tile-size: 88px;
     --mine-nav-columns: 4;
     --mine-miner-size: 1.35rem;
     --mine-miner-label-size: 0.68rem;
   }
 
   .mine-view.size-lg {
-    --tile-size: 68px;
+    --tile-size: 92px;
     --mine-nav-columns: 4;
     --mine-miner-size: 1.5rem;
     --mine-miner-label-size: 0.72rem;
   }
 
   .mine-view.size-xl {
-    --tile-size: 76px;
+    --tile-size: 95px;
     --mine-gap: 20px;
     --mine-padding: 20px;
     --mine-header-padding: 14px;
@@ -481,12 +486,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition:
-      background 0.2s ease,
-      transform 0.15s ease,
-      outline-color 0.15s ease,
-      box-shadow 0.15s ease,
-      border-color 0.15s ease;
   }
 
   .tile.dirt,
@@ -581,7 +580,8 @@
 
   .mine-actions {
     flex: 0 0 auto;
-    padding: 0 var(--mine-padding) var(--mine-padding);
+    margin-top: auto;
+    padding: var(--mine-gap) var(--mine-padding) var(--mine-padding);
   }
 
   .buy-btn {

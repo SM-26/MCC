@@ -1,2 +1,2 @@
-99e628d
-better mines view
+8b50fcd
+small cleanups to the mine view for mobile
