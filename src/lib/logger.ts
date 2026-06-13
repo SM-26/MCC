@@ -13,13 +13,35 @@
 // Get current filename and line number for stack trace analysis
 function getCallerInfo(): { file: string; line: number } {
   const err = new Error();
-  const stackLines = err.stack?.split('\n') || [];
+  const stack = err.stack ?? '';
 
-  const callerLine = stackLines[2]?.match(/:(\d+)/)?.[1];
+  const stackLines = stack
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const callerFrame =
+    stackLines.find(
+      (line) =>
+        (line.startsWith('at ') || line.includes('@')) && !line.includes('getCallerInfo') && !line.includes('/logger.ts') && !line.includes('\\logger.ts'),
+    ) ?? '';
+
+  const match = callerFrame.match(/(?:at .*?\(|@)(.+):(\d+):(\d+)\)?$/) ?? callerFrame.match(/at (.+):(\d+):(\d+)$/);
+
+  if (!match) {
+    return {
+      file: 'unknown',
+      line: -1,
+    };
+  }
+
+  const [, filePath, line] = match;
+  const normalizedPath = filePath.split('?')[0];
+  const fileName = normalizedPath.split('/').pop()?.split('\\').pop() ?? 'unknown';
 
   return {
-    file: stackLines[1]?.replace(/^.*?([^/\\]+)\.ts$/, '$1') || 'unknown',
-    line: callerLine ? parseInt(callerLine, 10) : -1, // Parses to number, falls back to -1
+    file: fileName,
+    line: Number.parseInt(line, 10),
   };
 }
 

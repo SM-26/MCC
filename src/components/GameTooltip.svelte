@@ -16,7 +16,7 @@
 
     toastTimeout = setTimeout(() => {
       toastState.activeText = null;
-    }, 3000);
+    }, 2000);
   }
 </script>
 

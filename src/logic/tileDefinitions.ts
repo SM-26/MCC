@@ -15,5 +15,5 @@ export const TILE_DEFS: Record<MineTileType, TileDef> = {
   coal: { level: 1, baseHp: 30, value: 1, resourceType: 'coal' },
   oil: { level: 1, baseHp: 40, value: 1, resourceType: 'oil' },
   copper: { level: 1, baseHp: 50, value: 1, resourceType: 'copper' },
-  superalloy: { level: 1, baseHp: 100, value: 1, resourceType: 'super-alloy' },
+  superalloy: { level: 1, baseHp: 100, value: 1, resourceType: 'superalloy' },
 };

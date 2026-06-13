@@ -47,7 +47,7 @@
     // If the event never fires, log why it might be missing
     setTimeout(() => {
       if (!deferredPrompt) {
-        log.warn('PWA', "'beforeinstallprompt' did not fire.");
+        log.debug('PWA', "'beforeinstallprompt' did not fire.");
         log.info(
           'PWA',
           'Possible reasons: 1. Manifest is missing or invalid. 2. Service worker is not active. 3. Browser does not support PWA installation (e.g., iOS Safari). 4. App is already installed.',

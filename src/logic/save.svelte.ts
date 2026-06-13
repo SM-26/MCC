@@ -7,49 +7,24 @@
 
 import { gameState, navigation } from '../stores/index.svelte';
 import { log } from '../lib/logger';
-import { generatePlot } from './mineGen';
+import type { GameState, SaveFile } from '../types';
+import { getInitialState } from './stateFactory';
+// import { generatePlot } from './mineGen';
+
+import gitInfo from '../assets/git-info.txt?raw';
+const [SAVE_COMMIT_HASH = ''] = gitInfo.trim().split('\n');
+
+type PersistedGameState = GameState & {
+  navigation: {
+    activeTab: typeof navigation.activeTab;
+  };
+};
 
 // Centralized Version Control
 const SAVE_FILE_VERSION = '1.0.0';
 
 // Debounce timer reference
 let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-/**
- * Returns a fresh deep copy of the base game configuration.
- * Used for both structural merging during loads and complete data resets.
- */
-function getInitialState() {
-  const initialPlot = generatePlot('123456', 0, 0);
-  return {
-    money: 75,
-    mines: {
-      activePlot: 0,
-      plots: [initialPlot],
-      selectedMiner: null,
-      draggedMiner: null,
-      lastTick: 0,
-    },
-    meta: {
-      engineeringIdeas: 0,
-      resetCount: 0,
-      MaxnorthExpansions: 1,
-      MaxundergroundLevels: 0,
-    },
-    settings: {
-      navbarPosition: 'top' as const,
-      defaultView: 'world' as const,
-      devMode: false,
-      soundEnabled: false,
-      notificationsEnabled: true,
-      appVersion: '0.0.1',
-      commitHash: 'abc#123',
-      commitMessage: 'Initial build commit',
-      theme: 'dark' as const,
-      worldSeed: '123456',
-    },
-  };
-}
 
 /**
  * Full game state save function (debounced)
@@ -64,14 +39,17 @@ export function debouncedSave(): void {
     try {
       // OPTIMIZATION: Use snapshot to strip active proxies before building string
       const saveData = {
-        version: SAVE_FILE_VERSION,
-        timestamp: Date.now(),
+        meta: {
+          saveVersion: SAVE_FILE_VERSION,
+          saveCommitHash: SAVE_COMMIT_HASH,
+          savedAt: Date.now(),
+        },
         data: getSaveSnapshot(),
       };
 
       localStorage.setItem('mcc_save', JSON.stringify(saveData));
 
-      log.info('debounced save', `Full game state saved to localStorage (${Object.keys(saveData.data).join(', ')})`);
+      log.debug('debounced save', `Full game state saved to localStorage (${Object.keys(saveData.data).join(', ')})`);
     } catch (error) {
       log.error('save', `Failed to save full game state: ${String(error)}`);
     }
@@ -85,8 +63,11 @@ export function debouncedSave(): void {
 export function manualSave(): void {
   try {
     const saveData = {
-      version: SAVE_FILE_VERSION,
-      timestamp: Date.now(),
+      meta: {
+        saveVersion: SAVE_FILE_VERSION,
+        saveCommitHash: SAVE_COMMIT_HASH,
+        savedAt: Date.now(),
+      },
       data: getSaveSnapshot(),
     };
 
@@ -104,52 +85,53 @@ export function manualSave(): void {
 export function loadGame(): void {
   try {
     const saved = localStorage.getItem('mcc_save');
-
     if (!saved) {
-      log.debug('load', 'No saved game found, using default state');
-      // 1. Get our baseline defaults
       const defaults = getInitialState();
 
-      // 2. Commit them to localStorage immediately
-      const saveData = {
-        version: SAVE_FILE_VERSION,
-        timestamp: Date.now(),
-        data: defaults,
+      const saveData: SaveFile = {
+        meta: {
+          saveVersion: SAVE_FILE_VERSION,
+          saveCommitHash: SAVE_COMMIT_HASH,
+          savedAt: Date.now(),
+        },
+        data: {
+          ...defaults,
+          navigation: { activeTab: 'world' },
+        },
       };
+
       localStorage.setItem('mcc_save', JSON.stringify(saveData));
+
+      gameState.money = defaults.money;
+      gameState.world = defaults.world;
+      gameState.meta = defaults.meta;
+      gameState.settings = defaults.settings;
+      navigation.activeTab = 'world';
       return;
     }
 
-    const parsed = JSON.parse(saved) as Record<string, unknown>;
+    const parsed = JSON.parse(saved) as SaveFile;
+    const migratedData = normalizeSaveData(parsed);
 
-    if (!parsed.version || !parsed.data) {
-      log.error('load', `Invalid save file: missing version (${String(parsed?.version)}) or data fields`);
+    if (!migratedData) {
       return;
     }
+    const { navigation: savedNavigation, ...gameData } = migratedData as Partial<PersistedGameState>;
+    const mergedData = deepMerge(getInitialState(), gameData);
+    navigation.activeTab = savedNavigation?.activeTab ?? 'world';
 
-    // 1. Process migrations if versions mismatch
-    const secureData = migrateSaveData(parsed);
-    if (!secureData) {
-      return; // Exit if migration handled hard reload
+    gameState.money = mergedData.money;
+    gameState.world = mergedData.world;
+    gameState.meta = mergedData.meta;
+    gameState.settings = mergedData.settings;
+
+    if ((parsed as { data?: { navigation?: { activeTab?: string } } })?.data?.navigation?.activeTab) {
+      navigation.activeTab = (parsed as { data: { navigation: { activeTab: typeof navigation.activeTab } } }).data.navigation.activeTab;
+    } else {
+      navigation.activeTab = 'world';
     }
 
-    // 2. Fetch a fresh, clean default state instance
-    const defaults = getInitialState();
-
-    // 3. Deeply merge historical save with modern default structures
-    const finalState = deepMerge(defaults, secureData as Record<string, unknown>) as ReturnType<typeof getInitialState>;
-
-    // 4. Update the reactive proxy state tree
-    gameState.money = finalState.money;
-    gameState.mines = finalState.mines;
-    gameState.meta = finalState.meta;
-    gameState.settings = finalState.settings;
-    // Apply navigation state from load
-    const savedNav = (parsed.data as any)?.navigation;
-    if (savedNav?.activeTab) {
-      navigation.activeTab = savedNav.activeTab;
-    }
-    log.info('load', `Full game state loaded from localStorage (version ${String(parsed.version)}, timestamp ${String(parsed.timestamp)})`);
+    log.info('load', `Full game state loaded from localStorage (version ${parsed.meta.saveVersion})`);
   } catch (error) {
     log.error('load', `Failed to load game state: ${String(error)}`);
   }
@@ -173,17 +155,24 @@ export async function resetProgress(): Promise<void> {
     const defaults = getInitialState();
 
     // Force write clean defaults immediately to clear disk races
-    const saveData = {
-      version: SAVE_FILE_VERSION,
-      timestamp: Date.now(),
-      data: defaults,
+    const saveData: SaveFile = {
+      meta: {
+        saveVersion: SAVE_FILE_VERSION,
+        saveCommitHash: SAVE_COMMIT_HASH,
+        savedAt: Date.now(),
+      },
+      data: {
+        ...defaults,
+        navigation: { activeTab: 'world' },
+      },
     };
     localStorage.setItem('mcc_save', JSON.stringify(saveData));
 
     gameState.money = defaults.money;
-    gameState.mines = defaults.mines;
+    gameState.world = defaults.world;
     gameState.meta = defaults.meta;
     gameState.settings = defaults.settings;
+    navigation.activeTab = 'world';
 
     log.info('save', 'Progress reset successfully');
     window.location.reload();
@@ -199,7 +188,7 @@ export async function resetProgress(): Promise<void> {
 export function getSaveSnapshot() {
   return {
     money: gameState.money,
-    mines: $state.snapshot(gameState.mines),
+    world: $state.snapshot(gameState.world),
     meta: $state.snapshot(gameState.meta),
     settings: $state.snapshot(gameState.settings),
     navigation: {
@@ -207,37 +196,81 @@ export function getSaveSnapshot() {
     },
   };
 }
+
 /**
  * Simple recursive deep merge to safely fill in missing nested properties
  * when loading older save configurations.
  */
-function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
+function deepMerge<T>(target: T, source: Partial<T> | undefined): T {
   if (!source) {
     return target;
   }
-  for (const key of Object.keys(target)) {
+
+  for (const key of Object.keys(target as object) as Array<keyof T>) {
     const targetValue = target[key];
     const sourceValue = source[key];
 
-    if (targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue)) {
-      if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
-        deepMerge(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>);
+    if (Array.isArray(targetValue)) {
+      if (Array.isArray(sourceValue)) {
+        target[key] = sourceValue as T[keyof T];
       }
+    } else if (isPlainObject(targetValue) && isPlainObject(sourceValue)) {
+      deepMerge(targetValue as Record<string, unknown>, sourceValue as Partial<Record<string, unknown>>);
     } else if (sourceValue !== undefined) {
-      target[key] = sourceValue;
+      target[key] = sourceValue as T[keyof T];
     }
   }
+
   return target;
 }
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
  * Migrates old save file schemas to match the current game version.
  */
-function migrateSaveData(parsed: Record<string, unknown>): unknown {
-  if (parsed.version !== SAVE_FILE_VERSION) {
-    log.warn('save', 'Old save version detected during pre-alpha. Wiping state to prevent crash.');
-    localStorage.removeItem('mcc_save');
-    window.location.reload();
-    return null; // Return null so loading execution thread halts during refresh
+function normalizeSaveData(parsed: unknown): Partial<PersistedGameState> | null {
+  const defaults = getInitialState();
+
+  const writeDefaults = (): PersistedGameState => {
+    const saveData: SaveFile = {
+      meta: {
+        saveVersion: SAVE_FILE_VERSION,
+        saveCommitHash: SAVE_COMMIT_HASH,
+        savedAt: Date.now(),
+      },
+      data: {
+        ...defaults,
+        navigation: { activeTab: 'world' },
+      },
+    };
+
+    localStorage.setItem('mcc_save', JSON.stringify(saveData));
+    return saveData.data;
+  };
+  if (!isRecord(parsed)) {
+    log.warn('save', 'Save file is not a valid object. Resetting to defaults.');
+    return writeDefaults();
   }
-  return parsed.data;
+
+  if (!('meta' in parsed) || !isRecord(parsed.meta)) {
+    log.warn('save', 'Save file missing metadata. Resetting to defaults.');
+    return writeDefaults();
+  }
+
+  if (!('data' in parsed) || !isRecord(parsed.data)) {
+    log.warn('save', 'Save file missing data payload. Resetting to defaults.');
+    return writeDefaults();
+  }
+
+  if (parsed.meta.saveVersion !== SAVE_FILE_VERSION) {
+    log.warn('save', 'Old save version detected during pre-alpha. Wiping state to prevent crash.');
+    return writeDefaults();
+  }
+
+  return parsed.data as Partial<PersistedGameState>;
+}
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

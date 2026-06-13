@@ -1,15 +1,16 @@
 <script lang="ts">
   import { Meter } from 'bits-ui';
+  import type { ClearStatus } from '../logic/mineGen';
 
   type Status = 'none' | 'soft' | 'hard';
-  let {
+  const {
     value = 0,
     max = 100,
     status = 'none',
   } = $props<{
     value?: number;
     max?: number;
-    status?: Status;
+    status?: ClearStatus;
   }>();
 
   const statusColors: Record<Status, string> = {

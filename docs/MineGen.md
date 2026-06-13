@@ -22,7 +22,7 @@ export const MineGenConfig = {
     { minDepth: 5,  maxDepth: 9,  resources: ['dirt', 'coal'] },
     { minDepth: 10, maxDepth: 14, resources: ['dirt', 'oil'] },
     { minDepth: 15, maxDepth: 19, resources: ['dirt', 'copper'] },
-    { minDepth: 20, maxDepth: 24, resources: ['dirt', 'super-alloy'] },
+    { minDepth: 20, maxDepth: 24, resources: ['dirt', 'superalloy'] },
   ],
 
   // Dynamic weights to ensure progression within a tier

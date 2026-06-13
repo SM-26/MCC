@@ -1,18 +1,22 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { appContext, navigation, gameState } from './stores/index.svelte';
   import { Tabs } from 'bits-ui';
+  import type { TabId } from './types';
+
+  import { appContext, navigation, gameState } from './stores/index.svelte';
   import { getScreenSize } from './lib/sizes';
-  import Splash from './components/Splash.svelte';
   import { debouncedSave } from './logic/save.svelte';
-  import SettingsView from './views/SettingsView.svelte';
+
+  import Splash from './components/Splash.svelte';
   import { toastState } from './components/GameTooltip.svelte';
+
+  import SettingsView from './views/SettingsView.svelte';
   import MineView from './views/MineView.svelte';
 
-  // State flag to prevent the initial boot tracking from triggering an instant disk save
+  // Prevent the initial boot/hydration phase from triggering an immediate save.
   let isReadyToSave = false;
 
-  const tabConfig: Record<string, { label: string; icon: string }> = {
+  const tabConfig: Record<TabId, { label: string; icon: string }> = {
     world: { label: 'World', icon: '🌍' },
     mine: { label: 'Mine', icon: '⛏️' },
     station: { label: 'Station', icon: '🚉' },
@@ -25,38 +29,42 @@
   }
 
   onMount(() => {
-    // Logic: Respect the user's saved preference
+    // Respect the user's saved startup preference.
     if (gameState.settings.defaultView === 'world') {
       navigation.activeTab = 'world';
     }
-    // If 'last-active', we do nothing because navigation.activeTab
-    // was already set to the saved value by loadGame() in your save logic.
+    // If the preference is 'last-active', leave navigation.activeTab alone.
+    // It should already have been restored by the save/load bootstrap logic.
 
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
 
-    setTimeout(() => {
+    const splashTimer = window.setTimeout(() => {
       appContext.isLoading = false;
       appContext.splashVisible = false;
       isReadyToSave = true;
     }, 2500);
 
-    return () => window.removeEventListener('resize', updateScreenSize);
+    return () => {
+      window.clearTimeout(splashTimer);
+      window.removeEventListener('resize', updateScreenSize);
+    };
   });
 
   $effect(() => {
     if (!isReadyToSave) return;
 
-    gameState.money;
-    gameState.mines;
-    gameState.meta;
-    gameState.settings;
-    navigation.activeTab;
+    // Track nested reactive changes explicitly before saving.
+    void gameState.money;
+    void navigation.activeTab;
+    $state.snapshot(gameState.world);
+    $state.snapshot(gameState.meta);
+    $state.snapshot(gameState.settings);
 
     debouncedSave();
   });
 
-  const currency = $derived(gameState?.money ?? 0);
+  const currency = $derived(gameState.money ?? 0);
 
   function formatCurrency(amount: number): string {
     return `$${amount}`;

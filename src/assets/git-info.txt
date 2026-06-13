@@ -1,2 +1,2 @@
-8b50fcd
-small cleanups to the mine view for mobile
+116de89
+refactor types and safe format, a lot of fixed for the mines
