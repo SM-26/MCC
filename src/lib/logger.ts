@@ -39,10 +39,7 @@ export const log = {
    */
   debug: (context: string, message: string, ...args: unknown[]) => {
     const caller = getCallerInfo();
-    console.debug(
-      `${COLORS.debug}[DEBUG]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`,
-      ...args,
-    );
+    console.debug(`${COLORS.debug}[DEBUG]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`, ...args);
   },
 
   /**
@@ -51,10 +48,7 @@ export const log = {
    */
   info: (context: string, message: string, ...args: unknown[]) => {
     const caller = getCallerInfo();
-    console.info(
-      `${COLORS.info}[INFO]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`,
-      ...args,
-    );
+    console.info(`${COLORS.info}[INFO]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`, ...args);
   },
 
   /**
@@ -63,10 +57,7 @@ export const log = {
    */
   warn: (context: string, message: string, ...args: unknown[]) => {
     const caller = getCallerInfo();
-    console.warn(
-      `${COLORS.warn}[WARN]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`,
-      ...args,
-    );
+    console.warn(`${COLORS.warn}[WARN]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`, ...args);
   },
 
   /**
@@ -75,9 +66,6 @@ export const log = {
    */
   error: (context: string, message: string, ...args: unknown[]) => {
     const caller = getCallerInfo();
-    console.error(
-      `${COLORS.error}[ERROR]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`,
-      ...args,
-    );
+    console.error(`${COLORS.error}[ERROR]${COLORS.reset} [${caller.file}:${caller.line}] [${context}] ${message}`, ...args);
   },
 };

@@ -110,7 +110,7 @@
       {@render appHeaderContents('Mines & Choo-Choo', currency)}
     </header>
 
-    <Tabs.Root bind:value={navigation.activeTab}>
+    <Tabs.Root bind:value={navigation.activeTab} class="tabs-root">
       <Tabs.List class="nav-{gameState.settings.navbarPosition}">
         {#each navigation.tabs as tab (tab)}
           {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
@@ -119,7 +119,6 @@
 
           <Tabs.Trigger value={tab} title={config.label}>
             <span class="tab-icon">{config.icon}</span>
-
             {#if isVisible}
               <span class="tab-label">{config.label}</span>
             {/if}
@@ -127,43 +126,36 @@
         {/each}
       </Tabs.List>
 
-      <main class="tab-content">
-        <Tabs.Content value="world">{@render WorldView()}</Tabs.Content>
-        <Tabs.Content value="mine"><MineView /></Tabs.Content>
-        <Tabs.Content value="station">{@render StationView()}</Tabs.Content>
-        <Tabs.Content value="engineeringIdeas">{@render EngineeringView()}</Tabs.Content>
-        <Tabs.Content value="settings"><SettingsView /></Tabs.Content>
-      </main>
+      <Tabs.Content value="world" class="tab-panel">{@render WorldView()}</Tabs.Content>
+      <Tabs.Content value="mine" class="tab-panel"><MineView /></Tabs.Content>
+      <Tabs.Content value="station" class="tab-panel">{@render StationView()}</Tabs.Content>
+      <Tabs.Content value="engineeringIdeas" class="tab-panel">{@render EngineeringView()}</Tabs.Content>
+      <Tabs.Content value="settings" class="tab-panel"><SettingsView /></Tabs.Content>
     </Tabs.Root>
-
-    <footer class="bottom-bar"></footer>
   </div>
 </div>
 
 <style>
-  /* --- 1. Active Tab State --- */
-  :global([role='tab'][data-state='active']) {
-    color: var(--mcc-text-main) !important;
-    background: rgba(59, 0, 219, 0.08) !important;
-    box-shadow: inset 0 0 0 1px gold !important;
-  }
-
-  /* --- 2. Global Layout Structure --- */
+  /* --- 1. Global Layout Structure --- */
   .app-container {
-    min-height: 100vh;
+    height: 100dvh;
     background: var(--mcc-bg-primary);
     color: var(--mcc-text-main);
     font-family: inherit;
-    overflow-x: hidden;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .app-main {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
   }
 
-  /* --- 3. Top Header Layout --- */
+  /* --- 2. Top Header Layout --- */
   .top-bar {
     display: flex;
     justify-content: space-between;
@@ -189,34 +181,26 @@
     border: 1px solid var(--mcc-border, rgba(255, 255, 255, 0.05));
   }
 
-  .currency-icon {
-    font-size: 1.1rem;
-  }
+  /* --- 3. Navigation Bar & Tabs --- */
 
-  .currency-value {
-    font-weight: 600;
-    color: var(--mcc-text-main);
-  }
-
-  /* --- 4. Navigation Bar & Tabs --- */
   :global([role='tablist']) {
     display: flex;
+    flex: 0 0 auto;
+    flex-direction: row;
     width: 100%;
     background: var(--mcc-bg-surface);
     border-bottom: 1px solid var(--outline, #938f99);
-    overflow-x: auto;
     padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
     gap: var(--spacing-xs, 4px);
   }
 
   :global([role='tab']) {
-    flex: 1;
-    min-width: 60px;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-xs, 4px);
     padding: 12px var(--spacing-sm, 8px);
     border: none;
     background: transparent;
@@ -224,29 +208,32 @@
     font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
-    border-radius: var(--spacing-sm, 8px);
   }
 
-  :global([role='tab']:hover:not([data-state='active'])) {
-    background: rgba(255, 255, 255, 0.05);
+  :global([role='tab'][data-state='active']) {
+    color: var(--mcc-text-main) !important;
+    background: rgba(59, 0, 219, 0.08) !important;
+    box-shadow: inset 0 0 0 1px gold !important;
   }
 
-  .tab-icon {
-    font-size: 1.5rem;
+  :global([role='tabpanel']) {
+    display: none;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
-  .tab-label {
-    font-size: 0.75rem;
+  :global([role='tabpanel'][data-state='active']) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
 
-  /* --- 5. Active View Shells --- */
-  .tab-content {
-    flex: 1;
-    overflow-y: auto;
-  }
-
-  /* --- 6. Toast --- */
+  /* --- 5. Toast --- */
   .global-toast-notification {
     position: fixed;
     bottom: 24px;
@@ -254,9 +241,6 @@
     transform: translateX(-50%);
     background: #0f172a;
     border: 1px solid #38bdf8;
-    box-shadow:
-      0 20px 25px -5px rgba(0, 0, 0, 0.5),
-      0 0 12px rgba(56, 189, 248, 0.2);
     padding: 12px 20px;
     border-radius: 8px;
     display: flex;
@@ -264,28 +248,5 @@
     gap: 12px;
     z-index: 9999;
     max-width: 90vw;
-    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .toast-icon {
-    font-size: 1.1rem;
-  }
-
-  .toast-content {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #f3f4f6;
-    font-family: monospace;
-  }
-
-  @keyframes slideUp {
-    from {
-      transform: translate(-50%, 12px);
-      opacity: 0;
-    }
-    to {
-      transform: translate(-50%, 0);
-      opacity: 1;
-    }
   }
 </style>

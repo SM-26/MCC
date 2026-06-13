@@ -98,21 +98,10 @@
 
       <div class="loading-spinner">
         <svg viewBox="0 0 24 24" width="48" height="48">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="var(--md-sys-color-primary)"
-            stroke-width="3"
-            fill="none"
-            stroke-dasharray="60"
-            stroke-dashoffset="35"
-          />
+          <circle cx="12" cy="12" r="10" stroke="var(--md-sys-color-primary)" stroke-width="3" fill="none" stroke-dasharray="60" stroke-dashoffset="35" />
         </svg>
       </div>
-      <button class="close-splash" onclick={() => (appContext.splashVisible = false)}>
-        Skip
-      </button>
+      <button class="close-splash" onclick={() => (appContext.splashVisible = false)}> Skip </button>
     </div>
   </div>
 {/if}
@@ -122,10 +111,7 @@
     <div class="pwa-content">
       <div class="pwa-icon">
         <svg viewBox="0 0 24 24" width="48" height="48">
-          <path
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"
-            fill="var(--md-sys-color-primary)"
-          />
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" fill="var(--md-sys-color-primary)" />
         </svg>
       </div>
 
@@ -134,13 +120,7 @@
         <p>Get the best experience by installing this app to your home screen.</p>
 
         <div class="pwa-actions">
-          <button
-            class="btn-primary"
-            onclick={handleInstallPWA}
-            disabled={!('deviceMemory' in navigator)}
-          >
-            Install App
-          </button>
+          <button class="btn-primary" onclick={handleInstallPWA} disabled={!('deviceMemory' in navigator)}> Install App </button>
 
           <button class="btn-secondary" onclick={handleOpenStore}> Open Store </button>
 

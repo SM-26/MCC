@@ -5,23 +5,15 @@ export type NavPosition = 'top' | 'bottom' | 'left' | 'right' | 'hidden';
 export type Themes = 'dark' | 'light' | 'system' | 'user';
 export type DestinationTypes = 'city' | 'factory' | 'plot';
 export type ResourcesType = 'none' | 'money' | 'coal' | 'oil' | 'copper' | 'super-alloy';
-export type MineTileType =
-  | 'empty'
-  | 'dirt'
-  | 'blocker'
-  | 'rubble'
-  | 'coal'
-  | 'oil'
-  | 'copper'
-  | 'superalloy';
-
+export type MineTileType = 'empty' | 'dirt' | 'blocker' | 'rubble' | 'coal' | 'oil' | 'copper' | 'superalloy';
+export type ScreenSizes = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type Ages = 'Mechanical' | 'Steam' | 'Diesel' | 'Electric' | 'Maglev';
 
 export interface AppContext {
   isPWAInstalled: boolean;
   isLoading: boolean;
   splashVisible: boolean;
-  screenSize: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  screenSize: ScreenSizes;
 }
 
 export interface GameState {

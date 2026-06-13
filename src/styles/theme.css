@@ -29,6 +29,21 @@
   --mcc-text-main-light: #1a1a1a;
   --mcc-text-muted-light: #4a6b6b;
   --mcc-accent-light: #6750a4;
+
+  /* MineView */
+  --mcc-surface-2: #1f2b4d;
+  --mcc-button-bg: #2b426d;
+  --mcc-button-hover: #355282;
+  --mcc-tile-empty: #262626;
+  --mcc-tile-blocker: #333333;
+  --mcc-tile-dirt: #6b5d4f;
+  --mcc-tile-dirt-border: #4a3f35;
+  --mcc-tile-blocker-border: #1a1a1a;
+  --mcc-hp-bg: #000000;
+  --mcc-hp-fill: #ef4444;
+  --mcc-buy-btn: #15803d;
+  --mcc-buy-btn-hover: #16a34a;
+  --mcc-buy-btn-border: #166534;
 }
 
 /* Apply theme based on setting */
@@ -43,4 +58,25 @@ body[data-theme='light'] {
   --mcc-text-main: var(--mcc-text-main-light);
   --mcc-text-muted: var(--mcc-text-muted-light);
   --mcc-accent: var(--mcc-accent-light);
+
+  /* MineView */
+  --mcc-bg-primary: var(--mcc-bg-primary-light);
+  --mcc-bg-surface: var(--mcc-bg-surface-light);
+  --mcc-text-main: var(--mcc-text-main-light);
+  --mcc-text-muted: var(--mcc-text-muted-light);
+  --mcc-accent: var(--mcc-accent-light);
+
+  --mcc-surface-2: #e9eef8;
+  --mcc-button-bg: #d9e3f5;
+  --mcc-button-hover: #c8d7f0;
+  --mcc-tile-empty: #e8edf5;
+  --mcc-tile-blocker: #cfd6df;
+  --mcc-tile-dirt: #b79d84;
+  --mcc-tile-dirt-border: #8b735d;
+  --mcc-tile-blocker-border: #a8b0bb;
+  --mcc-hp-bg: #d1d5db;
+  --mcc-hp-fill: #dc2626;
+  --mcc-buy-btn: #198754;
+  --mcc-buy-btn-hover: #157347;
+  --mcc-buy-btn-border: #146c43;
 }

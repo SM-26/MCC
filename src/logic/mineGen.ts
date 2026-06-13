@@ -1,5 +1,6 @@
 import seedrandom from 'seedrandom';
 import type { MinePlot, MineTile, MineTileType } from '../types';
+import { TILE_DEFS } from '../logic/tileDefinitions';
 
 export const MineGenConfig = {
   /** Calculates the grid dimensions based on current mine depth and plot index. */
@@ -31,14 +32,20 @@ export const MineGenConfig = {
 };
 
 /** Initializes a new tile with default properties. */
-function generateTile(_depth: number): MineTile {
+function generateTile(depth: number, rng: seedrandom.PRNG): MineTile {
+  const isRubble = depth === 0 && rng() < 0.3;
+  return createTile(isRubble ? 'rubble' : 'dirt');
+}
+
+function createTile(type: MineTileType): MineTile {
+  const def = TILE_DEFS[type];
   return {
-    type: 'dirt',
-    level: 1,
-    hp: 10,
-    maxHp: 10,
-    value: 1,
-    resourceType: 'none',
+    type,
+    level: def.level,
+    hp: def.baseHp, // Current HP starts at max
+    maxHp: def.baseHp, // Automatically set maxHp
+    value: def.value,
+    resourceType: def.resourceType,
   };
 }
 
@@ -48,24 +55,29 @@ export function generatePlot(worldSeed: string, depth: number, plotIndex: number
   const rng = seedrandom(`${worldSeed}-${depth}-${plotIndex}`);
   const { rows, cols } = MineGenConfig.getDimensions(depth, plotIndex);
 
-  const tiles: MineTile[][] = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => ({
-      type: 'empty',
-      level: 0,
-      hp: 0,
-      maxHp: 0,
-      value: 0,
-      resourceType: 'none',
-    })),
-  );
+  // Initialize all as empty
+  const tiles: MineTile[][] = Array.from({ length: rows }, () => Array.from({ length: cols }, () => createTile('empty')));
 
+  // Calculate rubble count for depth 0: 8-11.
+  // For depth > 0, we improve the ratio (fewer rubbles as we get deeper)
+  const baseRubble = depth === 0 ? 8 + Math.floor(rng() * 4) : Math.max(2, 8 - depth);
+  let placedRubble = 0;
+
+  // Fill only rows 0 to rows-2 (all except bottom row)
   for (let r = 0; r < rows - 1; r++) {
     for (let c = 0; c < cols; c++) {
-      tiles[r][c] = generateTile(depth);
+      // Determine if this specific tile should be rubble
+      const isRubble = placedRubble < baseRubble && rng() < 0.3;
+      const type: MineTileType = isRubble ? 'rubble' : 'dirt';
+
+      if (isRubble) placedRubble++;
+
+      // Use createTile to ensure all required properties (hp, maxHp) are set
+      tiles[r][c] = createTile(type);
     }
   }
 
-  applyBlockers(tiles, rows, cols, rng);
+  if (depth >= 2) applyBlockers(tiles, rows, cols, rng);
   return { depth, rows, cols, tiles, miners: [], platform: null };
 }
 
@@ -86,13 +98,7 @@ function applyBlockers(tiles: MineTile[][], rows: number, cols: number, rng: see
 }
 
 /** Performs a trial placement to validate blocker integrity and reachability. */
-function isPlacementValid(
-  tiles: MineTile[][],
-  r: number,
-  c: number,
-  rows: number,
-  cols: number,
-): boolean {
+function isPlacementValid(tiles: MineTile[][], r: number, c: number, rows: number, cols: number): boolean {
   tiles[r][c].type = 'blocker';
   const isChainTooLong = wouldCreateLongChain(tiles, r, c, rows, cols);
   const isPocketCreated = wouldCreatePocket(tiles, r, c, rows, cols);
@@ -101,13 +107,7 @@ function isPlacementValid(
 }
 
 /** Uses DFS to check if a blocker placement creates a chain exceeding allowed length. */
-function wouldCreateLongChain(
-  tiles: MineTile[][],
-  r: number,
-  c: number,
-  rows: number,
-  cols: number,
-): boolean {
+function wouldCreateLongChain(tiles: MineTile[][], r: number, c: number, rows: number, cols: number): boolean {
   const maxLength = Math.min(rows, cols) - 1;
   const dfs = (currR: number, currC: number, visited: Set<string>): number => {
     visited.add(`${currR},${currC}`);
@@ -116,14 +116,7 @@ function wouldCreateLongChain(
       for (let dc = -1; dc <= 1; dc++) {
         const nr = currR + dr,
           nc = currC + dc;
-        if (
-          nr >= 0 &&
-          nr < rows &&
-          nc >= 0 &&
-          nc < cols &&
-          tiles[nr][nc].type === 'blocker' &&
-          !visited.has(`${nr},${nc}`)
-        ) {
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && tiles[nr][nc].type === 'blocker' && !visited.has(`${nr},${nc}`)) {
           max = Math.max(max, 1 + dfs(nr, nc, visited));
         }
       }
@@ -134,13 +127,7 @@ function wouldCreateLongChain(
 }
 
 /** Scans neighbors of a new blocker to ensure no 1x1 holes are created. */
-function wouldCreatePocket(
-  tiles: MineTile[][],
-  r: number,
-  c: number,
-  rows: number,
-  cols: number,
-): boolean {
+function wouldCreatePocket(tiles: MineTile[][], r: number, c: number, rows: number, cols: number): boolean {
   const neighbors = [
     [r - 1, c],
     [r + 1, c],
@@ -156,13 +143,7 @@ function wouldCreatePocket(
         [nr, nc - 1],
         [nr, nc + 1],
       ].forEach(([nnr, nnc]) => {
-        if (
-          nnr < 0 ||
-          nnr >= rows ||
-          nnc < 0 ||
-          nnc >= cols ||
-          tiles[nnr][nnc].type === 'blocker'
-        ) {
+        if (nnr < 0 || nnr >= rows || nnc < 0 || nnc >= cols || tiles[nnr][nnc].type === 'blocker') {
           walls++;
         }
       });
@@ -186,9 +167,8 @@ export function getPlotStats(plot: MinePlot): Record<MineTileType, number> {
 /** Determines if a plot is 'none', 'soft cleared' (no resources), or 'hard cleared' (no resources, dirt, or rubble). */
 export function getClearStatus(plot: MinePlot): 'none' | 'soft' | 'hard' {
   const stats = getPlotStats(plot);
-  const resourceCount =
-    (stats.coal || 0) + (stats.oil || 0) + (stats.copper || 0) + (stats.superalloy || 0);
-  const dirtCount = (stats.dirt || 0) + (stats.rubble || 0);
+  const resourceCount = (stats.coal || 0) + (stats.oil || 0) + (stats.copper || 0) + (stats.superalloy || 0) + (stats.rubble || 0);
+  const dirtCount = stats.dirt || 0;
 
   if (resourceCount === 0 && dirtCount === 0) {
     return 'hard';
@@ -197,4 +177,23 @@ export function getClearStatus(plot: MinePlot): 'none' | 'soft' | 'hard' {
     return 'soft';
   }
   return 'none';
+}
+
+export function getClearProgress(plot: MinePlot): number {
+  const stats = getPlotStats(plot);
+  const totalTiles = (plot.rows - 1) * plot.cols;
+
+  // Define what counts as "clutter"
+  const clutter = (stats.dirt || 0) + (stats.rubble || 0);
+  const resources = (stats.coal || 0) + (stats.oil || 0) + (stats.copper || 0) + (stats.superalloy || 0);
+  const blockers = stats.blocker || 0;
+  // Total target tiles to clear (excluding empty and blockers)
+  const totalToClear = clutter + resources - blockers;
+
+  if (totalToClear === 0) return 100;
+
+  // Calculate percentage cleared: (1 - (remaining/initial)) * 100
+  // Note: Since we don't store "initial" tiles, we calculate based on
+  // current clutter vs. a cleared state.
+  return Math.floor(((totalTiles - (clutter + resources)) / totalTiles) * 100);
 }

@@ -7,7 +7,7 @@
     "tabWidth": 2,
     "useTabs": false,
     "trailingComma": "all",
-    "printWidth": 100,
+    "printWidth": 160,
     "overrides": [
         {
             "files": "*.svelte",

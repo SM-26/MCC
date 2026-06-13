@@ -1,2 +1,2 @@
-dc93392
-Basic Mines view
+99e628d
+better mines view

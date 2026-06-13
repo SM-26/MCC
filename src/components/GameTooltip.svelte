@@ -32,9 +32,7 @@
   const { message, trigger }: Props = $props();
 
   // Optimized to use modern derived tracking rather than mixing states & effects
-  const isMobile = $derived(
-    typeof window !== 'undefined' ? window.matchMedia('(pointer: coarse)').matches : false,
-  );
+  const isMobile = $derived(typeof window !== 'undefined' ? window.matchMedia('(pointer: coarse)').matches : false);
 </script>
 
 {#if isMobile}

@@ -71,10 +71,7 @@ export function debouncedSave(): void {
 
       localStorage.setItem('mcc_save', JSON.stringify(saveData));
 
-      log.info(
-        'debounced save',
-        `Full game state saved to localStorage (${Object.keys(saveData.data).join(', ')})`,
-      );
+      log.info('debounced save', `Full game state saved to localStorage (${Object.keys(saveData.data).join(', ')})`);
     } catch (error) {
       log.error('save', `Failed to save full game state: ${String(error)}`);
     }
@@ -126,10 +123,7 @@ export function loadGame(): void {
     const parsed = JSON.parse(saved) as Record<string, unknown>;
 
     if (!parsed.version || !parsed.data) {
-      log.error(
-        'load',
-        `Invalid save file: missing version (${String(parsed?.version)}) or data fields`,
-      );
+      log.error('load', `Invalid save file: missing version (${String(parsed?.version)}) or data fields`);
       return;
     }
 
@@ -143,9 +137,7 @@ export function loadGame(): void {
     const defaults = getInitialState();
 
     // 3. Deeply merge historical save with modern default structures
-    const finalState = deepMerge(defaults, secureData as Record<string, unknown>) as ReturnType<
-      typeof getInitialState
-    >;
+    const finalState = deepMerge(defaults, secureData as Record<string, unknown>) as ReturnType<typeof getInitialState>;
 
     // 4. Update the reactive proxy state tree
     gameState.money = finalState.money;
@@ -157,10 +149,7 @@ export function loadGame(): void {
     if (savedNav?.activeTab) {
       navigation.activeTab = savedNav.activeTab;
     }
-    log.info(
-      'load',
-      `Full game state loaded from localStorage (version ${String(parsed.version)}, timestamp ${String(parsed.timestamp)})`,
-    );
+    log.info('load', `Full game state loaded from localStorage (version ${String(parsed.version)}, timestamp ${String(parsed.timestamp)})`);
   } catch (error) {
     log.error('load', `Failed to load game state: ${String(error)}`);
   }
@@ -222,10 +211,7 @@ export function getSaveSnapshot() {
  * Simple recursive deep merge to safely fill in missing nested properties
  * when loading older save configurations.
  */
-function deepMerge(
-  target: Record<string, unknown>,
-  source: Record<string, unknown>,
-): Record<string, unknown> {
+function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
   if (!source) {
     return target;
   }
