@@ -24,6 +24,8 @@
     settings: { label: 'Settings', icon: '⚙️' },
   };
 
+  const effectiveNavbarPosition = $derived(gameState.settings.navbarPosition === 'bottom' ? 'bottom' : 'top');
+
   function updateScreenSize() {
     appContext.screenSize = getScreenSize(window.innerWidth);
   }
@@ -117,27 +119,48 @@
       {@render appHeaderContents('Mines & Choo-Choo', currency)}
     </header>
 
-    <Tabs.Root bind:value={navigation.activeTab} class="tabs-root">
-      <Tabs.List class="nav-{gameState.settings.navbarPosition}">
-        {#each navigation.tabs as tab (tab)}
-          {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
-          {@const isCompact = appContext.screenSize === 'xs' || appContext.screenSize === 'sm'}
-          {@const isVisible = !isCompact || navigation.activeTab === tab}
+    <Tabs.Root bind:value={navigation.activeTab} class="tabs-root nav-pos-{effectiveNavbarPosition}">
+      {#if effectiveNavbarPosition === 'top'}
+        <Tabs.List class="navtab-list navtab-top">
+          {#each navigation.tabs as tab (tab)}
+            {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
+            {@const isCompact = appContext.screenSize === 'xs' || appContext.screenSize === 'sm'}
+            {@const isVisible = !isCompact || navigation.activeTab === tab}
 
-          <Tabs.Trigger value={tab} title={config.label}>
-            <span class="tab-icon">{config.icon}</span>
-            {#if isVisible}
-              <span class="tab-label">{config.label}</span>
-            {/if}
-          </Tabs.Trigger>
-        {/each}
-      </Tabs.List>
+            <Tabs.Trigger value={tab} title={config.label}>
+              <span class="tab-icon">{config.icon}</span>
+              {#if isVisible}
+                <span class="tab-label">{config.label}</span>
+              {/if}
+            </Tabs.Trigger>
+          {/each}
+        </Tabs.List>
+      {/if}
 
-      <Tabs.Content value="world" class="tab-panel">{@render WorldView()}</Tabs.Content>
-      <Tabs.Content value="mine" class="tab-panel"><MineView /></Tabs.Content>
-      <Tabs.Content value="station" class="tab-panel">{@render StationView()}</Tabs.Content>
-      <Tabs.Content value="engineeringIdeas" class="tab-panel">{@render EngineeringView()}</Tabs.Content>
-      <Tabs.Content value="settings" class="tab-panel"><SettingsView /></Tabs.Content>
+      <div class="tabs-panels">
+        <Tabs.Content value="world" class="tab-panel">{@render WorldView()}</Tabs.Content>
+        <Tabs.Content value="mine" class="tab-panel"><MineView /></Tabs.Content>
+        <Tabs.Content value="station" class="tab-panel">{@render StationView()}</Tabs.Content>
+        <Tabs.Content value="engineeringIdeas" class="tab-panel">{@render EngineeringView()}</Tabs.Content>
+        <Tabs.Content value="settings" class="tab-panel"><SettingsView /></Tabs.Content>
+      </div>
+
+      {#if effectiveNavbarPosition === 'bottom'}
+        <Tabs.List class="navtab-list navtab-bottom">
+          {#each navigation.tabs as tab (tab)}
+            {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
+            {@const isCompact = appContext.screenSize === 'xs' || appContext.screenSize === 'sm'}
+            {@const isVisible = !isCompact || navigation.activeTab === tab}
+
+            <Tabs.Trigger value={tab} title={config.label}>
+              <span class="tab-icon">{config.icon}</span>
+              {#if isVisible}
+                <span class="tab-label">{config.label}</span>
+              {/if}
+            </Tabs.Trigger>
+          {/each}
+        </Tabs.List>
+      {/if}
     </Tabs.Root>
   </div>
 </div>
@@ -170,12 +193,14 @@
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--mcc-bg-surface);
     border-bottom: 1px solid var(--outline-variant, #49454f);
+    flex: 0 0 auto;
   }
 
   .app-title {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-weight: 600;
+    letter-spacing: 0.01em;
   }
 
   .currency-display {
@@ -184,12 +209,11 @@
     gap: var(--spacing-xs, 4px);
     background-color: var(--mcc-bg-primary);
     padding: 6px 12px;
-    border-radius: var(--spacing-sm, 8px);
-    border: 1px solid var(--mcc-border, rgba(255, 255, 255, 0.05));
+    border-radius: 8px;
+    border: 1px solid var(--mcc-border, rgba(255, 255, 255, 0.06));
   }
 
-  /* --- 3. Navigation Bar & Tabs --- */
-
+  /* --- 3. Navigation Shell --- */
   :global(.tabs-root) {
     display: flex;
     flex-direction: column;
@@ -198,15 +222,117 @@
     width: 100%;
   }
 
-  :global([role='tablist']) {
+  .tabs-panels {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* --- 4. Navtab Bar --- */
+  :global(.navtab-list) {
     display: flex;
     flex: 0 0 auto;
     flex-direction: row;
     width: 100%;
+    gap: 6px;
+    padding: 6px 8px;
     background: var(--mcc-bg-surface);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  :global(.navtab-list::-webkit-scrollbar) {
+    display: none;
+  }
+
+  :global(.tab-icon) {
+    font-size: 1.22rem;
+    line-height: 1;
+  }
+
+  :global(.navtab-top) {
     border-bottom: 1px solid var(--outline, #938f99);
-    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
-    gap: var(--spacing-xs, 4px);
+  }
+
+  :global(.navtab-bottom) {
+    border-top: 1px solid var(--outline, #938f99);
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.18);
+  }
+
+  :global([role='tab']) {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 10px 10px 9px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--mcc-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      transform 0.12s ease;
+  }
+
+  :global([role='tab']:hover) {
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--mcc-text-main);
+  }
+
+  :global([role='tab']:focus-visible) {
+    outline: none;
+    border-color: color-mix(in srgb, gold 45%, rgba(255, 255, 255, 0.16));
+    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.14);
+  }
+
+  :global([role='tab'][data-state='active']) {
+    background: color-mix(in srgb, var(--mcc-accent, #3b00db) 10%, transparent);
+    color: var(--mcc-text-main);
+    border-color: color-mix(in srgb, gold 50%, rgba(255, 255, 255, 0.12));
+  }
+
+  :global(.navtab-top [role='tab'][data-state='active']::after) {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 3px;
+    height: 2px;
+    border-radius: 999px;
+    background: gold;
+    opacity: 0.95;
+  }
+
+  :global(.navtab-bottom [role='tab'][data-state='active']::before) {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 3px;
+    height: 2px;
+    border-radius: 999px;
+    background: gold;
+    opacity: 0.95;
+  }
+
+  :global([role='tab'][data-disabled]) {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   :global([role='tabpanel']) {
@@ -224,28 +350,6 @@
     min-height: 0;
     min-width: 0;
     overflow: hidden;
-  }
-
-  :global([role='tab']) {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 12px var(--spacing-sm, 8px);
-    border: none;
-    background: transparent;
-    color: var(--mcc-text-muted);
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  :global([role='tab'][data-state='active']) {
-    color: var(--mcc-text-main) !important;
-    background: rgba(59, 0, 219, 0.08) !important;
-    box-shadow: inset 0 0 0 1px gold !important;
   }
 
   :global(.tab-panel) {
@@ -280,5 +384,22 @@
     gap: 12px;
     z-index: 9999;
     max-width: 90vw;
+  }
+
+  @media (max-width: 640px) {
+    :global(.navtab-list) {
+      gap: 4px;
+      padding: 6px;
+    }
+
+    :global(.navtab-bottom) {
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+
+    :global([role='tab']) {
+      min-height: 42px;
+      padding: 9px 8px 8px;
+      font-size: 0.7rem;
+    }
   }
 </style>

@@ -78,6 +78,54 @@ export function manualSave(): void {
   }
 }
 
+
+function buildDefaultSaveFile(): SaveFile {
+  const defaults = getInitialState();
+
+  return {
+    meta: {
+      saveVersion: SAVE_FILE_VERSION,
+      saveCommitHash: SAVE_COMMIT_HASH,
+      savedAt: Date.now(),
+    },
+    data: {
+      ...defaults,
+      navigation: { activeTab: 'world' },
+    },
+  };
+}
+
+function applyGameState(state: GameState) {
+  gameState.money = state.money;
+  gameState.world = state.world;
+  gameState.meta = state.meta;
+  gameState.settings = state.settings;
+}
+
+function getSavedNavigationTab(parsed: SaveFile): typeof navigation.activeTab {
+  return (
+    (parsed as { data?: { navigation?: { activeTab?: typeof navigation.activeTab } } })?.data?.navigation
+      ?.activeTab ?? 'world'
+  );
+}
+
+function initializeDefaultSave() {
+  const defaults = getInitialState();
+  const saveData = buildDefaultSaveFile();
+
+  localStorage.setItem('mcc_save', JSON.stringify(saveData));
+  applyGameState(defaults);
+  navigation.activeTab = 'world';
+}
+
+function applyLoadedSave(parsed: SaveFile, migratedData: PersistedGameState | Partial<PersistedGameState>) {
+  const { navigation: _savedNavigation, ...gameData } = migratedData as Partial<PersistedGameState>;
+  const mergedData = deepMerge(getInitialState(), gameData);
+
+  applyGameState(mergedData);
+  navigation.activeTab = getSavedNavigationTab(parsed);
+}
+
 /**
  * Load full game state from localStorage
  * Called on app initialization
@@ -85,28 +133,9 @@ export function manualSave(): void {
 export function loadGame(): void {
   try {
     const saved = localStorage.getItem('mcc_save');
+
     if (!saved) {
-      const defaults = getInitialState();
-
-      const saveData: SaveFile = {
-        meta: {
-          saveVersion: SAVE_FILE_VERSION,
-          saveCommitHash: SAVE_COMMIT_HASH,
-          savedAt: Date.now(),
-        },
-        data: {
-          ...defaults,
-          navigation: { activeTab: 'world' },
-        },
-      };
-
-      localStorage.setItem('mcc_save', JSON.stringify(saveData));
-
-      gameState.money = defaults.money;
-      gameState.world = defaults.world;
-      gameState.meta = defaults.meta;
-      gameState.settings = defaults.settings;
-      navigation.activeTab = 'world';
+      initializeDefaultSave();
       return;
     }
 
@@ -116,20 +145,8 @@ export function loadGame(): void {
     if (!migratedData) {
       return;
     }
-    const { navigation: savedNavigation, ...gameData } = migratedData as Partial<PersistedGameState>;
-    const mergedData = deepMerge(getInitialState(), gameData);
-    navigation.activeTab = savedNavigation?.activeTab ?? 'world';
 
-    gameState.money = mergedData.money;
-    gameState.world = mergedData.world;
-    gameState.meta = mergedData.meta;
-    gameState.settings = mergedData.settings;
-
-    if ((parsed as { data?: { navigation?: { activeTab?: string } } })?.data?.navigation?.activeTab) {
-      navigation.activeTab = (parsed as { data: { navigation: { activeTab: typeof navigation.activeTab } } }).data.navigation.activeTab;
-    } else {
-      navigation.activeTab = 'world';
-    }
+    applyLoadedSave(parsed, migratedData);
 
     log.info('load', `Full game state loaded from localStorage (version ${parsed.meta.saveVersion})`);
   } catch (error) {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Meter } from 'bits-ui';
-  import type { ClearStatus } from '../logic/mineGen';
+  import type { ClearStatus } from '../logic/mine/mineGen';
 
   type Status = 'none' | 'soft' | 'hard';
   const {

@@ -1,2 +1,2 @@
-116de89
-refactor types and safe format, a lot of fixed for the mines
+49e3dde
+added support for bottom navtabs

@@ -10,37 +10,48 @@ export const appContext = $state<AppContext>({
   screenSize: 'md',
 });
 
+function applyBootstrappedData(baseData: GameState, savedData: Partial<GameState>) {
+  baseData.money = savedData.money ?? baseData.money;
+  baseData.settings = { ...baseData.settings, ...savedData.settings };
+  baseData.meta = { ...baseData.meta, ...savedData.meta };
+
+  if (savedData.world) {
+    baseData.world = {
+      ...baseData.world,
+      ...savedData.world,
+    };
+  }
+}
+
+function readSavedGameData(): Partial<GameState> | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const saved = localStorage.getItem('mcc_save');
+    if (!saved) {
+      return null;
+    }
+
+    const parsed = JSON.parse(saved);
+    return parsed?.data ?? null;
+  } catch (e) {
+    log.error('bootstrapState', 'Failed to read localStorage:', e);
+    return null;
+  }
+}
+
 function bootstrapState(): GameState {
   const baseData = getInitialState();
+  const savedData = readSavedGameData();
 
-  if (typeof window !== 'undefined') {
-    try {
-      const saved = localStorage.getItem('mcc_save');
-
-      if (saved) {
-        const parsed = JSON.parse(saved);
-
-        if (parsed?.data) {
-          baseData.money = parsed.data.money ?? baseData.money;
-          baseData.settings = { ...baseData.settings, ...parsed.data.settings };
-          baseData.meta = { ...baseData.meta, ...parsed.data.meta };
-
-          if (parsed.data.world) {
-            baseData.world = {
-              ...baseData.world,
-              ...parsed.data.world,
-            };
-          }
-        }
-      }
-    } catch (e) {
-      log.error('bootstrapState', 'Failed to read localStorage:', e);
-    }
+  if (savedData) {
+    applyBootstrappedData(baseData, savedData);
   }
 
   return baseData;
 }
-
 export const gameState = $state<GameState>(bootstrapState());
 
 export const navigation = $state<NavigationState>({

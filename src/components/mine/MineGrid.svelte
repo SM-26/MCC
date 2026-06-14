@@ -1,7 +1,7 @@
 <script lang="ts">
-  import rubbleSvg from '../assets/rubble-pile.svg?raw';
-  import pillarSvg from '../assets/support-pillar.svg?raw';
-  import type { MineDepth, Miner } from '../types';
+  import rubbleSvg from '../../assets/rubble-pile.svg?raw';
+  import pillarSvg from '../../assets/support-pillar.svg?raw';
+  import type { MineDepth, Miner } from '../../types';
 
   const {
     activeMine,

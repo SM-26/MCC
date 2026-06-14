@@ -1,6 +1,6 @@
 // src/logic/stateFactory.ts
 import type { GameState, NorthExpansion, PlotState } from '../types';
-import { generatePlot } from './mineGen';
+import { generatePlot } from './mine/mineGen';
 
 /**
  * Creates a default north expansion for a plot.

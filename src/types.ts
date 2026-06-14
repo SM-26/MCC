@@ -1,5 +1,4 @@
 export const TabsList = ['world', 'mine', 'station', 'engineeringIdeas', 'settings'] as const;
-
 export type TabId = (typeof TabsList)[number];
 export type NavPosition = 'top' | 'bottom' | 'left' | 'right' | 'hidden';
 export type Themes = 'dark' | 'light' | 'system' | 'user';

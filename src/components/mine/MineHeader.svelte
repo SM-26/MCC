@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from 'bits-ui';
-  import type { ClearStatus } from '../logic/mineGen';
+  import type { ClearStatus } from '../../logic/mine/mineGen';
   //   import MyMeter from './MyMeter.svelte';
 
   const {
@@ -27,7 +27,7 @@
     onDigDeeper: () => void;
   } = $props();
 
-  import MyMeter from './MyMeter.svelte';
+  import MyMeter from '../MyMeter.svelte';
 </script>
 
 <header class="header">

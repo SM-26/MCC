@@ -1,19 +1,17 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { Button } from 'bits-ui';
-
   import { appContext, gameState } from '../stores/index.svelte';
   import { debouncedSave } from '../logic/save.svelte';
-  import { getClearProgress, getClearStatus } from '../logic/mineGen';
-  import { runMiningTick } from '../logic/mineTick';
-  import { buyMiner, canBuyMiner, digDeeper, getMinerCost, handleNorthAction, handleSouthAction, moveOrMergeMiner } from '../logic/mineActions';
+  import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
+  import { runMiningTick } from '../logic/mine/mineTick';
+  import { buyMiner, canBuyMiner, digDeeper, getMinerCost, handleNorthAction, handleSouthAction, moveOrMergeMiner } from '../logic/mine/mineActions';
   import { getExpansionLabel, getPlotLabel } from '../lib/mineLabels';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
-  import MineHeader from '../components/MineHeader.svelte';
-  import MineGrid from '../components/MineGrid.svelte';
-
-  import type { Miner, ScreenSizes } from '../types';
+  import MineHeader from '../components/mine/MineHeader.svelte';
+  import MineGrid from '../components/mine/MineGrid.svelte';
   import { log } from '../lib/logger';
+  import type { Miner, ScreenSizes, NorthExpansion } from '../types';
 
   const screenSize = $derived<ScreenSizes>(appContext.screenSize);
 
@@ -86,45 +84,58 @@
     dragPos = { x: event.clientX, y: event.clientY };
   }
 
+  function getDropTileIndex(clientX: number, clientY: number): number | null {
+    const dropTarget = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    const tileElement = dropTarget?.closest?.('[data-tile-index]') as HTMLElement | null;
+
+    if (!tileElement) {
+      return null;
+    }
+
+    const rawIndex = tileElement.dataset.tileIndex;
+    const targetIdx = rawIndex ? Number(rawIndex) : Number.NaN;
+
+    return Number.isNaN(targetIdx) ? null : targetIdx;
+  }
+
+  function handleDropResult(result: ReturnType<typeof moveOrMergeMiner>, draggedMiner: Miner, activeNorthExpansion: NorthExpansion) {
+    if (!result.ok) {
+      if (result.reason === 'blocked-target') {
+        log.info('finishPointerDrag-> move miner', result.message);
+      } else {
+        triggerMobileToast(result.message);
+      }
+      return;
+    }
+
+    if (result.action === 'merge') {
+      activeNorthExpansion.selectedMiner = result.mergedMiner;
+      triggerMobileToast(result.message);
+    } else {
+      activeNorthExpansion.selectedMiner = draggedMiner;
+    }
+
+    debouncedSave();
+  }
+
   function finishPointerDrag(clientX: number, clientY: number) {
     if (!activeMine || !draggedMiner || !activeNorthExpansion) {
       resetDragState();
       return;
     }
 
-    const dropTarget = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-    const tileElement = dropTarget?.closest?.('[data-tile-index]') as HTMLElement | null;
+    const targetIdx = getDropTileIndex(clientX, clientY);
 
-    if (tileElement) {
-      const rawIndex = tileElement.dataset.tileIndex;
-      const targetIdx = rawIndex ? Number(rawIndex) : Number.NaN;
-
-      const result = moveOrMergeMiner(activeMine, draggedMiner, targetIdx);
-
-      if (!result.ok) {
-        if (result.reason === 'blocked-target') {
-          log.info('finishPointerDrag-> move miner', result.message);
-        } else {
-          triggerMobileToast(result.message);
-        }
-
-        resetDragState();
-        return;
-      }
-
-      if (result.action === 'merge') {
-        activeNorthExpansion.selectedMiner = result.mergedMiner;
-        triggerMobileToast(result.message);
-      } else {
-        activeNorthExpansion.selectedMiner = draggedMiner;
-      }
-
-      debouncedSave();
+    if (targetIdx === null) {
+      resetDragState();
+      return;
     }
+
+    const result = moveOrMergeMiner(activeMine, draggedMiner, targetIdx);
+    handleDropResult(result, draggedMiner, activeNorthExpansion);
 
     resetDragState();
   }
-
   function handlePointerUp(event: PointerEvent) {
     if (draggedPointerId !== event.pointerId) return;
 
