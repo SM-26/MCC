@@ -1,2 +1,2 @@
-49e3dde
-added support for bottom navtabs
+67eb044
+refactor MineGen and Save.svelte.ts + tests
