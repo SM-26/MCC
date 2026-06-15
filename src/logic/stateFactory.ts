@@ -10,6 +10,8 @@ import { createDefaultSettingsState } from './app/settingsTypes';
 import { createEmptyAgeResources } from './mine/mineTypes';
 import { engineeringStore } from './engineering/engineeringStore.svelte';
 import { generatePlot } from './mine/mineGen';
+import { generateWorld } from './world/worldGen';
+
 
 function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotId = `plot-${plotIndex}`, plotName = 'Prague'): PlotState {
   return {
@@ -31,17 +33,8 @@ function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotId = `plot
   };
 }
 
-function createDefaultWorldState(initialPlots: PlotState[]): WorldState {
-  return {
-    cells: [],
-    plots: initialPlots.map((plot, index) => ({
-      plotId: plot.plotId,
-      cellId: `cell-plot-${index}`,
-      plotName: plot.plotName,
-      discovered: true,
-    })),
-    activePlotIndex: 0,
-  };
+function createDefaultWorldState(worldSeed: string, resetCount: number): WorldState {
+  return generateWorld(worldSeed, resetCount, 1);
 }
 
 /**
@@ -50,12 +43,13 @@ function createDefaultWorldState(initialPlots: PlotState[]): WorldState {
  */
 export function getInitialState(): GameState {
   const worldSeed = '123456';
+  const resetCount = 0;
 
   const plots: PlotState[] = [createDefaultPlotState(worldSeed, 0, 'plot-0', 'Prague')];
 
   return {
     money: 75,
-    world: createDefaultWorldState(plots),
+    world: createDefaultWorldState(worldSeed, resetCount),
     plots,
     engineering: {
       ...createDefaultEngineeringState(),

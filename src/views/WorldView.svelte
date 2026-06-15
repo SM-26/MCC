@@ -1,4 +1,3 @@
-<!-- src/views/WorldView.svelte -->
 <script lang="ts">
   import { Button } from 'bits-ui';
   import { gameState } from '../logic/app/gameState.svelte';
@@ -7,7 +6,7 @@
   import WorldGrid from '../components/world/WorldGrid.svelte';
   import type { WorldCell } from '../logic/world/worldTypes';
 
-  let selectedCell: WorldCell | null = null;
+  let selectedCell = $state<WorldCell | null>(null);
 
   const cells = $derived(worldStore.current.cells);
   const activePlot = $derived(worldStore.activePlot);
@@ -118,20 +117,6 @@
     flex-direction: column;
     gap: 8px;
     align-items: end;
-  }
-
-  .mini-btn {
-    border: 1px solid var(--mcc-border);
-    border-radius: 10px;
-    padding: 10px 14px;
-    background: var(--mcc-bg-surface);
-    color: var(--mcc-text-main);
-    cursor: pointer;
-  }
-
-  .mini-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   @media (max-width: 800px) {

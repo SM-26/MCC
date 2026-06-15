@@ -1,4 +1,4 @@
-<!-- src/views/WorldGrid.svelte -->
+<!-- /src/components/world/WorldGrid.svelte -->
 <script lang="ts">
   import type { WorldCell, WorldCellId } from '../../logic/world/worldTypes';
 
@@ -11,118 +11,133 @@
 
   let { cells, selectedCellId = null, onSelectCell, onSelectPlot }: Props = $props();
 
-  const HEX_W = 72;
-  const HEX_H = 82;
-  const X_STEP = 54;
-  const Y_STEP = 41;
+  const HEX_SIZE = 30;
+  const HEX_W = 62;
+  const HEX_H = 62;
+  const SCALE_X = HEX_W / (Math.sqrt(3) * HEX_SIZE);
+  const SCALE_Y = HEX_H / (2 * HEX_SIZE);
 
-  function cellToXY(cell: WorldCell) {
-    const x = cell.q * X_STEP;
-    const y = cell.r * Y_STEP + (cell.q % 2 ? HEX_H / 2 : 0);
-    return { x, y };
+  function axialToPixel(cell: WorldCell) {
+    return {
+      x: HEX_SIZE * (Math.sqrt(3) * cell.q + (Math.sqrt(3) / 2) * cell.r) * SCALE_X,
+      y: HEX_SIZE * (1.5 * cell.r) * SCALE_Y,
+    };
   }
 
   function handleClick(cell: WorldCell) {
-    if (cell.type === 'plot' && onSelectPlot) {
-      onSelectPlot(cell);
-      return;
-    }
-
+    if (cell.type === 'plot' && onSelectPlot) return onSelectPlot(cell);
     onSelectCell?.(cell);
   }
 </script>
 
 <div class="world-grid">
-  {#each cells as cell (cell.id)}
-    {@const pos = cellToXY(cell)}
-    <button
-      class:selected={selectedCellId === cell.id}
-      class={`hex type-${cell.type} ${cell.discovered ? 'discovered' : 'hidden'}`}
-      style={`--x:${pos.x}px; --y:${pos.y}px;`}
-      onclick={() => handleClick(cell)}
-      title={cell.name}
-      aria-label={cell.name}
-      type="button"
-    >
-      <span class="label">{cell.name}</span>
-      <span class="coords">{cell.q}, {cell.r}</span>
-    </button>
-  {/each}
+  <div class="world-layer">
+    {#each cells as cell (cell.id)}
+      {@const pos = axialToPixel(cell)}
+      <button
+        class:selected={selectedCellId === cell.id}
+        class={`hex type-${cell.type} ${cell.discovered ? 'discovered' : 'hidden'}`}
+        style={`--x:${pos.x}px; --y:${pos.y}px; --w:${HEX_W}px; --h:${HEX_H}px;`}
+        onclick={() => handleClick(cell)}
+        title={cell.name}
+        aria-label={cell.name}
+        type="button"
+      >
+        <span class="hex-shape"></span>
+        <span class="hex-content">
+          <span class="label">{cell.name}</span>
+          <span class="coords">{cell.q}, {cell.r}</span>
+        </span>
+      </button>
+    {/each}
+  </div>
 </div>
 
 <style>
   .world-grid {
     position: relative;
     width: 100%;
-    min-height: 300px;
-    overflow: auto;
+    height: 360px;
+    overflow: hidden;
     border: 1px solid var(--mcc-border);
     border-radius: 14px;
     background: var(--mcc-bg-surface);
   }
 
+  .world-layer {
+    position: absolute;
+    inset: 0;
+  }
+
   .hex {
     position: absolute;
-    left: var(--x);
-    top: var(--y);
-    width: 72px;
-    height: 82px;
+    width: var(--w);
+    height: var(--h);
+    left: calc(50% + var(--x));
+    top: calc(50% + var(--y));
+    transform: translate(-50%, -50%);
     margin: 0;
-    padding: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--mcc-text-main);
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  .hex-shape {
+    position: absolute;
+    inset: 0;
     border: 1px solid var(--mcc-border);
     background: color-mix(in srgb, var(--mcc-bg-surface) 84%, black 16%);
-    color: var(--mcc-text-main);
     clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0% 50%);
+    transform: rotate(30deg);
+    transform-origin: center;
+  }
+
+  .hex-content {
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    transform: translate(-50%, -50%);
+    gap: 2px;
+    pointer-events: none;
+    z-index: 1;
   }
 
   .hex.hidden {
     opacity: 0.45;
   }
-
   .hex.selected {
-    outline: 2px solid var(--mcc-accent, #60a5fa);
     z-index: 2;
   }
 
-  .type-plot {
+  .type-plot .hex-shape {
     background: color-mix(in srgb, #3b82f6 22%, var(--mcc-bg-surface));
   }
-
-  .type-city {
+  .type-city .hex-shape {
     background: color-mix(in srgb, #10b981 22%, var(--mcc-bg-surface));
   }
-
-  .type-factory {
+  .type-factory .hex-shape {
     background: color-mix(in srgb, #f59e0b 22%, var(--mcc-bg-surface));
   }
-
-  .type-fog {
+  .type-fog .hex-shape {
     background: color-mix(in srgb, #64748b 22%, var(--mcc-bg-surface));
   }
-
-  .type-empty {
+  .type-empty .hex-shape {
     background: color-mix(in srgb, #94a3b8 14%, var(--mcc-bg-surface));
   }
-
-  .type-blocker {
+  .type-blocker .hex-shape {
     background: color-mix(in srgb, #ef4444 22%, var(--mcc-bg-surface));
   }
 
-  .label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-align: center;
-  }
-
+  .label,
   .coords {
+    pointer-events: none;
     font-size: 0.7rem;
-    opacity: 0.8;
+    line-height: 1;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
   }
 </style>
