@@ -1,11 +1,11 @@
 // src/logic/tileDefinitions.ts
-import type { MineTileType, ResourcesType } from '../../types';
+import type { MineTileType, ResourceType } from './mineTypes';
 
 export interface TileDef {
   level: number;
   baseHp: number;
   value: number;
-  resourceType: ResourcesType;
+  resourceType: ResourceType;
 }
 export const TILE_DEFS: Record<MineTileType, TileDef> = {
   dirt: { level: 1, baseHp: 10, value: 1, resourceType: 'none' },

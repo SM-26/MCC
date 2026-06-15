@@ -82,7 +82,6 @@ const initialState = makeInitialState();
 const gameState = {
   current: {
     money: initialState.money,
-    activeTab: 'world' as TabId,
     settings: structuredClone(initialState.settings),
   },
   setMoney: vi.fn((value: number) => {
@@ -91,9 +90,31 @@ const gameState = {
   updateSettings: vi.fn((updates: Partial<typeof initialState.settings>) => {
     Object.assign(gameState.current.settings, updates);
   }),
-  setActiveTab: vi.fn((tab: typeof gameState.current.activeTab) => {
-    gameState.current.activeTab = tab;
+};
+
+const navigation = {
+  current: {
+    activeTab: 'world' as TabId,
+    tabs: ['world', 'mine', 'station', 'engineeringIdeas', 'settings'] as TabId[],
+    showLabels: true,
+    showEmojis: true,
+    showActiveLabel: true,
+  },
+  setActiveTab: vi.fn((tab: TabId) => {
+    navigation.current.activeTab = tab;
     return true;
+  }),
+  setTabs: vi.fn((tabs: TabId[]) => {
+    navigation.current.tabs = [...tabs];
+  }),
+  setShowLabels: vi.fn((value: boolean) => {
+    navigation.current.showLabels = value;
+  }),
+  setShowEmojis: vi.fn((value: boolean) => {
+    navigation.current.showEmojis = value;
+  }),
+  setShowActiveLabel: vi.fn((value: boolean) => {
+    navigation.current.showActiveLabel = value;
   }),
 };
 
@@ -139,34 +160,23 @@ const log = {
   error: vi.fn(),
 };
 
-vi.mock('../../lib/logger', () => ({
-  log,
-}));
-
+vi.mock('../../lib/logger', () => ({ log }));
 vi.mock('../stateFactory', () => ({
   getInitialState: vi.fn(() => structuredClone(makeInitialState())),
-  getInitialNavigationState: vi.fn(() => ({ activeTab: 'world' })),
+  getInitialNavigationState: vi.fn(() => ({
+    activeTab: 'world' as TabId,
+    tabs: ['world', 'mine', 'station', 'engineeringIdeas', 'settings'] as TabId[],
+    showLabels: true,
+    showEmojis: true,
+    showActiveLabel: true,
+  })),
 }));
-
-vi.mock('../app/gameState.svelte', () => ({
-  gameState,
-}));
-
-vi.mock('../world/worldStore.svelte', () => ({
-  worldStore,
-}));
-
-vi.mock('../mine/mineStore.svelte', () => ({
-  mineStore,
-}));
-
-vi.mock('../engineering/engineeringStore.svelte', () => ({
-  engineeringStore,
-}));
-
-vi.mock('./saveStore.svelte', () => ({
-  saveStore,
-}));
+vi.mock('../app/gameState.svelte', () => ({ gameState }));
+vi.mock('../app/navigationStore.svelte', () => ({ navigation }));
+vi.mock('../world/worldStore.svelte', () => ({ worldStore }));
+vi.mock('../mine/mineStore.svelte', () => ({ mineStore }));
+vi.mock('../engineering/engineeringStore.svelte', () => ({ engineeringStore }));
+vi.mock('./saveStore.svelte', () => ({ saveStore }));
 
 describe('save.svelte.ts', async () => {
   const saveModule = await import('./save.svelte');
@@ -176,8 +186,13 @@ describe('save.svelte.ts', async () => {
     const fresh = makeInitialState();
 
     gameState.current.money = fresh.money;
-    gameState.current.activeTab = 'world';
     gameState.current.settings = structuredClone(fresh.settings);
+
+    navigation.current.activeTab = 'world';
+    navigation.current.tabs = ['world', 'mine', 'station', 'engineering', 'settings'];
+    navigation.current.showLabels = true;
+    navigation.current.showEmojis = true;
+    navigation.current.showActiveLabel = true;
 
     worldStore.current = structuredClone(fresh.world);
     mineStore.current = structuredClone(fresh.plots[0]);
@@ -185,7 +200,12 @@ describe('save.svelte.ts', async () => {
 
     gameState.setMoney.mockClear();
     gameState.updateSettings.mockClear();
-    gameState.setActiveTab.mockClear();
+
+    navigation.setActiveTab.mockClear();
+    navigation.setTabs.mockClear();
+    navigation.setShowLabels.mockClear();
+    navigation.setShowEmojis.mockClear();
+    navigation.setShowActiveLabel.mockClear();
 
     worldStore.replace.mockClear();
     mineStore.replace.mockClear();
@@ -213,16 +233,14 @@ describe('save.svelte.ts', async () => {
     vi.useFakeTimers();
 
     Object.defineProperty(window, 'location', {
-      value: {
-        reload: vi.fn(),
-      },
+      value: { reload: vi.fn() },
       configurable: true,
     });
   });
 
   it('getSaveSnapshot returns a serializable snapshot of current live state', () => {
     gameState.current.money = 432;
-    gameState.current.activeTab = 'settings';
+    navigation.current.activeTab = 'settings';
     gameState.current.settings.soundEnabled = false;
     worldStore.current.activePlotIndex = 2;
     engineeringStore.current.maxNorthExpansions = 7;
@@ -241,7 +259,7 @@ describe('save.svelte.ts', async () => {
 
   it('manualSave writes the current snapshot immediately through saveStore', () => {
     gameState.current.money = 777;
-    gameState.current.activeTab = 'settings';
+    navigation.current.activeTab = 'settings';
 
     manualSave();
 
@@ -282,7 +300,7 @@ describe('save.svelte.ts', async () => {
 
     expect(saveStore.setStorageKey).toHaveBeenCalledWith('mcc_save');
     expect(gameState.setMoney).toHaveBeenCalledWith(100);
-    expect(gameState.setActiveTab).toHaveBeenCalledWith('world');
+    expect(navigation.setActiveTab).toHaveBeenCalledWith('world');
     expect(worldStore.replace).toHaveBeenCalledTimes(1);
     expect(engineeringStore.replace).toHaveBeenCalledTimes(1);
     expect(mineStore.replace).toHaveBeenCalledTimes(1);
@@ -374,7 +392,7 @@ describe('save.svelte.ts', async () => {
 
     expect(gameState.setMoney).toHaveBeenCalledWith(999);
     expect(gameState.updateSettings).toHaveBeenCalledWith(loaded.settings);
-    expect(gameState.setActiveTab).toHaveBeenCalledWith('settings');
+    expect(navigation.setActiveTab).toHaveBeenCalledWith('settings');
     expect(worldStore.replace).toHaveBeenCalledWith(loaded.world);
     expect(engineeringStore.replace).toHaveBeenCalledWith(loaded.engineering);
     expect(mineStore.replace).toHaveBeenCalledWith(loaded.plots[0]);
@@ -422,14 +440,14 @@ describe('save.svelte.ts', async () => {
 
   it('resetProgress clears save, reapplies defaults, rewrites defaults, and reloads', async () => {
     gameState.current.money = 999;
-    gameState.current.activeTab = 'settings';
+    navigation.current.activeTab = 'settings';
 
     await resetProgress();
 
     expect(saveStore.setStorageKey).toHaveBeenCalledWith('mcc_save');
     expect(saveStore.clearLocalStorageSave).toHaveBeenCalledTimes(1);
     expect(gameState.setMoney).toHaveBeenCalledWith(100);
-    expect(gameState.setActiveTab).toHaveBeenCalledWith('world');
+    expect(navigation.setActiveTab).toHaveBeenCalledWith('world');
     expect(saveStore.saveToLocalStorage).toHaveBeenCalledTimes(1);
     expect(window.location.reload).toHaveBeenCalledTimes(1);
     expect(log.info).toHaveBeenCalledWith('save', 'Progress reset successfully');

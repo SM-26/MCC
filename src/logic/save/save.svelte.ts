@@ -11,6 +11,7 @@ import { mineStore } from '../mine/mineStore.svelte';
 import { worldStore } from '../world/worldStore.svelte';
 import { engineeringStore } from '../engineering/engineeringStore.svelte';
 import { saveStore } from './saveStore.svelte';
+import { navigation } from '../app/navigationStore.svelte';
 
 const SAVE_STORAGE_KEY = 'mcc_save';
 
@@ -74,7 +75,7 @@ function applyGameState(state: GameState): void {
  */
 function applyPersistedState(state: PersistedGameState): void {
   applyGameState(state);
-  gameState.setActiveTab(state.navigation.activeTab);
+  navigation.setActiveTab(state.navigation.activeTab);
 }
 
 /**
@@ -86,7 +87,7 @@ export function getSaveSnapshot(): PersistedGameState {
   return {
     ...buildGameStateSnapshot(),
     navigation: {
-      activeTab: gameState.current.activeTab,
+      activeTab: navigation.current.activeTab,
     },
   };
 }

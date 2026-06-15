@@ -1,21 +1,16 @@
 // src/logic/app/gameState.svelte.ts
 
-import type { TabId } from './navigationTypes';
 import type { SettingsState } from './settingsTypes';
-
-import { createDefaultSavedNavigation, isTabId } from './navigationTypes';
 import { createDefaultSettingsState } from './settingsTypes';
 
 export interface GameSessionState {
   money: number; // default: 75
-  activeTab: TabId; // default: 'world'
   settings: SettingsState;
 }
 
 function createDefaultGameSessionState(): GameSessionState {
   return {
     money: 75,
-    activeTab: createDefaultSavedNavigation().activeTab,
     settings: createDefaultSettingsState(),
   };
 }
@@ -60,15 +55,6 @@ export function createGameStateStore(initial?: Partial<GameSessionState>) {
       }
 
       state.money -= amount;
-      return true;
-    },
-
-    setActiveTab(tab: TabId): boolean {
-      if (!isTabId(tab)) {
-        return false;
-      }
-
-      state.activeTab = tab;
       return true;
     },
 

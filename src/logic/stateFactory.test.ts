@@ -140,7 +140,7 @@ describe('stateFactory', () => {
       getInitialState();
 
       expect(mockedGeneratePlot).toHaveBeenCalledTimes(1);
-      expect(mockedGeneratePlot).toHaveBeenCalledWith('123456', 0, 0);
+      expect(mockedGeneratePlot).toHaveBeenCalledWith('123456', 0, 0, 0);
     });
 
     it('returns fresh state objects on each call', () => {

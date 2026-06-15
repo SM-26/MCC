@@ -1,49 +1,51 @@
+<!-- /src/App.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Tabs } from 'bits-ui';
-  import type { TabId } from './types';
 
-  import { appContext, navigation, gameState } from './stores/index.svelte';
+  import type { TabId } from './logic/app/navigationTypes';
+
+  import { appContext } from './logic/app/appContext.svelte';
+  import { gameState } from './logic/app/gameState.svelte';
+  import { navigation } from './logic/app/navigationStore.svelte';
+
   import { getScreenSize } from './lib/sizes';
   import { debouncedSave } from './logic/save/save.svelte';
 
   import Splash from './components/Splash.svelte';
   import { toastState } from './components/GameTooltip.svelte';
 
-  import SettingsView from './views/SettingsView.svelte';
+  import WorldView from './views/WorldView.svelte';
   import MineView from './views/MineView.svelte';
+  import SettingsView from './views/SettingsView.svelte';
 
-  // Prevent the initial boot/hydration phase from triggering an immediate save.
   let isReadyToSave = false;
 
   const tabConfig: Record<TabId, { label: string; icon: string }> = {
     world: { label: 'World', icon: '🌍' },
     mine: { label: 'Mine', icon: '⛏️' },
     station: { label: 'Station', icon: '🚉' },
-    engineeringIdeas: { label: 'Engineering', icon: '💡' },
+    engineering: { label: 'Engineering', icon: '💡' },
     settings: { label: 'Settings', icon: '⚙️' },
   };
 
-  const effectiveNavbarPosition = $derived(gameState.settings.navbarPosition === 'bottom' ? 'bottom' : 'top');
+  const effectiveNavbarPosition = $derived(gameState.current.settings.navbarPosition === 'bottom' ? 'bottom' : 'top');
 
   function updateScreenSize() {
-    appContext.screenSize = getScreenSize(window.innerWidth);
+    appContext.setScreenSize(getScreenSize(window.innerWidth));
   }
 
   onMount(() => {
-    // Respect the user's saved startup preference.
-    if (gameState.settings.defaultView === 'world') {
-      navigation.activeTab = 'world';
+    if (gameState.current.settings.defaultView === 'world') {
+      navigation.setActiveTab('world');
     }
-    // If the preference is 'last-active', leave navigation.activeTab alone.
-    // It should already have been restored by the save/load bootstrap logic.
 
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
 
     const splashTimer = window.setTimeout(() => {
-      appContext.isLoading = false;
-      appContext.splashVisible = false;
+      appContext.setIsLoading(false);
+      appContext.setSplashVisible(false);
       isReadyToSave = true;
     }, 2500);
 
@@ -55,30 +57,18 @@
 
   $effect(() => {
     if (!isReadyToSave) return;
-
-    // Track nested reactive changes explicitly before saving.
-    void gameState.money;
-    void navigation.activeTab;
-    $state.snapshot(gameState.world);
-    $state.snapshot(gameState.meta);
-    $state.snapshot(gameState.settings);
-
+    void gameState.current.money;
+    void navigation.current.activeTab;
+    void gameState.current.settings;
     debouncedSave();
   });
 
-  const currency = $derived(gameState.money ?? 0);
+  const currency = $derived(gameState.current.money ?? 0);
 
   function formatCurrency(amount: number): string {
     return `$${amount}`;
   }
 </script>
-
-{#snippet WorldView()}
-  <div>
-    <h2>World Map</h2>
-    <p>Train routes and layout go here.</p>
-  </div>
-{/snippet}
 
 {#snippet StationView()}
   <div>
@@ -110,7 +100,7 @@
 {/if}
 
 <div class="app-container">
-  {#if appContext.isLoading || appContext.splashVisible}
+  {#if appContext.current.isLoading || appContext.current.splashVisible}
     <Splash />
   {/if}
 
@@ -119,13 +109,13 @@
       {@render appHeaderContents('Mines & Choo-Choo', currency)}
     </header>
 
-    <Tabs.Root bind:value={navigation.activeTab} class="tabs-root nav-pos-{effectiveNavbarPosition}">
+    <Tabs.Root bind:value={navigation.current.activeTab} class="tabs-root nav-pos-{effectiveNavbarPosition}">
       {#if effectiveNavbarPosition === 'top'}
         <Tabs.List class="navtab-list navtab-top">
-          {#each navigation.tabs as tab (tab)}
+          {#each navigation.current.tabs as tab (tab)}
             {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
-            {@const isCompact = appContext.screenSize === 'xs' || appContext.screenSize === 'sm'}
-            {@const isVisible = !isCompact || navigation.activeTab === tab}
+            {@const isCompact = appContext.current.screenSize === 'xs' || appContext.current.screenSize === 'sm'}
+            {@const isVisible = !isCompact || navigation.current.activeTab === tab}
 
             <Tabs.Trigger value={tab} title={config.label}>
               <span class="tab-icon">{config.icon}</span>
@@ -138,19 +128,19 @@
       {/if}
 
       <div class="tabs-panels">
-        <Tabs.Content value="world" class="tab-panel">{@render WorldView()}</Tabs.Content>
+        <Tabs.Content value="world" class="tab-panel"><WorldView /></Tabs.Content>
         <Tabs.Content value="mine" class="tab-panel"><MineView /></Tabs.Content>
         <Tabs.Content value="station" class="tab-panel">{@render StationView()}</Tabs.Content>
-        <Tabs.Content value="engineeringIdeas" class="tab-panel">{@render EngineeringView()}</Tabs.Content>
+        <Tabs.Content value="engineering" class="tab-panel">{@render EngineeringView()}</Tabs.Content>
         <Tabs.Content value="settings" class="tab-panel"><SettingsView /></Tabs.Content>
       </div>
 
       {#if effectiveNavbarPosition === 'bottom'}
         <Tabs.List class="navtab-list navtab-bottom">
-          {#each navigation.tabs as tab (tab)}
+          {#each navigation.current.tabs as tab (tab)}
             {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
-            {@const isCompact = appContext.screenSize === 'xs' || appContext.screenSize === 'sm'}
-            {@const isVisible = !isCompact || navigation.activeTab === tab}
+            {@const isCompact = appContext.current.screenSize === 'xs' || appContext.current.screenSize === 'sm'}
+            {@const isVisible = !isCompact || navigation.current.activeTab === tab}
 
             <Tabs.Trigger value={tab} title={config.label}>
               <span class="tab-icon">{config.icon}</span>

@@ -1,6 +1,6 @@
 // src/logic/mine/mineTick.test.ts
 import { describe, it, expect } from 'vitest';
-import type { MineDepth, MineTile, Miner } from '../../types';
+import type { MineDepthState as MineDepth, Miner, MineTile } from '../../logic/mine/mineTypes';
 import { runMiningTick } from './mineTick';
 
 function makeTile(overrides: Partial<MineTile> = {}): MineTile {

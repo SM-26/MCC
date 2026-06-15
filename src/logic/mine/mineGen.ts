@@ -1,11 +1,8 @@
 // src/logic/mine/mineGen.ts
 
 import seedrandom from 'seedrandom';
-import type { MineDepth, MineTile, MineTileType } from '../../types';
+import type { MineDepthState as MineDepth, MineTile, MineTileType } from './mineTypes';
 import { TILE_DEFS } from './tileDefinitions';
-
-import type { SettingsState } from '../app/settingsTypes';
-import type { EngineeringState } from '../engineering/engineeringTypes';
 
 export type ClearStatus = 'none' | 'soft' | 'hard';
 

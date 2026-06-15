@@ -1,2 +1,2 @@
-dc47063
-worldGen basics
+601ddb0
+done working on types and store refactore. initial worldView

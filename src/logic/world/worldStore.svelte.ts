@@ -4,13 +4,14 @@ import type { Destination, DestinationId, DestinationType, PlotId, Route, WorldC
 
 import { getActivePlot, getCellById, getDestinationFromCell, getPlotById, isRouteToDestination } from './worldTypes';
 
-function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: number, type: WorldCell['type'] = 'fog'): WorldCell {
+function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'fog'): WorldCell {
   return {
     id,
     name,
     type,
     q,
     r,
+    ring,
     discovered: false,
   };
 }
@@ -83,8 +84,8 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       state.cells.push(cell);
     },
 
-    createCell(id: WorldCellId, name: string, q: number, r: number, type: WorldCell['type'] = 'fog') {
-      state.cells.push(createDefaultWorldCell(id, name, q, r, type));
+    createCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'fog') {
+      state.cells.push(createDefaultWorldCell(id, name, q, r, ring, type));
     },
 
     updateCell(cellId: WorldCellId, updates: Partial<WorldCell>): boolean {

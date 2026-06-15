@@ -1,55 +1,61 @@
+<!-- /src/components/mine/MineHeader.svelte -->
 <script lang="ts">
   import { Button } from 'bits-ui';
   import type { ClearStatus } from '../../logic/mine/mineGen';
-  //   import MyMeter from './MyMeter.svelte';
+  import MyMeter from '../MyMeter.svelte';
 
   const {
-    plotLabel,
-    expansionLabel,
+    shaftLabel,
+    nextShaftLabel,
     depth,
     clearStatus,
     clearPercent,
-    canGoSouth = false,
+    canGoPrevious = false,
+    canGoNext = false,
+    canBuyNextShaft = false,
     canDigDeeper = false,
-    onNorthAction,
-    onSouthAction,
+    canBuyStation = false,
+    onPreviousShaft,
+    onNextShaft,
+    onBuyNextShaft,
+    onBuyStation,
     onDigDeeper,
   }: {
-    plotLabel: string;
-    expansionLabel: string;
+    shaftLabel: string;
+    nextShaftLabel: string;
     depth: number;
     clearStatus: ClearStatus;
     clearPercent: number;
-    canGoSouth?: boolean;
+    canGoPrevious?: boolean;
+    canGoNext?: boolean;
+    canBuyNextShaft?: boolean;
     canDigDeeper?: boolean;
-    onNorthAction: () => void;
-    onSouthAction: () => void;
+    canBuyStation?: boolean;
+    onPreviousShaft: () => void;
+    onNextShaft: () => void;
+    onBuyNextShaft: () => void;
+    onBuyStation: () => void;
     onDigDeeper: () => void;
   } = $props();
-
-  import MyMeter from '../MyMeter.svelte';
 </script>
 
 <header class="header">
-  <div class="stats">
-    <span>
-      Plot: {plotLabel} | Expansion: {expansionLabel} | Depth: {depth}
-    </span>
-    <span>Clear status: {clearStatus}</span>
+  <div class="nav-line">
+    <Button.Root class="nav-btn" onclick={onPreviousShaft} disabled={!canGoPrevious}>←</Button.Root>
+    <span class="shaft-label">{shaftLabel}</span>
+    <span class="shaft-sep">|</span>
+    <span class="shaft-label">{nextShaftLabel}</span>
+    <Button.Root class="nav-btn" onclick={onNextShaft} disabled={!canGoNext}>→</Button.Root>
   </div>
+
+  <div class="stats">Current depth: {depth}</div>
 
   <MyMeter value={clearPercent} max={100} status={clearStatus} />
 
-  <div class="nav-grid">
-    <Button.Root class="nav-btn" onclick={onNorthAction}>
-      {depth !== 0 ? 'Top' : '← North'}
-    </Button.Root>
-
-    <Button.Root class="nav-btn" onclick={onSouthAction} disabled={!canGoSouth}>South →</Button.Root>
-
-    <Button.Root class="nav-btn" disabled>Up</Button.Root>
-
-    <Button.Root class="nav-btn" onclick={onDigDeeper} disabled={!canDigDeeper}>Down / Dig</Button.Root>
+  <div class="actions">
+    <Button.Root class="nav-btn" onclick={onBuyNextShaft} disabled={!canBuyNextShaft}>Buy next shaft</Button.Root>
+    <Button.Root class="nav-btn" onclick={onDigDeeper} disabled={!canDigDeeper}>Dig deeper ↓</Button.Root>
+    <Button.Root class="nav-btn" onclick={onBuyStation} disabled={!canBuyStation}>Buy station</Button.Root>
   </div>
 </header>
 
@@ -60,23 +66,31 @@
     flex-direction: column;
     gap: var(--spacing-sm);
     padding: calc(var(--mine-padding) / 3) var(--mine-padding);
+    align-self: stretch;
   }
 
-  .stats {
+  .nav-line {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--spacing-sm);
     flex-wrap: wrap;
     font-family: monospace;
-    font-size: 0.875rem;
+    align-self: center;
+  }
+
+  .shaft-label,
+  .stats {
     color: var(--mcc-text-main);
   }
 
-  .nav-grid {
-    display: grid;
-    grid-template-columns: repeat(var(--mine-nav-columns), minmax(0, 1fr));
+  .shaft-sep {
+    opacity: 0.65;
+  }
+
+  .actions {
+    display: flex;
     gap: var(--spacing-sm);
+    flex-wrap: wrap;
   }
 
   :global(.nav-btn) {
@@ -87,17 +101,6 @@
     background: color-mix(in srgb, var(--mcc-bg-surface) 70%, white 8%);
     color: var(--mcc-text-main);
     cursor: pointer;
-    transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      transform 0.15s ease,
-      opacity 0.15s ease;
-  }
-
-  :global(.nav-btn:hover:not(:disabled):not([data-disabled])) {
-    background: color-mix(in srgb, var(--mcc-bg-surface) 78%, white 14%);
-    border-color: var(--mcc-accent);
-    transform: translateY(-1px);
   }
 
   :global(.nav-btn:disabled),
@@ -105,6 +108,5 @@
     opacity: 0.45;
     cursor: not-allowed;
     pointer-events: none;
-    transform: none;
   }
 </style>

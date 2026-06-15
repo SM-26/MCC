@@ -1,17 +1,15 @@
+<!-- /src/views/SettingsView.svelte -->
 <script lang="ts">
-  /**
-   * Settings screen controller.
-   *
-   * Hosts all editable settings state, save/reset actions, and build metadata,
-   * while delegating repeated accordion and row markup to child components.
-   */
   import { Toggle, Switch, Button, AlertDialog, Select, Accordion } from 'bits-ui';
-  import { gameState } from '../stores/index.svelte';
+  import { gameState } from '../logic/app/gameState.svelte';
+
   import { manualSave, resetProgress } from '../logic/save/save.svelte';
   import SettingsSection from '../components/settings/SettingsSection.svelte';
   import SettingsRow from '../components/settings/SettingsRow.svelte';
   import SettingsFooter from '../components/settings/SettingsFooter.svelte';
-  import type { NavPosition, Themes } from '../types';
+
+  import type { NavPosition } from '../logic/app/navigationTypes';
+  import type { ThemeMode } from '../logic/app/settingsTypes';
 
   import appVersion from '../assets/version.txt?raw';
   import gitInfo from '../assets/git-info.txt?raw';
@@ -26,9 +24,6 @@
     disabled?: boolean;
   }
 
-  /**
-   * Navbar position options.
-   */
   const positionOptions = [
     { value: 'top', label: 'Top Navigation', disabled: false },
     { value: 'bottom', label: 'Bottom Navigation', disabled: false },
@@ -37,29 +32,17 @@
     { value: 'hidden', label: 'Hide the Navtab', disabled: true },
   ] satisfies SelectOption<NavPosition>[];
 
-  /**
-   * Theme engine options.
-   */
   const themeOptions = [
     { value: 'dark', label: 'Dark Mode' },
     { value: 'light', label: 'Light Mode', disabled: true },
     { value: 'system', label: 'Auto (System Default)', disabled: true },
     { value: 'user', label: 'User Custom', disabled: true },
-  ] satisfies SelectOption<Themes>[];
+  ] satisfies SelectOption<ThemeMode>[];
 
-  /**
-   * Human-readable current navbar position label.
-   */
-  const currentPositionLabel = $derived(positionOptions.find((o) => o.value === gameState.settings.navbarPosition)?.label ?? 'Select Position');
+  const currentPositionLabel = $derived(positionOptions.find((o) => o.value === gameState.current.settings.navbarPosition)?.label ?? 'Select Position');
 
-  /**
-   * Human-readable current theme label.
-   */
-  const currentThemeLabel = $derived(themeOptions.find((o) => o.value === gameState.settings.theme)?.label ?? 'Select Theme');
+  const currentThemeLabel = $derived(themeOptions.find((o) => o.value === gameState.current.settings.theme)?.label ?? 'Select Theme');
 
-  /**
-   * Resets all progress after destructive-action confirmation.
-   */
   async function confirmAndReset() {
     await resetProgress();
     isResetDialogOpen = false;
@@ -71,7 +54,7 @@
     <Accordion.Root type="single" class="accordion-root">
       <SettingsSection value="interface" title="Interface Settings">
         <SettingsRow label="Menu Position" description="Choose where your primary application navigation tabs reside.">
-          <Select.Root type="single" bind:value={gameState.settings.navbarPosition}>
+          <Select.Root type="single" bind:value={gameState.current.settings.navbarPosition}>
             <Select.Trigger class="select-trigger">
               <span>{currentPositionLabel}</span>
               <span class="select-arrow">▼</span>
@@ -90,7 +73,7 @@
         </SettingsRow>
 
         <SettingsRow label="Theme Engine" description="Adjust visual skin profiles for optimal viewing configurations.">
-          <Select.Root type="single" bind:value={gameState.settings.theme}>
+          <Select.Root type="single" bind:value={gameState.current.settings.theme}>
             <Select.Trigger class="select-trigger">
               <span>{currentThemeLabel}</span>
               <span class="select-arrow">▼</span>
@@ -112,41 +95,41 @@
       <SettingsSection value="system" title="System Controls">
         <SettingsRow label="Default View" description="Select whether to start at the World map or return to your previous tab." inline={true}>
           <Toggle.Root
-            pressed={gameState.settings.defaultView === 'last-active'}
+            pressed={gameState.current.settings.defaultView === 'last-active'}
             onPressedChange={(pressed) => {
-              gameState.settings.defaultView = pressed ? 'last-active' : 'world';
+              gameState.current.settings.defaultView = pressed ? 'last-active' : 'world';
             }}
             class="toggle-root"
           >
-            <span>{gameState.settings.defaultView === 'last-active' ? 'Last Active' : 'World'}</span>
+            <span>{gameState.current.settings.defaultView === 'last-active' ? 'Last Active' : 'World'}</span>
           </Toggle.Root>
         </SettingsRow>
 
         <SettingsRow label="Audio Effects" description="Toggle ambient sounds, railway alerts, and mining audio output." inline={true}>
-          <Switch.Root bind:checked={gameState.settings.soundEnabled} class="switch-root">
+          <Switch.Root bind:checked={gameState.current.settings.soundEnabled} class="switch-root">
             <Switch.Thumb class="switch-thumb" />
           </Switch.Root>
         </SettingsRow>
 
         <SettingsRow label="Push Notifications" description="Allow system notifications when automation trains arrive at stations." inline={true}>
-          <Switch.Root bind:checked={gameState.settings.notificationsEnabled} class="switch-root">
+          <Switch.Root bind:checked={gameState.current.settings.notificationsEnabled} class="switch-root">
             <Switch.Thumb class="switch-thumb" />
           </Switch.Root>
         </SettingsRow>
 
         <SettingsRow label="Developer Mode" description="Unlocks Dev mode and raw seed modifications." inline={true}>
-          <Toggle.Root class="toggle-root dev-mode" bind:pressed={gameState.settings.devMode}>
-            <span>{gameState.settings.devMode ? 'Active' : 'Disabled'}</span>
+          <Toggle.Root class="toggle-root dev-mode" bind:pressed={gameState.current.settings.devMode}>
+            <span>{gameState.current.settings.devMode ? 'Active' : 'Disabled'}</span>
           </Toggle.Root>
         </SettingsRow>
       </SettingsSection>
 
       <SettingsSection value="save" title="Save Management">
         <SettingsRow label="World Generation Seed" description="The core procedural numerical signature mapped to your universe map." inline={true}>
-          {#if gameState.settings.devMode}
-            <input type="text" class="seed-input-field" bind:value={gameState.settings.worldSeed} placeholder="Enter world seed..." />
+          {#if gameState.current.settings.devMode}
+            <input type="text" class="seed-input-field" bind:value={gameState.current.settings.worldSeed} placeholder="Enter world seed..." />
           {:else}
-            <code class="seed-badge">{gameState.settings.worldSeed}</code>
+            <code class="seed-badge">{gameState.current.settings.worldSeed}</code>
           {/if}
         </SettingsRow>
 
@@ -158,7 +141,6 @@
 
             <AlertDialog.Portal>
               <AlertDialog.Overlay class="modal-overlay" />
-
               <AlertDialog.Content class="modal-content">
                 <AlertDialog.Title class="modal-title">Confirm Imperial Wipedown</AlertDialog.Title>
 
@@ -169,7 +151,6 @@
 
                 <div class="modal-actions">
                   <AlertDialog.Cancel class="modal-btn cancel-btn">Abort Changes</AlertDialog.Cancel>
-
                   <AlertDialog.Action class="modal-btn confirm-btn" onclick={confirmAndReset}>Nuke Progress Data</AlertDialog.Action>
                 </div>
               </AlertDialog.Content>

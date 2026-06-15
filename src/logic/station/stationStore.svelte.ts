@@ -32,11 +32,11 @@ export function createStationStore(initial?: Partial<Station>) {
   const state = $state<Station>(
     initial
       ? {
-        ...createEmptyStation(initial.id ?? createStationId()),
-        ...initial,
-        platforms: initial.platforms ?? [],
-        trainyardInventory: initial.trainyardInventory ?? createEmptyTrainyardInventory(),
-      }
+          ...createEmptyStation(initial.id ?? createStationId()),
+          ...initial,
+          platforms: initial.platforms ?? [],
+          trainyardInventory: initial.trainyardInventory ?? createEmptyTrainyardInventory(),
+        }
       : createEmptyStation(createStationId()),
   );
 

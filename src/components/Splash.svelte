@@ -1,10 +1,11 @@
+<!-- /src/components/Splash.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { appContext, pwaInstall } from '../stores/index.svelte';
+  import { appContext } from '../logic/app/appContext.svelte';
+  import { pwaInstallStore } from '../logic/app/pwaInstallStore.svelte';
   import { log } from '../lib/logger';
   import { triggerMobileToast } from './GameTooltip.svelte';
 
-  // Custom interface extending the standard DOM Event for modern PWA installations
   interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];
     readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
@@ -14,12 +15,10 @@
   let deferredPrompt: BeforeInstallPromptEvent | null = $state(null);
 
   onMount(() => {
-    // Hide splash screen after fixed duration
     setTimeout(() => {
-      appContext.splashVisible = false;
+      appContext.setSplashVisible(false);
     }, 3500);
 
-    // Check if running in standalone mode
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
     if (isStandalone) {
@@ -27,24 +26,22 @@
       return;
     }
 
-    // Listen for PWA installability
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       log.debug('PWA', 'beforeinstallprompt received!');
       deferredPrompt = e as BeforeInstallPromptEvent;
 
-      // Mutate your Svelte 5 reactive object directly
-      pwaInstall.visible = true;
-      pwaInstall.shouldShow = true;
+      pwaInstallStore.setVisible(true);
+      pwaInstallStore.setShouldShow(true);
+      pwaInstallStore.setDeferredPrompt(deferredPrompt);
       log.info('PWA', 'Installation prompt is available.');
     });
 
-    // Listen for PWA app already installed
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
+      pwaInstallStore.markInstalled();
     });
 
-    // If the event never fires, log why it might be missing
     setTimeout(() => {
       if (!deferredPrompt) {
         log.debug('PWA', "'beforeinstallprompt' did not fire.");
@@ -67,13 +64,15 @@
     try {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
-        appContext.isPWAInstalled = true;
+        appContext.setIsPWAInstalled(true);
+        pwaInstallStore.markInstalled();
         triggerMobileToast('App installed! 🎉');
       }
     } catch (err) {
       log.error('PWA', 'Installation error occurred', err as Error);
     } finally {
       deferredPrompt = null;
+      pwaInstallStore.clearDeferredPrompt();
     }
   }
 
@@ -89,7 +88,7 @@
   }
 </script>
 
-{#if appContext.splashVisible}
+{#if appContext.current.splashVisible}
   <div class="splash-screen">
     <div class="splash-content">
       <img src="/favicon.svg" alt="MCC Logo" class="splash-logo" draggable="false" />
@@ -101,12 +100,13 @@
           <circle cx="12" cy="12" r="10" stroke="var(--md-sys-color-primary)" stroke-width="3" fill="none" stroke-dasharray="60" stroke-dashoffset="35" />
         </svg>
       </div>
-      <button class="close-splash" onclick={() => (appContext.splashVisible = false)}> Skip </button>
+
+      <button class="close-splash" onclick={() => appContext.setSplashVisible(false)}> Skip </button>
     </div>
   </div>
 {/if}
 
-{#if pwaInstall.visible}
+{#if pwaInstallStore.current.visible}
   <div class="pwa-install-prompt">
     <div class="pwa-content">
       <div class="pwa-icon">
@@ -124,7 +124,15 @@
 
           <button class="btn-secondary" onclick={handleOpenStore}> Open Store </button>
 
-          <button class="btn-text" onclick={() => (pwaInstall.visible = false)}> Not now </button>
+          <button
+            class="btn-text"
+            onclick={() => {
+              pwaInstallStore.setVisible(false);
+              pwaInstallStore.clearDeferredPrompt();
+            }}
+          >
+            Not now
+          </button>
         </div>
 
         <p class="pwa-note">

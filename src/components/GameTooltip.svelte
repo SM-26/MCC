@@ -1,3 +1,4 @@
+<!-- // /src/components/GameTooltip.svelte -->
 <script lang="ts" module>
   // Wrap your reactive state properties inside a frozen, exported object container
   export const toastState = $state({

@@ -1,12 +1,9 @@
-// src/logic/mine/mineActions.ts
-
+// /src/logic/mine/mineAction.ts
 import { generatePlot, getClearStatus } from '../mine/mineGen';
-import type { GameState, MineDepth, Miner, PlotState, NorthExpansion } from '../../types';
-import type { EngineeringState } from '../engineering/engineeringTypes';
-import { engineeringStore } from '../engineering/engineeringStore.svelte';
+import type { MineDepthState as MineDepth, Miner, PlotState, NorthExpansion } from './mineTypes';
 
 export const BASE_MINER_COST = 50;
-export const BASE_PLOT_COST = 100;
+export const BASE_SHAFT_COST = 100;
 
 export interface ActionResult {
   ok: boolean;
@@ -15,14 +12,32 @@ export interface ActionResult {
 
 export interface BuyMinerResult extends ActionResult {
   minerCost: number;
+  nextMoney?: number;
 }
 
-export function createDefaultPlotState(worldSeed: string, resetCount: number, plotIndex = 0, plotName = 'Prague'): PlotState {
+export interface ShaftNavigationContext {
+  worldSeed: string;
+  resetCount: number;
+  money: number;
+  maxShafts: number;
+  activeShaftIndex: number;
+  shaftsLength: number;
+  activeNorthExpansion: NorthExpansion | null;
+  activeMine: MineDepth | null;
+}
+
+export interface ShaftNavigationResult extends ActionResult {
+  nextActiveShaftIndex?: number;
+  nextMoney?: number;
+}
+
+export function createDefaultPlotState(worldSeed: string, resetCount: number, shaftIndex = 0, shaftName = 'Shaft I'): PlotState {
   return {
-    plotName,
+    plotId: `${worldSeed}-${shaftIndex}`,
+    plotName: shaftName,
     northExpansions: [
       {
-        mineDepths: [generatePlot(worldSeed, resetCount, 0, plotIndex)],
+        mineDepths: [generatePlot(worldSeed, resetCount, 0, shaftIndex)],
         selectedMiner: null,
         draggedMiner: null,
         lastTick: 0,
@@ -34,7 +49,7 @@ export function createDefaultPlotState(worldSeed: string, resetCount: number, pl
       coal: 0,
       oil: 0,
       copper: 0,
-      superAlloy: 0,
+      superalloy: 0,
     },
     currentAge: 'Mechanical',
     station: null,
@@ -45,18 +60,18 @@ export function getMinerCost(activeMine: MineDepth | null): number {
   return Math.floor(BASE_MINER_COST * Math.pow(1.5, activeMine?.miners.length ?? 0));
 }
 
-export function canBuyMiner(gameState: GameState, activeMine: MineDepth | null): boolean {
-  return gameState.money >= getMinerCost(activeMine);
+export function canBuyMiner(money: number, activeMine: MineDepth | null): boolean {
+  return money >= getMinerCost(activeMine);
 }
 
-export function buyMiner(gameState: GameState, activeMine: MineDepth | null): BuyMinerResult {
+export function buyMiner(money: number, activeMine: MineDepth | null): BuyMinerResult {
   if (!activeMine) {
     return { ok: false, message: 'No active mine', minerCost: getMinerCost(activeMine) };
   }
 
   const minerCost = getMinerCost(activeMine);
 
-  if (gameState.money < minerCost) {
+  if (money < minerCost) {
     return { ok: false, message: 'Not enough money!', minerCost };
   }
 
@@ -72,7 +87,6 @@ export function buyMiner(gameState: GameState, activeMine: MineDepth | null): Bu
     return { ok: false, message: 'No room!', minerCost };
   }
 
-  gameState.money -= minerCost;
   activeMine.miners.push({
     level: 1,
     tileIndex: freeIndices[0],
@@ -80,7 +94,7 @@ export function buyMiner(gameState: GameState, activeMine: MineDepth | null): Bu
     progress: 0,
   });
 
-  return { ok: true, minerCost };
+  return { ok: true, minerCost, nextMoney: money - minerCost };
 }
 
 export type MoveOrMergeMinerResult =
@@ -155,34 +169,23 @@ export function moveOrMergeMiner(activeMine: MineDepth | null, draggedMiner: Min
   return { ok: false, reason: 'blocked-target', message: 'Target tile must be empty' };
 }
 
-export function digDeeper(gameState: GameState): ActionResult {
-  const activePlot = gameState.world.plots[gameState.world.activePlotIndex];
-
-  if (!activePlot) {
-    return { ok: false, message: 'No active plot' };
-  }
-
-  const activeNorthExpansion = activePlot.northExpansions[activePlot.activeNorthExpansionIndex];
-
+export function digDeeper(worldSeed: string, resetCount: number, activeShaftIndex: number, activeNorthExpansion: NorthExpansion | null): ActionResult {
   if (!activeNorthExpansion) {
-    return { ok: false, message: 'No active north expansion' };
+    return { ok: false, message: 'No active shaft expansion' };
   }
 
   const activeMine = activeNorthExpansion.mineDepths[activeNorthExpansion.activeDepthIndex];
-
   if (!activeMine) {
     return { ok: false, message: 'No active mine depth' };
   }
 
-  const clearStatus = getClearStatus(activeMine);
-
-  if (clearStatus !== 'hard') {
+  if (getClearStatus(activeMine) !== 'hard') {
     return { ok: false, message: 'Clear all rubble and dirt first!' };
   }
 
   const nextDepth = activeMine.depth + 1;
-  const plotIndex = gameState.world.activePlotIndex;
-  const nextMine = generatePlot(gameState.settings.worldSeed, engineeringStore.current.resetCount, nextDepth, plotIndex);
+  const nextMine = generatePlot(worldSeed, resetCount, nextDepth, activeShaftIndex);
+
   const validMinerTiles = new Set(
     nextMine.tiles
       .flat()
@@ -203,131 +206,60 @@ export function digDeeper(gameState: GameState): ActionResult {
   return { ok: true };
 }
 
-export function moveToAdjacentPlot(gameState: GameState, delta: number): ActionResult {
-  const next = gameState.world.activePlotIndex + delta;
-
-  if (next < 0 || next >= gameState.world.plots.length) {
-    return { ok: false, message: 'Cannot move to that plot' };
-  }
-
-  gameState.world.activePlotIndex = next;
-
-  const activePlot = gameState.world.plots[next];
-  const activeNorthExpansion = activePlot?.northExpansions?.[activePlot.activeNorthExpansionIndex];
-
-  if (activeNorthExpansion) {
-    activeNorthExpansion.selectedMiner = null;
-    activeNorthExpansion.draggedMiner = null;
-  }
-
-  return { ok: true };
-}
-
-function getActiveNorthContext(gameState: GameState) {
-  const activePlot = gameState.world.plots[gameState.world.activePlotIndex];
-  if (!activePlot) {
-    return { ok: false as const, result: { ok: false as const, message: 'No active plot' } };
-  }
-
-  const activeNorthExpansion = activePlot.northExpansions[activePlot.activeNorthExpansionIndex];
-  if (!activeNorthExpansion) {
-    return { ok: false as const, result: { ok: false as const, message: 'No active north expansion' } };
-  }
-
-  const activeMine = activeNorthExpansion.mineDepths[activeNorthExpansion.activeDepthIndex];
-  if (!activeMine) {
-    return { ok: false as const, result: { ok: false as const, message: 'No active mine depth' } };
-  }
-
-  return {
-    ok: true as const,
-    activePlot,
-    activeNorthExpansion,
-    activeMine,
-  };
-}
-
 function resetNorthExpansionSelection(northExpansion: NorthExpansion) {
   northExpansion.selectedMiner = null;
   northExpansion.draggedMiner = null;
 }
 
-function tryReturnToSurface(activeNorthExpansion: NorthExpansion, activeMine: MineDepth): ActionResult | null {
-  if (activeMine.depth === 0) {
-    return null;
+export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigationResult {
+  const { activeNorthExpansion, activeMine, activeShaftIndex, shaftsLength, money, maxShafts } = ctx;
+
+  if (!activeNorthExpansion || !activeMine) {
+    return { ok: false, message: 'No active shaft context' };
   }
 
-  activeNorthExpansion.activeDepthIndex = 0;
-  resetNorthExpansionSelection(activeNorthExpansion);
-  return { ok: true };
-}
-
-function tryMoveToExistingNorthPlot(gameState: GameState, nextIndex: number): ActionResult | null {
-  const existingNorthPlot = gameState.world.plots[nextIndex];
-  if (!existingNorthPlot) {
-    return null;
+  if (activeMine.depth > 0) {
+    activeNorthExpansion.activeDepthIndex = 0;
+    resetNorthExpansionSelection(activeNorthExpansion);
+    return { ok: true };
   }
 
-  gameState.world.activePlotIndex = nextIndex;
-
-  const nextExpansion = existingNorthPlot.northExpansions[existingNorthPlot.activeNorthExpansionIndex];
-  if (nextExpansion) {
-    resetNorthExpansionSelection(nextExpansion);
-  }
-
-  return { ok: true };
-}
-
-function tryBuyNorthPlot(gameState: GameState, nextIndex: number): ActionResult {
-  if (gameState.money < BASE_PLOT_COST) {
-    return { ok: false, message: 'Not enough money for a north expansion!' };
-  }
-
-  if (gameState.meta.maxNorthExpansions < nextIndex) {
-    return { ok: false, message: 'You reached the north expansion limit!' };
-  }
-
-  const newPlotState = createDefaultPlotState(gameState.settings.worldSeed, engineeringStore.current.resetCount, nextIndex, `Plot ${nextIndex}`);
-
-  gameState.world.plots.push(newPlotState);
-  gameState.money -= BASE_PLOT_COST;
-  gameState.world.activePlotIndex = nextIndex;
-
-  return { ok: true };
-}
-
-export function handleNorthAction(gameState: GameState): ActionResult {
-  const context = getActiveNorthContext(gameState);
-  if (!context.ok) {
-    return context.result;
-  }
-
-  const { activeMine, activeNorthExpansion } = context;
-
-  const surfaceResult = tryReturnToSurface(activeNorthExpansion, activeMine);
-  if (surfaceResult) {
-    return surfaceResult;
-  }
-
-  const clearStatus = getClearStatus(activeMine);
-  if (clearStatus !== 'soft') {
+  if (getClearStatus(activeMine) !== 'soft') {
     return { ok: false, message: 'Clear all of the rubble first!' };
   }
 
-  const nextIndex = gameState.world.activePlotIndex + 1;
-
-  const moveResult = tryMoveToExistingNorthPlot(gameState, nextIndex);
-  if (moveResult) {
-    return moveResult;
+  const nextIndex = activeShaftIndex + 1;
+  if (nextIndex < shaftsLength) {
+    return { ok: true, nextActiveShaftIndex: nextIndex };
   }
 
-  return tryBuyNorthPlot(gameState, nextIndex);
+  if (money < BASE_SHAFT_COST) {
+    return { ok: false, message: 'Not enough money for a new shaft!' };
+  }
+
+  if (maxShafts < nextIndex) {
+    return { ok: false, message: 'You reached the shaft limit!' };
+  }
+
+  return { ok: true, nextActiveShaftIndex: nextIndex, nextMoney: money - BASE_SHAFT_COST };
 }
 
-export function handleSouthAction(gameState: GameState): ActionResult {
-  if (gameState.world.activePlotIndex === 0) {
-    return { ok: false, message: 'Already at the southernmost plot' };
+export function handlePreviousShaftAction(activeShaftIndex: number): ActionResult {
+  if (activeShaftIndex === 0) {
+    return { ok: false, message: 'Already at the first shaft' };
   }
 
-  return moveToAdjacentPlot(gameState, -1);
+  return { ok: true };
+}
+
+export function handleBuyStationAction(args: { stationUnlocked: boolean; money: number; stationCost: number }): ActionResult {
+  if (!args.stationUnlocked) {
+    return { ok: false, message: 'Station is locked' };
+  }
+
+  if (args.money < args.stationCost) {
+    return { ok: false, message: 'Not enough money for a station!' };
+  }
+
+  return { ok: true };
 }

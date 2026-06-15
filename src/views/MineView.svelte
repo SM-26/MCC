@@ -1,39 +1,58 @@
+<!-- /src/views/MineView.svelte -->
+
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { Button } from 'bits-ui';
-  import { appContext, gameState } from '../stores/index.svelte';
+
   import { debouncedSave } from '../logic/save/save.svelte';
   import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
   import { runMiningTick } from '../logic/mine/mineTick';
-  import { buyMiner, canBuyMiner, digDeeper, getMinerCost, handleNorthAction, handleSouthAction, moveOrMergeMiner } from '../logic/mine/mineActions';
-  import { getExpansionLabel, getPlotLabel } from '../logic/mine/mineLabels';
+  import {
+    buyMiner,
+    canBuyMiner,
+    digDeeper,
+    getMinerCost,
+    handleBuyStationAction,
+    handleNextShaftAction,
+    handlePreviousShaftAction,
+    moveOrMergeMiner,
+  } from '../logic/mine/mineActions';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import MineHeader from '../components/mine/MineHeader.svelte';
   import MineGrid from '../components/mine/MineGrid.svelte';
   import { log } from '../lib/logger';
-  import type { Miner, ScreenSizes, NorthExpansion } from '../types';
 
-  const screenSize = $derived<ScreenSizes>(appContext.screenSize);
+  import { appContext } from '../logic/app/appContext.svelte';
+  import { engineeringStore } from '../logic/engineering/engineeringStore.svelte';
+  import { gameState } from '../logic/app/gameState.svelte';
+  import { mineStore } from '../logic/mine/mineStore.svelte';
+  import { worldStore } from '../logic/world/worldStore.svelte';
 
-  const activePlotIndex = $derived(gameState.world.activePlotIndex);
-  const activePlotState = $derived(gameState.world.plots[activePlotIndex] ?? null);
-  const activeNorthExpansion = $derived(activePlotState?.northExpansions?.[activePlotState.activeNorthExpansionIndex] ?? null);
-  const activeMine = $derived(activeNorthExpansion?.mineDepths?.[activeNorthExpansion.activeDepthIndex] ?? null);
+  import type { ScreenSize } from '../lib/sizes';
+  import type { Miner, NorthExpansion } from '../logic/mine/mineTypes';
 
+  const screenSize = $derived<ScreenSize>(appContext.current.screenSize);
+  const activeShaftIndex = $derived(worldStore.current.activePlotIndex);
+  const activePlotState = $derived(mineStore.current);
+  const activeNorthExpansion = $derived(activePlotState.northExpansions[activePlotState.activeNorthExpansionIndex] ?? null);
+  const activeMine = $derived(activeNorthExpansion?.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null);
+  const currentShaftLabel = $derived(activePlotState.plotName || `Shaft ${activeShaftIndex + 1}`);
+  const nextShaftLabel = $derived(`Shaft ${activeShaftIndex + 2}`);
   const minerCost = $derived(getMinerCost(activeMine));
-  const playerCanBuyMiner = $derived(canBuyMiner(gameState, activeMine));
+  const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
-
-  const expansionLabel = $derived(activePlotState ? getExpansionLabel(activePlotState.activeNorthExpansionIndex) : 'none');
-
-  const plotLabel = $derived(activePlotState ? getPlotLabel(activePlotState.plotName, activePlotIndex) : 'Unknown plot');
-
-  const canGoSouth = $derived(gameState.world.activePlotIndex > 0);
+  const canGoPrevious = $derived(activeShaftIndex > 0);
+  const canGoNext = $derived(false);
   const canDigDeeper = $derived(clearStatus === 'hard');
+  const canBuyNextShaft = $derived(
+    activeMine
+      ? activeMine.depth === 0 && clearStatus === 'soft' && gameState.current.money >= 100 && activeShaftIndex < engineeringStore.current.maxNorthExpansions
+      : false,
+  );
+  const canBuyStation = $derived(false);
 
   let interval: ReturnType<typeof setInterval>;
-
   let draggedMiner = $state<Miner | null>(null);
   let draggedPointerId = $state<number | null>(null);
   let dragPos = $state({ x: 0, y: 0 });
@@ -41,45 +60,33 @@
 
   function handleMiningTick() {
     if (!activeMine) return;
-
-    const result = runMiningTick(activeMine, gameState.money);
-    gameState.money = result.nextMoney;
-
-    if (result.didClearTile || result.didEarnMoney) {
-      debouncedSave();
-    }
+    const result = runMiningTick(activeMine, gameState.current.money);
+    gameState.current.money = result.nextMoney;
+    if (result.didClearTile || result.didEarnMoney) debouncedSave();
   }
 
   function resetDragState() {
     isDraggingMiner = false;
     draggedMiner = null;
     draggedPointerId = null;
-
-    if (activeNorthExpansion) {
-      activeNorthExpansion.draggedMiner = null;
-    }
+    if (activeNorthExpansion) activeNorthExpansion.draggedMiner = null;
   }
 
   function handleMinerPointerDown(event: PointerEvent, miner: Miner) {
     if (!activeMine || !activeNorthExpansion) return;
-
     event.preventDefault();
-
     draggedMiner = miner;
     draggedPointerId = event.pointerId;
     isDraggingMiner = true;
     dragPos = { x: event.clientX, y: event.clientY };
-
     activeNorthExpansion.selectedMiner = miner;
     activeNorthExpansion.draggedMiner = miner;
-
     const element = event.currentTarget as HTMLElement | null;
     element?.setPointerCapture?.(event.pointerId);
   }
 
   function handlePointerMove(event: PointerEvent) {
     if (!isDraggingMiner || draggedPointerId !== event.pointerId) return;
-
     event.preventDefault();
     dragPos = { x: event.clientX, y: event.clientY };
   }
@@ -87,24 +94,16 @@
   function getDropTileIndex(clientX: number, clientY: number): number | null {
     const dropTarget = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
     const tileElement = dropTarget?.closest?.('[data-tile-index]') as HTMLElement | null;
-
-    if (!tileElement) {
-      return null;
-    }
-
+    if (!tileElement) return null;
     const rawIndex = tileElement.dataset.tileIndex;
     const targetIdx = rawIndex ? Number(rawIndex) : Number.NaN;
-
     return Number.isNaN(targetIdx) ? null : targetIdx;
   }
 
   function handleDropResult(result: ReturnType<typeof moveOrMergeMiner>, draggedMiner: Miner, activeNorthExpansion: NorthExpansion) {
     if (!result.ok) {
-      if (result.reason === 'blocked-target') {
-        log.info('finishPointerDrag-> move miner', result.message);
-      } else {
-        triggerMobileToast(result.message);
-      }
+      if (result.reason === 'blocked-target') log.info('finishPointerDrag-> move miner', result.message);
+      else triggerMobileToast(result.message);
       return;
     }
 
@@ -125,7 +124,6 @@
     }
 
     const targetIdx = getDropTileIndex(clientX, clientY);
-
     if (targetIdx === null) {
       resetDragState();
       return;
@@ -133,12 +131,11 @@
 
     const result = moveOrMergeMiner(activeMine, draggedMiner, targetIdx);
     handleDropResult(result, draggedMiner, activeNorthExpansion);
-
     resetDragState();
   }
+
   function handlePointerUp(event: PointerEvent) {
     if (draggedPointerId !== event.pointerId) return;
-
     event.preventDefault();
     finishPointerDrag(event.clientX, event.clientY);
   }
@@ -149,66 +146,105 @@
   }
 
   function handleBuyMiner() {
-    const result = buyMiner(gameState, activeMine);
-
+    const result = buyMiner(gameState.current.money, activeMine);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
     }
-
+    gameState.current.money = result.nextMoney ?? gameState.current.money - result.minerCost;
     debouncedSave();
   }
 
   function handleDigDeeperAction() {
-    const result = digDeeper(gameState);
+    const result = digDeeper(gameState.current.settings.worldSeed, 0, activeShaftIndex, activeNorthExpansion);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    resetDragState();
+    debouncedSave();
+  }
+
+  function handlePreviousShaft() {
+    const result = handlePreviousShaftAction(activeShaftIndex);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
+  function handleNextShaft() {
+    const result = handleNextShaftAction({
+      worldSeed: gameState.current.settings.worldSeed,
+      resetCount: 0,
+      money: gameState.current.money,
+      maxShafts: engineeringStore.current.maxNorthExpansions,
+      activeShaftIndex,
+      shaftsLength: 1,
+      activeNorthExpansion,
+      activeMine,
+    });
 
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
     }
 
+    if (typeof result.nextMoney === 'number') {
+      gameState.current.money = result.nextMoney;
+    }
+
     resetDragState();
     debouncedSave();
   }
 
-  function handleNorthNavigation() {
-    const result = handleNorthAction(gameState);
+  function handleBuyNextShaft() {
+    const result = handleNextShaftAction({
+      worldSeed: gameState.current.settings.worldSeed,
+      resetCount: 0,
+      money: gameState.current.money,
+      maxShafts: engineeringStore.current.maxNorthExpansions,
+      activeShaftIndex,
+      shaftsLength: 1,
+      activeNorthExpansion,
+      activeMine,
+    });
 
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
     }
 
+    if (typeof result.nextMoney === 'number') {
+      gameState.current.money = result.nextMoney;
+    }
+
     resetDragState();
     debouncedSave();
   }
 
-  function handleSouthNavigation() {
-    const result = handleSouthAction(gameState);
-
+  function handleBuyStation() {
+    const result = handleBuyStationAction({ stationUnlocked: false, money: gameState.current.money, stationCost: 0 });
     if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
       return;
     }
-
-    resetDragState();
     debouncedSave();
   }
 
   function handleGlobalPointerMove(event: PointerEvent) {
     handlePointerMove(event);
   }
-
   function handleGlobalPointerUp(event: PointerEvent) {
     handlePointerUp(event);
   }
-
   function handleGlobalPointerCancel(event: PointerEvent) {
     handlePointerCancel(event);
   }
 
   onMount(() => {
     interval = setInterval(handleMiningTick, 1000);
-
     window.addEventListener('pointermove', handleGlobalPointerMove, { passive: false });
     window.addEventListener('pointerup', handleGlobalPointerUp, { passive: false });
     window.addEventListener('pointercancel', handleGlobalPointerCancel, { passive: false });
@@ -216,7 +252,6 @@
 
   onDestroy(() => {
     clearInterval(interval);
-
     window.removeEventListener('pointermove', handleGlobalPointerMove);
     window.removeEventListener('pointerup', handleGlobalPointerUp);
     window.removeEventListener('pointercancel', handleGlobalPointerCancel);
@@ -226,15 +261,20 @@
 {#if activePlotState && activeNorthExpansion && activeMine}
   <div class="mine-view size-{screenSize}">
     <MineHeader
-      {plotLabel}
-      {expansionLabel}
+      shaftLabel={currentShaftLabel}
+      {nextShaftLabel}
       depth={activeMine.depth}
       {clearStatus}
       {clearPercent}
-      {canGoSouth}
+      {canGoPrevious}
+      {canGoNext}
+      {canBuyNextShaft}
       {canDigDeeper}
-      onNorthAction={handleNorthNavigation}
-      onSouthAction={handleSouthNavigation}
+      {canBuyStation}
+      onPreviousShaft={handlePreviousShaft}
+      onNextShaft={handleNextShaft}
+      onBuyNextShaft={handleBuyNextShaft}
+      onBuyStation={handleBuyStation}
       onDigDeeper={handleDigDeeperAction}
     />
 
