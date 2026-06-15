@@ -1,320 +1,297 @@
 // src/logic/mine/mineStore.svelte.ts
 
-import type {
-    AgeResources,
-    Ages,
-    MineDepthState,
-    MineTile,
-    MineTileType,
-    Miner,
-    NorthExpansion,
-    PlotId,
-    PlotState,
-    ResourceType,
-} from './mineTypes';
+import type { AgeResources, Ages, MineDepthState, MineTile, MineTileType, Miner, NorthExpansion, PlotId, PlotState, ResourceType } from './mineTypes';
 
-import {
-    createEmptyAgeResources,
-    getActiveMineDepth,
-    getActiveNorthExpansion,
-    getMineDepthByDepth,
-} from './mineTypes';
+import { createEmptyAgeResources, getActiveMineDepth, getActiveNorthExpansion, getMineDepthByDepth } from './mineTypes';
 
 function createDefaultMiner(overrides: Partial<Miner> = {}): Miner {
-    return {
-        level: 1,
-        tileIndex: 0,
-        facing: 1,
-        progress: 0,
-        ...overrides,
-    };
+  return {
+    level: 1,
+    tileIndex: 0,
+    facing: 1,
+    progress: 0,
+    ...overrides,
+  };
 }
 
 // TODO: move into mineTypes.ts or later mineFactories.ts or something
-function createDefaultMineTile(
-    type: MineTileType = 'empty',
-    overrides: Partial<MineTile> = {},
-): MineTile {
-    const resourceType: ResourceType =
-        type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy'
-            ? type
-            : 'none';
+function createDefaultMineTile(type: MineTileType = 'empty', overrides: Partial<MineTile> = {}): MineTile {
+  const resourceType: ResourceType = type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy' ? type : 'none';
 
-    return {
-        type,
-        level: 1,
-        hp: 0,
-        maxHp: 0,
-        value: 0,
-        resourceType,
-        ...overrides,
-    };
+  return {
+    type,
+    level: 1,
+    hp: 0,
+    maxHp: 0,
+    value: 0,
+    resourceType,
+    ...overrides,
+  };
 }
 
-function createTileGrid(
-    rows: number,
-    cols: number,
-    fill: MineTileType = 'empty',
-): MineTile[][] {
-    return Array.from({ length: rows }, () =>
-        Array.from({ length: cols }, () => createDefaultMineTile(fill)),
-    );
+function createTileGrid(rows: number, cols: number, fill: MineTileType = 'empty'): MineTile[][] {
+  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => createDefaultMineTile(fill)));
 }
 
 // TODO: move into mineTypes.ts or later mineFactories.ts or something
-function createDefaultMineDepthState(
-    depth = 0,
-    rows = 5,
-    cols = 5,
-): MineDepthState {
-    return {
-        depth,
-        rows,
-        cols,
-        tiles: createTileGrid(rows, cols, depth === 0 ? 'dirt' : 'empty'),
-        miners: [],
-    };
+function createDefaultMineDepthState(depth = 0, rows = 5, cols = 5): MineDepthState {
+  return {
+    depth,
+    rows,
+    cols,
+    tiles: createTileGrid(rows, cols, depth === 0 ? 'dirt' : 'empty'),
+    miners: [],
+  };
 }
 
 // TODO: move into mineTypes.ts or later mineFactories.ts or something
 function createDefaultNorthExpansion(): NorthExpansion {
-    return {
-        mineDepths: [createDefaultMineDepthState(0)],
-        selectedMiner: null,
-        draggedMiner: null,
-        lastTick: Date.now(),
-        activeDepthIndex: 0,
-    };
+  return {
+    mineDepths: [createDefaultMineDepthState(0)],
+    selectedMiner: null,
+    draggedMiner: null,
+    lastTick: Date.now(),
+    activeDepthIndex: 0,
+  };
 }
 
 // TODO: move into mineTypes.ts or later mineFactories.ts or something
-function createDefaultPlotState(
-    plotId: PlotId = 'plot-0',
-    plotName = 'Plot 1',
-): PlotState {
-    return {
-        plotId,
-        plotName,
-        currentAge: 'Mechanical',
-        ageResources: createEmptyAgeResources(),
-        northExpansions: [createDefaultNorthExpansion()],
-        activeNorthExpansionIndex: 0,
-        station: null,
-    };
+function createDefaultPlotState(plotId: PlotId = 'plot-0', plotName = 'Plot 1'): PlotState {
+  return {
+    plotId,
+    plotName,
+    currentAge: 'Mechanical',
+    ageResources: createEmptyAgeResources(),
+    northExpansions: [createDefaultNorthExpansion()],
+    activeNorthExpansionIndex: 0,
+    station: null,
+  };
 }
 
 function clampIndex(index: number, length: number): number {
-    if (length <= 0) return 0;
-    return Math.max(0, Math.min(index, length - 1));
+  if (length <= 0) {
+    return 0;
+  }
+  return Math.max(0, Math.min(index, length - 1));
 }
 
-function addAgeResource(
-    resources: AgeResources,
-    resourceType: Exclude<ResourceType, 'none' | 'money'>,
-    amount: number,
-) {
-    resources[resourceType] += amount;
+function addAgeResource(resources: AgeResources, resourceType: Exclude<ResourceType, 'none' | 'money'>, amount: number) {
+  resources[resourceType] += amount;
 }
 
 export function createMineStore(initial?: Partial<PlotState>) {
-
-    function getTileAt(row: number, col: number): MineTile | null {
-        const mineDepth = activeMineDepth;
-        if (!mineDepth) return null;
-        if (row < 0 || row >= mineDepth.rows) return null;
-        if (col < 0 || col >= mineDepth.cols) return null;
-
-        return mineDepth.tiles[row]?.[col] ?? null;
+  function getTileAt(row: number, col: number): MineTile | null {
+    const mineDepth = activeMineDepth;
+    if (!mineDepth) {
+      return null;
+    }
+    if (row < 0 || row >= mineDepth.rows) {
+      return null;
+    }
+    if (col < 0 || col >= mineDepth.cols) {
+      return null;
     }
 
-    function getResourceTypeForTileType(type: MineTileType): ResourceType {
-        return type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy'
-            ? type
-            : 'none';
-    }
+    return mineDepth.tiles[row]?.[col] ?? null;
+  }
 
-    const state = $state<PlotState>({
-        ...createDefaultPlotState(initial?.plotId, initial?.plotName),
-        ...initial,
-        ageResources: initial?.ageResources ?? createEmptyAgeResources(),
-        northExpansions: initial?.northExpansions ?? [createDefaultNorthExpansion()],
-        station: initial?.station ?? null,
-    });
+  function getResourceTypeForTileType(type: MineTileType): ResourceType {
+    return type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy' ? type : 'none';
+  }
 
-    const activeNorthExpansion = $derived(
-        state.northExpansions[state.activeNorthExpansionIndex] ?? null,
-    );
+  const state = $state<PlotState>({
+    ...createDefaultPlotState(initial?.plotId, initial?.plotName),
+    ...initial,
+    ageResources: initial?.ageResources ?? createEmptyAgeResources(),
+    northExpansions: initial?.northExpansions ?? [createDefaultNorthExpansion()],
+    station: initial?.station ?? null,
+  });
 
-    const activeMineDepth = $derived(
-        activeNorthExpansion
-            ? activeNorthExpansion.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null
-            : null,
-    );
+  const activeNorthExpansion = $derived(state.northExpansions[state.activeNorthExpansionIndex] ?? null);
 
-    return {
-        get current() {
-            return state;
-        },
+  const activeMineDepth = $derived(activeNorthExpansion ? (activeNorthExpansion.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null) : null);
 
-        get activeNorthExpansion() {
-            return activeNorthExpansion;
-        },
+  return {
+    get current() {
+      return state;
+    },
 
-        get activeMineDepth() {
-            return activeMineDepth;
-        },
+    get activeNorthExpansion() {
+      return activeNorthExpansion;
+    },
 
-        reset(plotId: PlotId = state.plotId, plotName = state.plotName) {
-            Object.assign(state, createDefaultPlotState(plotId, plotName));
-        },
+    get activeMineDepth() {
+      return activeMineDepth;
+    },
 
-        replace(next: PlotState) {
-            Object.assign(state, next);
-        },
+    reset(plotId: PlotId = state.plotId, plotName = state.plotName) {
+      Object.assign(state, createDefaultPlotState(plotId, plotName));
+    },
 
-        renamePlot(plotName: string) {
-            state.plotName = plotName;
-        },
+    replace(next: PlotState) {
+      Object.assign(state, next);
+    },
 
-        setCurrentAge(age: Ages) {
-            state.currentAge = age;
-        },
+    renamePlot(plotName: string) {
+      state.plotName = plotName;
+    },
 
-        setActiveNorthExpansionIndex(index: number) {
-            state.activeNorthExpansionIndex = clampIndex(index, state.northExpansions.length);
-        },
+    setCurrentAge(age: Ages) {
+      state.currentAge = age;
+    },
 
-        setActiveDepthIndex(index: number) {
-            const expansion = activeNorthExpansion;
-            if (!expansion) return;
+    setActiveNorthExpansionIndex(index: number) {
+      state.activeNorthExpansionIndex = clampIndex(index, state.northExpansions.length);
+    },
 
-            expansion.activeDepthIndex = clampIndex(index, expansion.mineDepths.length);
-        },
+    setActiveDepthIndex(index: number) {
+      const expansion = activeNorthExpansion;
+      if (!expansion) {
+        return;
+      }
 
-        addNorthExpansion(expansion?: Partial<NorthExpansion>) {
-            const next: NorthExpansion = {
-                ...createDefaultNorthExpansion(),
-                ...expansion,
-                mineDepths: expansion?.mineDepths ?? [createDefaultMineDepthState(0)],
-            };
+      expansion.activeDepthIndex = clampIndex(index, expansion.mineDepths.length);
+    },
 
-            state.northExpansions.push(next);
-            state.activeNorthExpansionIndex = state.northExpansions.length - 1;
-        },
+    addNorthExpansion(expansion?: Partial<NorthExpansion>) {
+      const next: NorthExpansion = {
+        ...createDefaultNorthExpansion(),
+        ...expansion,
+        mineDepths: expansion?.mineDepths ?? [createDefaultMineDepthState(0)],
+      };
 
-        addMineDepth(depth: number, rows = 5, cols = 5) {
-            const expansion = activeNorthExpansion;
-            if (!expansion) return false;
+      state.northExpansions.push(next);
+      state.activeNorthExpansionIndex = state.northExpansions.length - 1;
+    },
 
-            const existing = getMineDepthByDepth(expansion, depth);
-            if (existing) return false;
+    addMineDepth(depth: number, rows = 5, cols = 5) {
+      const expansion = activeNorthExpansion;
+      if (!expansion) {
+        return false;
+      }
 
-            expansion.mineDepths.push(createDefaultMineDepthState(depth, rows, cols));
-            expansion.mineDepths.sort((a, b) => a.depth - b.depth);
-            expansion.activeDepthIndex = expansion.mineDepths.findIndex(
-                (mineDepth) => mineDepth.depth === depth,
-            );
+      const existing = getMineDepthByDepth(expansion, depth);
+      if (existing) {
+        return false;
+      }
 
-            return true;
-        },
+      expansion.mineDepths.push(createDefaultMineDepthState(depth, rows, cols));
+      expansion.mineDepths.sort((a, b) => a.depth - b.depth);
+      expansion.activeDepthIndex = expansion.mineDepths.findIndex((mineDepth) => mineDepth.depth === depth);
 
-        setSelectedMiner(miner: Miner | null) {
-            const expansion = activeNorthExpansion;
-            if (!expansion) return;
+      return true;
+    },
 
-            expansion.selectedMiner = miner;
-        },
+    setSelectedMiner(miner: Miner | null) {
+      const expansion = activeNorthExpansion;
+      if (!expansion) {
+        return;
+      }
 
-        setDraggedMiner(miner: Miner | null) {
-            const expansion = activeNorthExpansion;
-            if (!expansion) return;
+      expansion.selectedMiner = miner;
+    },
 
-            expansion.draggedMiner = miner;
-        },
+    setDraggedMiner(miner: Miner | null) {
+      const expansion = activeNorthExpansion;
+      if (!expansion) {
+        return;
+      }
 
-        touchTick(timestamp = Date.now()) {
-            const expansion = activeNorthExpansion;
-            if (!expansion) return;
+      expansion.draggedMiner = miner;
+    },
 
-            expansion.lastTick = timestamp;
-        },
+    touchTick(timestamp = Date.now()) {
+      const expansion = activeNorthExpansion;
+      if (!expansion) {
+        return;
+      }
 
-        addMiner(miner?: Partial<Miner>) {
-            const mineDepth = activeMineDepth;
-            if (!mineDepth) return false;
+      expansion.lastTick = timestamp;
+    },
 
-            mineDepth.miners.push(createDefaultMiner(miner));
-            return true;
-        },
+    addMiner(miner?: Partial<Miner>) {
+      const mineDepth = activeMineDepth;
+      if (!mineDepth) {
+        return false;
+      }
 
-        removeMiner(index: number) {
-            const mineDepth = activeMineDepth;
-            if (!mineDepth) return false;
-            if (index < 0 || index >= mineDepth.miners.length) return false;
+      mineDepth.miners.push(createDefaultMiner(miner));
+      return true;
+    },
 
-            mineDepth.miners.splice(index, 1);
-            return true;
-        },
+    removeMiner(index: number) {
+      const mineDepth = activeMineDepth;
+      if (!mineDepth) {
+        return false;
+      }
+      if (index < 0 || index >= mineDepth.miners.length) {
+        return false;
+      }
 
-        updateMiner(index: number, updates: Partial<Miner>) {
-            const mineDepth = activeMineDepth;
-            if (!mineDepth) return false;
-            if (index < 0 || index >= mineDepth.miners.length) return false;
+      mineDepth.miners.splice(index, 1);
+      return true;
+    },
 
-            Object.assign(mineDepth.miners[index], updates);
-            return true;
-        },
+    updateMiner(index: number, updates: Partial<Miner>) {
+      const mineDepth = activeMineDepth;
+      if (!mineDepth) {
+        return false;
+      }
+      if (index < 0 || index >= mineDepth.miners.length) {
+        return false;
+      }
 
-        setTile(row: number, col: number, updates: Partial<MineTile>) {
-            const tile = getTileAt(row, col);
-            if (!tile) return false;
+      Object.assign(mineDepth.miners[index], updates);
+      return true;
+    },
 
-            Object.assign(tile, updates);
-            return true;
-        },
+    setTile(row: number, col: number, updates: Partial<MineTile>) {
+      const tile = getTileAt(row, col);
+      if (!tile) {
+        return false;
+      }
 
-        setTileType(row: number, col: number, type: MineTileType) {
-            const tile = getTileAt(row, col);
-            if (!tile) return false;
+      Object.assign(tile, updates);
+      return true;
+    },
 
-            tile.type = type;
-            tile.resourceType = getResourceTypeForTileType(type);
-            return true;
-        },
+    setTileType(row: number, col: number, type: MineTileType) {
+      const tile = getTileAt(row, col);
+      if (!tile) {
+        return false;
+      }
 
-        damageTile(row: number, col: number, amount: number) {
-            const tile = getTileAt(row, col);
-            if (!tile) return false;
+      tile.type = type;
+      tile.resourceType = getResourceTypeForTileType(type);
+      return true;
+    },
 
-            tile.hp = Math.max(0, tile.hp - amount);
-            return true;
-        },
+    damageTile(row: number, col: number, amount: number) {
+      const tile = getTileAt(row, col);
+      if (!tile) {
+        return false;
+      }
 
-        addAgeResource(
-            resourceType: Exclude<ResourceType, 'none' | 'money'>,
-            amount = 1,
-        ) {
-            addAgeResource(state.ageResources, resourceType, amount);
-        },
+      tile.hp = Math.max(0, tile.hp - amount);
+      return true;
+    },
 
-        spendAgeResource(
-            resourceType: Exclude<ResourceType, 'none' | 'money'>,
-            amount = 1,
-        ) {
-            state.ageResources[resourceType] = Math.max(
-                0,
-                state.ageResources[resourceType] - amount,
-            );
-        },
+    addAgeResource(resourceType: Exclude<ResourceType, 'none' | 'money'>, amount = 1) {
+      addAgeResource(state.ageResources, resourceType, amount);
+    },
 
-        getActiveNorthExpansion(): NorthExpansion | null {
-            return getActiveNorthExpansion(state);
-        },
+    spendAgeResource(resourceType: Exclude<ResourceType, 'none' | 'money'>, amount = 1) {
+      state.ageResources[resourceType] = Math.max(0, state.ageResources[resourceType] - amount);
+    },
 
-        getActiveMineDepth(): MineDepthState | null {
-            return getActiveMineDepth(state);
-        },
-    };
+    getActiveNorthExpansion(): NorthExpansion | null {
+      return getActiveNorthExpansion(state);
+    },
+
+    getActiveMineDepth(): MineDepthState | null {
+      return getActiveMineDepth(state);
+    },
+  };
 }
 
 export const mineStore = createMineStore();

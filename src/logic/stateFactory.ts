@@ -11,12 +11,7 @@ import { createDefaultSavedNavigation } from './app/navigationTypes';
 import { createDefaultSettingsState } from './app/settingsTypes';
 import { createEmptyAgeResources } from './mine/mineTypes';
 
-function createDefaultPlotState(
-  worldSeed: string,
-  plotIndex = 0,
-  plotId = `plot-${plotIndex}`,
-  plotName = 'Prague',
-): PlotState {
+function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotId = `plot-${plotIndex}`, plotName = 'Prague'): PlotState {
   return {
     plotId,
     plotName,
@@ -56,9 +51,7 @@ function createDefaultWorldState(initialPlots: PlotState[]): WorldState {
 export function getInitialState(): GameState {
   const worldSeed = '123456';
 
-  const plots: PlotState[] = [
-    createDefaultPlotState(worldSeed, 0, 'plot-0', 'Prague'),
-  ];
+  const plots: PlotState[] = [createDefaultPlotState(worldSeed, 0, 'plot-0', 'Prague')];
 
   return {
     money: 75,

@@ -9,7 +9,7 @@ export type MineTileType = 'empty' | 'dirt' | 'blocker' | 'rubble' | 'coal' | 'o
 export type ScreenSizes = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type Ages = 'Mechanical' | 'Steam' | 'Diesel' | 'Electric' | 'Maglev';
 
-export type cartTypes = 'simple' | 'double deckers' | `laxury` | 'cargo' | 'better cargo' | `best cargo`
+export type cartTypes = 'simple' | 'double deckers' | `laxury` | 'cargo' | 'better cargo' | `best cargo`;
 
 export interface AppContext {
   isPWAInstalled: boolean;

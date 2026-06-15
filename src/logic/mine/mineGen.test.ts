@@ -1,3 +1,5 @@
+// src/logic/mine/mineGen.test.ts
+
 import { describe, expect, it } from 'vitest';
 import type { MineDepth, MineTile, MineTileType } from '../../types';
 import { TILE_DEFS } from './tileDefinitions';
@@ -416,4 +418,3 @@ describe('MineGen stats and clear helpers', () => {
     expect(getClearProgress(plot)).toBe(25);
   });
 });
-

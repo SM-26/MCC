@@ -7,31 +7,31 @@ import type { TabId } from '../app/navigationTypes';
 import type { WorldState } from '../world/worldTypes';
 
 export interface SaveMetadata {
-    saveVersion: string;
-    saveCommitHash: string;
-    savedAt: number; // unix ms timestamp
+  saveVersion: string;
+  saveCommitHash: string;
+  savedAt: number; // unix ms timestamp
 }
 
 export interface SavedNavigation {
-    activeTab: TabId;
+  activeTab: TabId;
 }
 
 export interface GameState {
-    // Player data
-    money: number;
+  // Player data
+  money: number;
 
-    // Feature state
-    world: WorldState;
-    plots: PlotState[];
-    engineering: EngineeringState;
-    settings: SettingsState;
+  // Feature state
+  world: WorldState;
+  plots: PlotState[];
+  engineering: EngineeringState;
+  settings: SettingsState;
 }
 
 export type PersistedGameState = GameState & {
-    navigation: SavedNavigation;
+  navigation: SavedNavigation;
 };
 
 export interface SaveFile {
-    meta: SaveMetadata;
-    data: PersistedGameState;
+  meta: SaveMetadata;
+  data: PersistedGameState;
 }

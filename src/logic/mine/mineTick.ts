@@ -1,3 +1,4 @@
+// src/logic/mine/mineTick.ts
 import type { MineDepth, MineTile } from '../../types';
 
 type MineTarget = { tile: MineTile };

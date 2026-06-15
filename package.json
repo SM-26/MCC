@@ -11,7 +11,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "lint": "eslint .",
     "test": "vitest",
-    "test:run": "vitest run --passWithNoTests",
+    "test:run": "vitest run",
     "predeploy": "pnpm run build",
     "deploy": "gh-pages -d dist",
     "format": "prettier --write \"src/**/*.{js,ts,svelte,css,md,json}\"",

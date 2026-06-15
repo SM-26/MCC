@@ -1,42 +1,135 @@
+// src/logic/save/save.svelte.test.ts
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { TabId } from '../app/navigationTypes';
 
 const makeInitialState = () => ({
   money: 100,
   world: {
+    cells: [],
     plots: [
       {
+        plotId: 'plot-0',
+        cellId: 'cell-0',
         plotName: 'Plot 0',
-        northExpansions: [],
-        activeNorthExpansionIndex: 0,
-        ageResources: {
-          coal: 0,
-          oil: 0,
-          copper: 0,
-          superAlloy: 0,
-        },
-        currentAge: 'stone',
-        station: null,
+        discovered: true,
       },
     ],
     activePlotIndex: 0,
   },
-  meta: {
+  plots: [
+    {
+      plotId: 'plot-0',
+      plotName: 'Plot 0',
+      currentAge: 'Mechanical',
+      ageResources: {
+        coal: 0,
+        oil: 0,
+        copper: 0,
+        superalloy: 0,
+      },
+      northExpansions: [
+        {
+          mineDepths: [
+            {
+              depth: 0,
+              rows: 1,
+              cols: 1,
+              tiles: [
+                [
+                  {
+                    type: 'dirt',
+                    level: 1,
+                    hp: 1,
+                    maxHp: 1,
+                    value: 0,
+                    resourceType: 'none',
+                  },
+                ],
+              ],
+              miners: [],
+            },
+          ],
+          selectedMiner: null,
+          draggedMiner: null,
+          lastTick: 0,
+          activeDepthIndex: 0,
+        },
+      ],
+      activeNorthExpansionIndex: 0,
+      station: null,
+    },
+  ],
+  engineering: {
+    engineeringIdeas: 0,
+    resetCount: 0,
     maxNorthExpansions: 3,
+    maxUndergroundLevels: 1,
   },
   settings: {
+    navbarPosition: 'top',
+    defaultView: 'world',
+    devMode: false,
     soundEnabled: true,
+    notificationsEnabled: true,
+    theme: 'dark',
+    worldSeed: 'seed-123',
   },
 });
 
+const initialState = makeInitialState();
+
 const gameState = {
-  money: 0,
-  world: makeInitialState().world,
-  meta: makeInitialState().meta,
-  settings: makeInitialState().settings,
+  current: {
+    money: initialState.money,
+    activeTab: 'world' as TabId,
+    settings: structuredClone(initialState.settings),
+  },
+  setMoney: vi.fn((value: number) => {
+    gameState.current.money = value;
+  }),
+  updateSettings: vi.fn((updates: Partial<typeof initialState.settings>) => {
+    Object.assign(gameState.current.settings, updates);
+  }),
+  setActiveTab: vi.fn((tab: typeof gameState.current.activeTab) => {
+    gameState.current.activeTab = tab;
+    return true;
+  }),
 };
 
-const navigation = {
-  activeTab: 'world' as string,
+const worldStore = {
+  current: structuredClone(initialState.world),
+  replace: vi.fn((next: typeof initialState.world) => {
+    worldStore.current = structuredClone(next);
+  }),
+};
+
+const mineStore = {
+  current: structuredClone(initialState.plots[0]),
+  replace: vi.fn((next: (typeof initialState.plots)[0]) => {
+    mineStore.current = structuredClone(next);
+  }),
+  reset: vi.fn(() => {
+    mineStore.current = structuredClone(makeInitialState().plots[0]);
+  }),
+};
+
+const engineeringStore = {
+  current: structuredClone(initialState.engineering),
+  replace: vi.fn((next: typeof initialState.engineering) => {
+    engineeringStore.current = structuredClone(next);
+  }),
+};
+
+const saveStore = {
+  current: {
+    lastSaveMetadata: null as null | { saveVersion: string },
+    lastError: null as string | null,
+  },
+  setStorageKey: vi.fn(),
+  loadFromLocalStorage: vi.fn(),
+  saveToLocalStorage: vi.fn(),
+  clearLocalStorageSave: vi.fn(),
 };
 
 const log = {
@@ -46,64 +139,70 @@ const log = {
   error: vi.fn(),
 };
 
-vi.mock('../../stores/index.svelte', () => ({
-  gameState,
-  navigation,
-}));
-
 vi.mock('../../lib/logger', () => ({
   log,
 }));
 
-vi.mock('./../stateFactory', () => ({
-  getInitialState: vi.fn(() => makeInitialState()),
+vi.mock('../stateFactory', () => ({
+  getInitialState: vi.fn(() => structuredClone(makeInitialState())),
+  getInitialNavigationState: vi.fn(() => ({ activeTab: 'world' })),
 }));
 
-vi.mock('../../assets/git-info.txt?raw', () => ({
-  default: 'abc123\n',
+vi.mock('../app/gameState.svelte', () => ({
+  gameState,
 }));
 
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
+vi.mock('../world/worldStore.svelte', () => ({
+  worldStore,
+}));
 
-  return {
-    getItem: vi.fn<(key: string) => string | null>((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: () => {
-      store = {};
-    },
-    dump: () => store,
-  };
-})();
+vi.mock('../mine/mineStore.svelte', () => ({
+  mineStore,
+}));
 
-Object.defineProperty(globalThis, 'localStorage', {
-  value: localStorageMock,
-  configurable: true,
-});
+vi.mock('../engineering/engineeringStore.svelte', () => ({
+  engineeringStore,
+}));
 
-Object.defineProperty(globalThis, 'window', {
-  value: {
-    location: {
-      reload: vi.fn(),
-    },
-  },
-  configurable: true,
-});
+vi.mock('./saveStore.svelte', () => ({
+  saveStore,
+}));
 
 describe('save.svelte.ts', async () => {
   const saveModule = await import('./save.svelte');
   const { loadGame, manualSave, debouncedSave, resetProgress, getSaveSnapshot } = saveModule;
 
   beforeEach(() => {
-    localStorageMock.clear();
-    localStorageMock.getItem.mockClear();
-    localStorageMock.setItem.mockClear();
-    localStorageMock.removeItem.mockClear();
+    const fresh = makeInitialState();
+
+    gameState.current.money = fresh.money;
+    gameState.current.activeTab = 'world';
+    gameState.current.settings = structuredClone(fresh.settings);
+
+    worldStore.current = structuredClone(fresh.world);
+    mineStore.current = structuredClone(fresh.plots[0]);
+    engineeringStore.current = structuredClone(fresh.engineering);
+
+    gameState.setMoney.mockClear();
+    gameState.updateSettings.mockClear();
+    gameState.setActiveTab.mockClear();
+
+    worldStore.replace.mockClear();
+    mineStore.replace.mockClear();
+    mineStore.reset.mockClear();
+    engineeringStore.replace.mockClear();
+
+    saveStore.setStorageKey.mockClear();
+    saveStore.loadFromLocalStorage.mockClear();
+    saveStore.saveToLocalStorage.mockClear();
+    saveStore.clearLocalStorageSave.mockClear();
+
+    saveStore.current.lastSaveMetadata = null;
+    saveStore.current.lastError = null;
+
+    saveStore.loadFromLocalStorage.mockReturnValue(null);
+    saveStore.saveToLocalStorage.mockReturnValue(true);
+    saveStore.clearLocalStorageSave.mockReturnValue(true);
 
     log.debug.mockClear();
     log.info.mockClear();
@@ -113,310 +212,245 @@ describe('save.svelte.ts', async () => {
     vi.clearAllTimers();
     vi.useFakeTimers();
 
-    const fresh = makeInitialState();
-    gameState.money = fresh.money;
-    gameState.world = structuredClone(fresh.world);
-    gameState.meta = structuredClone(fresh.meta);
-    gameState.settings = structuredClone(fresh.settings);
-    navigation.activeTab = 'world';
-
-    (window.location.reload as ReturnType<typeof vi.fn>).mockClear();
-  });
-
-  it('initializes defaults and writes a save when no save exists', () => {
-    localStorageMock.getItem.mockReturnValueOnce(null);
-
-    loadGame();
-
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-    expect(gameState.money).toBe(100);
-    expect(navigation.activeTab).toBe('world');
-
-    const written = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
-    expect(written.meta.saveVersion).toBe('1.0.0');
-    expect(written.meta.saveCommitHash).toBe('abc123');
-    expect(written.data.money).toBe(100);
-    expect(written.data.navigation.activeTab).toBe('world');
-  });
-
-  it('loads a valid current-version save and applies persisted values', () => {
-    const validSave = {
-      meta: {
-        saveVersion: '1.0.0',
-        saveCommitHash: 'older-hash',
-        savedAt: 123,
+    Object.defineProperty(window, 'location', {
+      value: {
+        reload: vi.fn(),
       },
-      data: {
-        money: 999,
-        world: {
-          plots: [
-            {
-              plotName: 'Loaded Plot',
-              northExpansions: [],
-              activeNorthExpansionIndex: 0,
-              ageResources: {
-                coal: 4,
-                oil: 1,
-                copper: 2,
-                superAlloy: 0,
-              },
-              currentAge: 'bronze',
-              station: null,
-            },
-          ],
-          activePlotIndex: 0,
-        },
-        meta: {
-          maxNorthExpansions: 7,
-        },
-        settings: {
-          soundEnabled: false,
-        },
-        navigation: {
-          activeTab: 'settings',
-        },
-      },
-    };
-
-    localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(validSave));
-
-    loadGame();
-
-    expect(gameState.money).toBe(999);
-    expect(gameState.meta.maxNorthExpansions).toBe(7);
-    expect(gameState.settings.soundEnabled).toBe(false);
-    expect(gameState.world.plots[0].plotName).toBe('Loaded Plot');
-    expect(navigation.activeTab).toBe('settings');
-    expect(log.info).toHaveBeenCalledWith('load', 'Full game state loaded from localStorage (version 1.0.0)');
-  });
-
-  it('recovers to defaults when JSON is malformed', () => {
-    localStorageMock.getItem.mockReturnValueOnce('{not-json');
-
-    loadGame();
-
-    expect(log.warn).toHaveBeenCalledWith('save', 'Save file contains invalid JSON. Resetting to defaults.');
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-    expect(gameState.money).toBe(100);
-    expect(navigation.activeTab).toBe('world');
-  });
-
-  it('recovers to defaults when save version mismatches', () => {
-    const oldSave = {
-      meta: {
-        saveVersion: '0.9.0',
-        saveCommitHash: 'old',
-        savedAt: 111,
-      },
-      data: {
-        ...makeInitialState(),
-        navigation: { activeTab: 'world' },
-      },
-    };
-
-    localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(oldSave));
-
-    loadGame();
-
-    expect(log.warn).toHaveBeenCalledWith('save', 'Old save version detected during pre-alpha. Wiping state to prevent crash.');
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-    expect(gameState.money).toBe(100);
-    expect(navigation.activeTab).toBe('world');
-  });
-
-  it('recovers to defaults when root shape is invalid', () => {
-    localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(['bad-root']));
-
-    loadGame();
-
-    expect(log.warn).toHaveBeenCalledWith('save', 'Save file is not a valid object. Resetting to defaults.');
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-  });
-
-  it('recovers to defaults when metadata is missing', () => {
-    localStorageMock.getItem.mockReturnValueOnce(
-      JSON.stringify({
-        data: {
-          ...makeInitialState(),
-          navigation: { activeTab: 'world' },
-        },
-      }),
-    );
-
-    loadGame();
-
-    expect(log.warn).toHaveBeenCalledWith('save', 'Save file missing metadata. Resetting to defaults.');
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-  });
-
-  it('recovers to defaults when data payload is missing', () => {
-    localStorageMock.getItem.mockReturnValueOnce(
-      JSON.stringify({
-        meta: {
-          saveVersion: '1.0.0',
-        },
-      }),
-    );
-
-    loadGame();
-
-    expect(log.warn).toHaveBeenCalledWith('save', 'Save file missing data payload. Resetting to defaults.');
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-  });
-
-  it('recovers to defaults when navigation.activeTab is invalid', () => {
-    localStorageMock.getItem.mockReturnValueOnce(
-      JSON.stringify({
-        meta: {
-          saveVersion: '1.0.0',
-          saveCommitHash: 'abc123',
-          savedAt: 1,
-        },
-        data: {
-          ...makeInitialState(),
-          navigation: { activeTab: '' },
-        },
-      }),
-    );
-
-    loadGame();
-
-    expect(log.warn).toHaveBeenCalledWith('save', 'Save file has invalid navigation state. Resetting to defaults.');
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-    expect(navigation.activeTab).toBe('world');
-  });
-
-  it('deep-merges nested objects but replaces arrays from saved data', () => {
-    const partialSave = {
-      meta: {
-        saveVersion: '1.0.0',
-        saveCommitHash: 'abc123',
-        savedAt: 5,
-      },
-      data: {
-        world: {
-          plots: [
-            {
-              plotName: 'Replacement Plot',
-              northExpansions: [],
-              activeNorthExpansionIndex: 0,
-              ageResources: {
-                coal: 99,
-                oil: 0,
-                copper: 0,
-                superAlloy: 0,
-              },
-              currentAge: 'iron',
-              station: null,
-            },
-          ],
-        },
-        settings: {
-          soundEnabled: false,
-        },
-        navigation: {
-          activeTab: 'world',
-        },
-      },
-    };
-
-    localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(partialSave));
-
-    loadGame();
-
-    expect(gameState.settings.soundEnabled).toBe(false);
-    expect(gameState.world.plots).toHaveLength(1);
-    expect(gameState.world.plots[0].plotName).toBe('Replacement Plot');
-    expect(gameState.world.plots[0].ageResources.coal).toBe(99);
-  });
-
-  it('drops unknown keys from saved data during merge', () => {
-    const saveWithUnknownKeys = {
-      meta: {
-        saveVersion: '1.0.0',
-        saveCommitHash: 'abc123',
-        savedAt: 5,
-      },
-      data: {
-        money: 321,
-        settings: {
-          soundEnabled: false,
-          extraSetting: 'ignored',
-        },
-        strangeRootKey: 'ignored',
-        navigation: {
-          activeTab: 'world',
-        },
-      },
-    };
-
-    localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(saveWithUnknownKeys));
-
-    loadGame();
-
-    expect(gameState.money).toBe(321);
-    expect(gameState.settings.soundEnabled).toBe(false);
-    expect((gameState.settings as Record<string, unknown>).extraSetting).toBeUndefined();
-    expect((gameState as Record<string, unknown>).strangeRootKey).toBeUndefined();
-  });
-
-  it('manualSave writes the current snapshot immediately', () => {
-    gameState.money = 777;
-    navigation.activeTab = 'settings';
-
-    manualSave();
-
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-
-    const written = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
-    expect(written.data.money).toBe(777);
-    expect(written.data.navigation.activeTab).toBe('settings');
-    expect(log.info).toHaveBeenCalledWith('Manual save', 'Manual save triggered by user');
-  });
-
-  it('debouncedSave writes only once after the debounce interval', () => {
-    gameState.money = 111;
-
-    debouncedSave();
-    gameState.money = 222;
-    debouncedSave();
-
-    expect(localStorageMock.setItem).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(499);
-    expect(localStorageMock.setItem).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(1);
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-
-    const written = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
-    expect(written.data.money).toBe(222);
+      configurable: true,
+    });
   });
 
   it('getSaveSnapshot returns a serializable snapshot of current live state', () => {
-    gameState.money = 432;
-    navigation.activeTab = 'settings';
+    gameState.current.money = 432;
+    gameState.current.activeTab = 'settings';
+    gameState.current.settings.soundEnabled = false;
+    worldStore.current.activePlotIndex = 2;
+    engineeringStore.current.maxNorthExpansions = 7;
+    mineStore.current.plotName = 'Snapshot Plot';
 
     const snapshot = getSaveSnapshot();
 
     expect(snapshot.money).toBe(432);
     expect(snapshot.navigation.activeTab).toBe('settings');
-    expect(snapshot.world).toBeDefined();
-    expect(snapshot.meta).toBeDefined();
-    expect(snapshot.settings).toBeDefined();
+    expect(snapshot.settings.soundEnabled).toBe(false);
+    expect(snapshot.world.activePlotIndex).toBe(2);
+    expect(snapshot.engineering.maxNorthExpansions).toBe(7);
+    expect(snapshot.plots).toHaveLength(1);
+    expect(snapshot.plots[0].plotName).toBe('Snapshot Plot');
   });
 
-  it('resetProgress clears storage, rewrites defaults, updates live state, and reloads', async () => {
-    gameState.money = 999;
-    navigation.activeTab = 'settings';
+  it('manualSave writes the current snapshot immediately through saveStore', () => {
+    gameState.current.money = 777;
+    gameState.current.activeTab = 'settings';
+
+    manualSave();
+
+    expect(saveStore.saveToLocalStorage).toHaveBeenCalledTimes(1);
+
+    const [game, options] = saveStore.saveToLocalStorage.mock.calls[0];
+
+    expect(game.money).toBe(777);
+    expect(options.navigation.activeTab).toBe('settings');
+    expect(log.info).toHaveBeenCalledWith('save', 'Manual save triggered by user.');
+  });
+
+  it('debouncedSave writes only once after the debounce interval', () => {
+    gameState.current.money = 111;
+
+    debouncedSave();
+
+    gameState.current.money = 222;
+    debouncedSave();
+
+    expect(saveStore.saveToLocalStorage).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(499);
+    expect(saveStore.saveToLocalStorage).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    expect(saveStore.saveToLocalStorage).toHaveBeenCalledTimes(1);
+
+    const [game] = saveStore.saveToLocalStorage.mock.calls[0];
+    expect(game.money).toBe(222);
+  });
+
+  it('loadGame applies defaults and writes them when no save exists', () => {
+    saveStore.loadFromLocalStorage.mockReturnValueOnce(null);
+    saveStore.saveToLocalStorage.mockReturnValueOnce(true);
+
+    loadGame();
+
+    expect(saveStore.setStorageKey).toHaveBeenCalledWith('mcc_save');
+    expect(gameState.setMoney).toHaveBeenCalledWith(100);
+    expect(gameState.setActiveTab).toHaveBeenCalledWith('world');
+    expect(worldStore.replace).toHaveBeenCalledTimes(1);
+    expect(engineeringStore.replace).toHaveBeenCalledTimes(1);
+    expect(mineStore.replace).toHaveBeenCalledTimes(1);
+    expect(saveStore.saveToLocalStorage).toHaveBeenCalledTimes(1);
+  });
+
+  it('loadGame applies a loaded persisted state', () => {
+    const loaded = {
+      money: 999,
+      world: {
+        cells: [],
+        plots: [
+          {
+            plotId: 'plot-loaded',
+            cellId: 'cell-loaded',
+            plotName: 'Loaded World Plot',
+            discovered: true,
+          },
+        ],
+        activePlotIndex: 0,
+      },
+      plots: [
+        {
+          plotId: 'plot-loaded',
+          plotName: 'Loaded Mine Plot',
+          currentAge: 'Mechanical',
+          ageResources: {
+            coal: 4,
+            oil: 1,
+            copper: 2,
+            superalloy: 0,
+          },
+          northExpansions: [
+            {
+              mineDepths: [
+                {
+                  depth: 0,
+                  rows: 1,
+                  cols: 1,
+                  tiles: [
+                    [
+                      {
+                        type: 'coal',
+                        level: 1,
+                        hp: 1,
+                        maxHp: 1,
+                        value: 1,
+                        resourceType: 'coal',
+                      },
+                    ],
+                  ],
+                  miners: [],
+                },
+              ],
+              selectedMiner: null,
+              draggedMiner: null,
+              lastTick: 0,
+              activeDepthIndex: 0,
+            },
+          ],
+          activeNorthExpansionIndex: 0,
+          station: null,
+        },
+      ],
+      engineering: {
+        engineeringIdeas: 10,
+        resetCount: 2,
+        maxNorthExpansions: 7,
+        maxUndergroundLevels: 3,
+      },
+      settings: {
+        navbarPosition: 'bottom',
+        defaultView: 'mine',
+        devMode: true,
+        soundEnabled: false,
+        notificationsEnabled: false,
+        theme: 'light',
+        worldSeed: 'loaded-seed',
+      },
+      navigation: {
+        activeTab: 'settings',
+      },
+    };
+
+    saveStore.current.lastSaveMetadata = { saveVersion: '1.0.0' };
+    saveStore.loadFromLocalStorage.mockReturnValueOnce(loaded);
+
+    loadGame();
+
+    expect(gameState.setMoney).toHaveBeenCalledWith(999);
+    expect(gameState.updateSettings).toHaveBeenCalledWith(loaded.settings);
+    expect(gameState.setActiveTab).toHaveBeenCalledWith('settings');
+    expect(worldStore.replace).toHaveBeenCalledWith(loaded.world);
+    expect(engineeringStore.replace).toHaveBeenCalledWith(loaded.engineering);
+    expect(mineStore.replace).toHaveBeenCalledWith(loaded.plots[0]);
+    expect(log.info).toHaveBeenCalledWith('load', 'Full game state loaded from localStorage (1.0.0).');
+  });
+
+  it('loadGame logs a warning when default save write fails after missing save', () => {
+    saveStore.loadFromLocalStorage.mockReturnValueOnce(null);
+    saveStore.saveToLocalStorage.mockReturnValueOnce(false);
+    saveStore.current.lastError = 'write failed';
+
+    loadGame();
+
+    expect(log.warn).toHaveBeenCalledWith('save', 'write failed');
+  });
+
+  it('loadGame logs an error when loading throws', () => {
+    saveStore.loadFromLocalStorage.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+
+    loadGame();
+
+    expect(log.error).toHaveBeenCalledWith('load', 'Failed to load game state: Error: boom');
+  });
+
+  it('manualSave logs an error when saveStore save fails', () => {
+    saveStore.saveToLocalStorage.mockReturnValueOnce(false);
+    saveStore.current.lastError = 'save failed';
+
+    manualSave();
+
+    expect(log.error).toHaveBeenCalledWith('save', 'Failed to manual save: Error: save failed');
+  });
+
+  it('debouncedSave logs an error when deferred save fails', () => {
+    saveStore.saveToLocalStorage.mockReturnValueOnce(false);
+    saveStore.current.lastError = 'debounced failed';
+
+    debouncedSave();
+    vi.advanceTimersByTime(500);
+
+    expect(log.error).toHaveBeenCalledWith('save', 'Failed to save full game state: Error: debounced failed');
+  });
+
+  it('resetProgress clears save, reapplies defaults, rewrites defaults, and reloads', async () => {
+    gameState.current.money = 999;
+    gameState.current.activeTab = 'settings';
 
     await resetProgress();
 
-    expect(localStorageMock.removeItem).toHaveBeenCalledWith('mcc_save');
-    expect(localStorageMock.removeItem).toHaveBeenCalledWith('mcc_settings');
-    expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-    expect(gameState.money).toBe(100);
-    expect(navigation.activeTab).toBe('world');
+    expect(saveStore.setStorageKey).toHaveBeenCalledWith('mcc_save');
+    expect(saveStore.clearLocalStorageSave).toHaveBeenCalledTimes(1);
+    expect(gameState.setMoney).toHaveBeenCalledWith(100);
+    expect(gameState.setActiveTab).toHaveBeenCalledWith('world');
+    expect(saveStore.saveToLocalStorage).toHaveBeenCalledTimes(1);
     expect(window.location.reload).toHaveBeenCalledTimes(1);
+    expect(log.info).toHaveBeenCalledWith('save', 'Progress reset successfully');
+  });
+
+  it('resetProgress throws when clearing the local save fails', async () => {
+    saveStore.clearLocalStorageSave.mockReturnValueOnce(false);
+    saveStore.current.lastError = 'clear failed';
+
+    await expect(resetProgress()).rejects.toThrow('clear failed');
+
+    expect(log.error).toHaveBeenCalledWith('save', 'Failed to reset progress: Error: clear failed');
+  });
+
+  it('resetProgress throws when rewriting the default save fails', async () => {
+    saveStore.clearLocalStorageSave.mockReturnValueOnce(true);
+    saveStore.saveToLocalStorage.mockReturnValueOnce(false);
+    saveStore.current.lastError = 'rewrite failed';
+
+    await expect(resetProgress()).rejects.toThrow('rewrite failed');
+
+    expect(log.error).toHaveBeenCalledWith('save', 'Failed to reset progress: Error: rewrite failed');
   });
 });

@@ -1,2 +1,2 @@
-efb86e9
-splitting the types and store into the logic sub folders.
+5c11eb5
+better docs, more tests

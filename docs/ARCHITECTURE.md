@@ -1,66 +1,185 @@
 # Project Architecture: Mines & Choo Choos
 
-This document outlines the project structure and the design philosophy for the game.
+This document outlines the project structure and design philosophy for the game after the feature-based state refactor.
 
 ## 1. High-Level Architecture
 
 The application is built on a modular, reactive architecture using Svelte 5 (Runes).
 
-* **Data Layer (`src/types.ts` & `src/stores/`):** The "Source of Truth." Defines the shape of data and handles reactive state using `$state` and `$derived`.
-* **Logic Layer (`src/logic/`):** The "Brain." Pure TypeScript functions for game mechanics (e.g., world generation, simulation). These are decoupled from the UI.
-<!-- * **Orchestrator (`TabContent.svelte`):** The "Router." Watches the active tab state and dynamically mounts the corresponding View. -->
-* **View Layer (`src/views/*.svelte`):** The "Content." Focused, self-contained screens representing the 5 major game tabs.
-* **Layout Layer (`App.svelte`):** The "Shell." The main container structure containing the Header, Footer, and the Orchestrator.
+- **Feature State Layer (`src/logic/*/*Types.ts`, `src/logic/*/*Store.svelte.ts`):** The main source of truth for game and UI feature state. Each feature owns its own data contracts and reactive store.
+- **Logic Layer (`src/logic/`):** The game brain. Contains pure TypeScript functions for simulation, world generation, routing, save composition, and state helpers.
+- **View Layer (`src/views/*.svelte`):** The tab-level screens. Each view renders one major gameplay or app area such as World, Mine, Station, Engineering, or Settings.
+- **Layout Layer (`src/App.svelte`):** The application shell. Hosts the main structure, navigation UI, and active tab content.
 
-## 2. Navigation & View Loading
+This project no longer treats `src/types.ts` as the central source of truth. Instead, types are owned by the feature that uses them.
 
-Navigation is handled through a reactive `activeTab` state in `navigation` store.
+## 2. Design Philosophy
 
-1. **Dynamic Switching:** `App.svelte` conditionally renders the view matching the `navigation.activeTab` state.
-2. **Encapsulation:** Because each `View` (e.g., `SettingsView`) owns its specific lifecycle, switching tabs effectively manages the mount/unmount state, ensuring high performance.
+The codebase is organized around **feature ownership**.
 
-## 3. File Structure Map
+- A feature owns its own types, helpers, and store.
+- Cross-feature composition happens at the root state level, not inside random feature modules.
+- Generic utilities belong in `src/lib/`.
+- Game-specific logic belongs in `src/logic/`.
+
+This keeps modules cohesive and avoids a single global “misc state” layer.
+
+## 3. State Model
+
+Reactive state is split by feature.
+
+### Feature-owned modules
+
+- `src/logic/mine/` — mine grids, depths, miners, carts, resources, plot state
+- `src/logic/station/` — stations, platforms, trainyards, trains
+- `src/logic/world/` — world map, cells, destinations, route references, world-level plot references
+- `src/logic/engineering/` — Engineering Ideas progression and reset-related progression state
+- `src/logic/app/` — navigation types, settings types, and app-shell contracts
+- `src/logic/save/` — persisted root-state shapes and save/load helpers
+
+### Root composition
+
+- `src/logic/stateFactory.ts` creates the initial root game state
+- `src/logic/save/saveTypes.ts` defines the persisted root-state shape
+- feature stores manage live state inside their own domain boundaries
+
+The root state composes feature-owned state instead of redefining it inline.
+
+## 4. Navigation & View Loading
+
+Navigation is handled through reactive tab state.
+
+1. `App.svelte` reads the active tab and conditionally renders the matching view.
+2. Each view is mounted only when active, keeping the screen model simple and isolated.
+3. Navigation state is defined in `src/logic/app/navigationTypes.ts`.
+4. Persisted navigation is composed into save data, but still belongs conceptually to the app/navigation domain.
+
+The current tab set is:
+
+- `world`
+- `mine`
+- `station`
+- `engineering`
+- `settings`
+
+## 5. File Structure Map
 
 ```text
-/public/        # Static assets (favicon, manifest, robots.txt)
+/public/                # Static browser assets (favicon, manifest, robots.txt)
+/docs/
+├── ARCHITECTURE.md     # this file
+└── DESIGN.md           # Design Specification
 /src/
-├── assets/     # Processed images, icons (optimized by Vite)
-├── components/ # Reusable UI bits (Buttons, Tooltips)
-├── views/      # Full-page tab content (WorldView, SettingsView, etc.)
-├── stores/     # Reactive application state (index.svelte.ts)
-├── logic/      # Pure TS game rules (save.svelte.ts, worldGen.ts)
-├── lib/        # Generic utilities (logger.ts)
-├── styles/     # Global CSS (theme.css)
-├── types.ts    # Central data structures (Interfaces, Enums)
-└── App.svelte  # Main shell
+├── assets/             # Processed images and icons
+├── components/         # Reusable UI components
+├── views/              # Top-level tab screens
+├── logic/              # Feature logic, state, and factories
+│   ├── app/            # App-shell types (navigation, settings, app context)
+│   ├── engineering/    # Engineering Ideas feature state
+│   ├── mine/           # Plot, mine, miner, cart, and resource logic
+│   ├── save/           # Save-state types and persistence helpers
+│   ├── station/        # Station, platform, and train logic
+│   ├── world/          # World map and routing logic
+│   └── stateFactory.ts # Initial root-state composition
+├── lib/                # Generic utilities
+├── styles/             # Global CSS
+└── App.svelte          # Main shell
 ```
 
-## 4. Folder Breakdown & Decision Matrix
+## 6. Folder Breakdown
 
 | Folder | Responsibility | Example |
 | --- | --- | --- |
-| `/public` | Static files for the browser/OS | `favicon.ico`, `manifest.json` |
-| `/src/assets` | Game content needing optimization | `sprite.png`, `background.webp` |
+| `/public` | Static browser and OS files | `favicon.ico`, `manifest.json` |
+| `/docs` | Documentation | `DESIGN.md`, `ARCHITECTURE.md` |
+| `/src/assets` | Optimized game assets | `sprite.png`, `background.webp` |
 | `/src/components` | Reusable UI building blocks | `Button.svelte`, `Navbar.svelte` |
-| `/src/views` | Top-level tab content | `WorldView.svelte`, `StationView.svelte` |
-| `/src/stores` | Reactive application state | `gameStore.ts`, `uiStore.ts` |
-| `/src/logic` | Game-specific mechanics | `worldGen.ts`, `calcTravel.ts` |
-| `/src/lib` | Generic helper code | `math.ts`, `logger.ts` |
-| `/src/styles` | Global application-wide CSS | `reset.css`, `material3.css` |
+| `/src/views` | Full tab screens | `WorldView.svelte`, `StationView.svelte` |
+| `/src/logic/app` | App-wide contracts and preferences | `navigationTypes.ts`, `settingsTypes.ts` |
+| `/src/logic/mine` | Mine gameplay data and logic | `mineTypes.ts`, `mineStore.svelte.ts`, `mineGen.ts` |
+| `/src/logic/station` | Station and train domain | `stationTypes.ts`, `stationStore.svelte.ts` |
+| `/src/logic/world` | World map and destination domain | `worldTypes.ts`, `worldStore.svelte.ts` |
+| `/src/logic/engineering` | Engineering Ideas progression | `engineeringTypes.ts`, `engineeringStore.svelte.ts` |
+| `/src/logic/save` | Save-file contracts and persistence helpers | `saveTypes.ts`, `saveStore.svelte.ts` |
+| `/src/lib` | Generic helper code | `logger.ts`, `sizes.ts` |
+| `/src/styles` | Global design tokens and CSS | `theme.css`, `reset.css` |
 
-## 5. CSS & Logging Strategy
+## 7. Store Strategy
 
-* **CSS:** Use **Global CSS (`src/styles/`)** for design tokens and resets, and **Component CSS** for encapsulated, logic-based styling (e.g., `class:locked={...}`).
-* **Logging:** All game-specific logic must use the `lib/logger.ts` wrapper.
-* Use `log.debug` for transient state changes (e.g., miner merging).
-* Use `log.info` for lifecycle and navigation events.
-* Use `log.error` for failed state loads or gen-logic crashes.
+This project uses **feature stores**, not one monolithic global store.
 
+- Each feature store owns mutations inside its own domain.
+- Stores may import shared types from other features when needed, but ownership stays with the defining feature.
+- Pure helper logic should stay outside stores whenever possible.
+- Type-only modules do not need stores.
 
+Examples:
+- `mineStore.svelte.ts` mutates plot/mine/miner state
+- `worldStore.svelte.ts` manages world cells, destinations, and active plot selection
+- `engineeringStore.svelte.ts` manages Engineering Ideas progression
+- `saveStore.svelte.ts` handles save serialization and persistence boundaries
 
-## 6. Decision Test (Logic vs. Lib)
+There is currently no separate `appStore.svelte.ts`, because app-shell state is still small enough to stay as plain contracts and local usage.
 
-> **"If I were building a completely different game, would this code still be useful?"**
+## 8. Save & Persistence Model
 
-* **YES:** It is a utility → **`src/lib/`**
-* **NO:** It is game-specific business logic → **`src/logic/`**
+Persistence is defined at the root level.
+
+- `saveTypes.ts` defines the saved root object
+- feature state is imported into the root save shape
+- `stateFactory.ts` provides the initial baseline state used for resets and structural defaults
+- `saveStore.svelte.ts` serializes, parses, imports, and exports save data
+
+This keeps persistence concerns separate from feature ownership.
+
+## 9. CSS & Logging Strategy
+
+- **CSS:** Use global CSS in `src/styles/` for tokens, resets, and shared themes. Use component-scoped CSS for local layout and stateful visual behavior.
+- **Logging:** All game-specific logging should go through `src/lib/logger.ts`.
+
+Logging levels:
+- `log.debug` — transient state changes and simulation detail
+- `log.info` — lifecycle events, navigation events, major feature actions
+- `log.error` — failed saves, load errors, generation failures, unexpected logic crashes
+
+## 10. Decision Test (Logic vs. Lib)
+
+> **If this code were reused in a completely different game, would it still be useful?**
+
+- **Yes** → it is a generic utility → `src/lib/`
+- **No** → it is game-specific logic → `src/logic/`
+
+## 11. Decision Test (Feature Ownership)
+
+> **Which folder should own this file?**
+
+Ask:
+
+1. Which feature understands this concept best?
+2. Which feature would change first if the rules changed?
+3. Is this a domain model, persistence model, or generic utility?
+
+Rules:
+- If it describes mine gameplay, it belongs in `mine/`
+- If it describes world navigation or map state, it belongs in `world/`
+- If it describes Engineering Ideas progression, it belongs in `engineering/`
+- If it is only used to compose persisted state, it belongs in `save/`
+- If it is generic across many unrelated features, it belongs in `lib/` or a very small shared type file
+
+## 12. Testing Priorities
+
+Tests should focus on behavior, not just declarations.
+
+High-value targets:
+- pure game logic helpers
+- generation functions
+- `stateFactory.ts`
+- save serialization and parsing
+- cross-feature composition boundaries
+
+Low-value targets:
+- plain interface/type-only files
+- trivial constant declarations
+- empty shared type files
+
+The goal is to protect gameplay behavior and root-state composition, not to over-test passive type definitions.

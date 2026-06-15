@@ -1,3 +1,5 @@
+// src/logic/mine/mineGen.ts
+
 import seedrandom from 'seedrandom';
 import type { MineDepth, MineTile, MineTileType } from '../../types';
 import { TILE_DEFS } from './tileDefinitions';
