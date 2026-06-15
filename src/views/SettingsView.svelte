@@ -7,7 +7,7 @@
    */
   import { Toggle, Switch, Button, AlertDialog, Select, Accordion } from 'bits-ui';
   import { gameState } from '../stores/index.svelte';
-  import { manualSave, resetProgress } from '../logic/save.svelte';
+  import { manualSave, resetProgress } from '../logic/save/save.svelte';
   import SettingsSection from '../components/settings/SettingsSection.svelte';
   import SettingsRow from '../components/settings/SettingsRow.svelte';
   import SettingsFooter from '../components/settings/SettingsFooter.svelte';

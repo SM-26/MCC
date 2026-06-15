@@ -1,3 +1,4 @@
+// src/stores/index.svelte.ts
 import type { AppContext, GameState, NavigationState, PWAInstallState } from '../types';
 import { TabsList } from '../types';
 import { log } from '../lib/logger';

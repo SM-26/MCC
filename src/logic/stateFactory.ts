@@ -1,67 +1,87 @@
 // src/logic/stateFactory.ts
-import type { GameState, NorthExpansion, PlotState } from '../types';
+
+import type { GameState } from './save/saveTypes';
+import type { PlotState } from './mine/mineTypes';
+import type { WorldState } from './world/worldTypes';
+
 import { generatePlot } from './mine/mineGen';
 
-/**
- * Creates a default north expansion for a plot.
- */
-function createDefaultNorthExpansion(worldSeed: string, plotIndex = 0): NorthExpansion {
+import { createDefaultEngineeringState } from './engineering/engineeringTypes';
+import { createDefaultSavedNavigation } from './app/navigationTypes';
+import { createDefaultSettingsState } from './app/settingsTypes';
+import { createEmptyAgeResources } from './mine/mineTypes';
+
+function createDefaultPlotState(
+  worldSeed: string,
+  plotIndex = 0,
+  plotId = `plot-${plotIndex}`,
+  plotName = 'Prague',
+): PlotState {
   return {
-    mineDepths: [generatePlot(worldSeed, 0, plotIndex)],
-    selectedMiner: null,
-    draggedMiner: null,
-    lastTick: 0,
-    activeDepthIndex: 0,
+    plotId,
+    plotName,
+    currentAge: 'Mechanical',
+    ageResources: createEmptyAgeResources(),
+    northExpansions: [
+      {
+        mineDepths: [generatePlot(worldSeed, 0, plotIndex)],
+        selectedMiner: null,
+        draggedMiner: null,
+        lastTick: 0,
+        activeDepthIndex: 0,
+      },
+    ],
+    activeNorthExpansionIndex: 0,
+    station: null,
   };
 }
 
-/**
- * Creates a default player plot.
- */
-function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotName = 'Prague'): PlotState {
+function createDefaultWorldState(initialPlots: PlotState[]): WorldState {
   return {
-    plotName,
-    northExpansions: [createDefaultNorthExpansion(worldSeed, plotIndex)],
-    activeNorthExpansionIndex: 0,
-    ageResources: {
-      coal: 0,
-      oil: 0,
-      copper: 0,
-      superAlloy: 0,
-    },
-    currentAge: 'Mechanical',
-    station: null,
+    cells: [],
+    plots: initialPlots.map((plot, index) => ({
+      plotId: plot.plotId,
+      cellId: `cell-plot-${index}`,
+      plotName: plot.plotName,
+      discovered: true,
+    })),
+    activePlotIndex: 0,
   };
 }
 
 /**
  * Returns a fresh deep copy of the base game configuration.
- * Used for both structural merging during loads and complete data resets.
+ * Used for both complete resets and as the structural base for save hydration.
  */
 export function getInitialState(): GameState {
   const worldSeed = '123456';
 
+  const plots: PlotState[] = [
+    createDefaultPlotState(worldSeed, 0, 'plot-0', 'Prague'),
+  ];
+
   return {
     money: 75,
-    world: {
-      cells: [],
-      plots: [createDefaultPlotState(worldSeed, 0, 'Prague')],
-      activePlotIndex: 0,
-    },
-    meta: {
-      engineeringIdeas: 0,
-      resetCount: 0,
+    world: createDefaultWorldState(plots),
+    plots,
+    engineering: {
+      ...createDefaultEngineeringState(),
       maxNorthExpansions: 1,
-      maxUndergroundLevels: 0,
     },
     settings: {
+      ...createDefaultSettingsState(),
       navbarPosition: 'top',
-      defaultView: 'world',
-      devMode: false,
       soundEnabled: false,
-      notificationsEnabled: true,
       theme: 'dark',
       worldSeed,
     },
   };
+}
+
+/**
+ * Builds the default persisted navigation fragment.
+ * Useful when assembling a full persisted save object.
+ */
+export function getInitialNavigationState() {
+  return createDefaultSavedNavigation();
 }

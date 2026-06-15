@@ -2,11 +2,11 @@
   import { onDestroy, onMount } from 'svelte';
   import { Button } from 'bits-ui';
   import { appContext, gameState } from '../stores/index.svelte';
-  import { debouncedSave } from '../logic/save.svelte';
+  import { debouncedSave } from '../logic/save/save.svelte';
   import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
   import { runMiningTick } from '../logic/mine/mineTick';
   import { buyMiner, canBuyMiner, digDeeper, getMinerCost, handleNorthAction, handleSouthAction, moveOrMergeMiner } from '../logic/mine/mineActions';
-  import { getExpansionLabel, getPlotLabel } from '../lib/mineLabels';
+  import { getExpansionLabel, getPlotLabel } from '../logic/mine/mineLabels';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import MineHeader from '../components/mine/MineHeader.svelte';
   import MineGrid from '../components/mine/MineGrid.svelte';

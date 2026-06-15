@@ -5,7 +5,7 @@
 
   import { appContext, navigation, gameState } from './stores/index.svelte';
   import { getScreenSize } from './lib/sizes';
-  import { debouncedSave } from './logic/save.svelte';
+  import { debouncedSave } from './logic/save/save.svelte';
 
   import Splash from './components/Splash.svelte';
   import { toastState } from './components/GameTooltip.svelte';

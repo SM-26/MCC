@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MineDepth, MineTile, MineTileType } from '../../types';
-import { TILE_DEFS } from '../tileDefinitions';
+import { TILE_DEFS } from './tileDefinitions';
 import { generatePlot, getClearProgress, getClearStatus, getPlotStats, MineGenConfig } from './mineGen';
 
 function createTile(type: MineTileType): MineTile {

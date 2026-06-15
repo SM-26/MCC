@@ -17,11 +17,11 @@
  * - Unknown keys from saved data are ignored when merging into defaults.
  */
 
-import { gameState, navigation } from '../stores/index.svelte';
-import { log } from '../lib/logger';
-import type { GameState, SaveFile } from '../types';
-import { getInitialState } from './stateFactory';
-import gitInfo from '../assets/git-info.txt?raw';
+import { gameState, navigation } from '../../stores/index.svelte';
+import { log } from '../../lib/logger';
+import type { GameState, SaveFile } from '../../types';
+import { getInitialState } from '../stateFactory';
+import gitInfo from '../../assets/git-info.txt?raw';
 
 const [SAVE_COMMIT_HASH = ''] = gitInfo.trim().split('\n');
 

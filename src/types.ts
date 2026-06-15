@@ -1,3 +1,4 @@
+// src/types.ts
 export const TabsList = ['world', 'mine', 'station', 'engineeringIdeas', 'settings'] as const;
 export type TabId = (typeof TabsList)[number];
 export type NavPosition = 'top' | 'bottom' | 'left' | 'right' | 'hidden';
@@ -7,6 +8,8 @@ export type ResourcesType = 'none' | 'money' | 'coal' | 'oil' | 'copper' | 'supe
 export type MineTileType = 'empty' | 'dirt' | 'blocker' | 'rubble' | 'coal' | 'oil' | 'copper' | 'superalloy';
 export type ScreenSizes = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type Ages = 'Mechanical' | 'Steam' | 'Diesel' | 'Electric' | 'Maglev';
+
+export type cartTypes = 'simple' | 'double deckers' | `laxury` | 'cargo' | 'better cargo' | `best cargo`
 
 export interface AppContext {
   isPWAInstalled: boolean;
@@ -167,7 +170,7 @@ export interface Train {
 
 export interface CartSlot {
   type: 'passenger' | 'cargo';
-  cartType: string;
+  cartType: cartTypes;
   count: number;
 }
 

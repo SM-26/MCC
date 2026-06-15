@@ -1,6 +1,6 @@
 import seedrandom from 'seedrandom';
 import type { MineDepth, MineTile, MineTileType } from '../../types';
-import { TILE_DEFS } from '../tileDefinitions';
+import { TILE_DEFS } from './tileDefinitions';
 
 export type ClearStatus = 'none' | 'soft' | 'hard';
 

@@ -1,7 +1,7 @@
 import './app.css';
 import App from './App.svelte';
 import { mount } from 'svelte';
-import { loadGame } from './logic/save.svelte';
+import { loadGame } from './logic/save/save.svelte';
 
 loadGame();
 

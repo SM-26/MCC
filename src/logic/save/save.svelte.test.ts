@@ -46,20 +46,20 @@ const log = {
   error: vi.fn(),
 };
 
-vi.mock('../stores/index.svelte', () => ({
+vi.mock('../../stores/index.svelte', () => ({
   gameState,
   navigation,
 }));
 
-vi.mock('../lib/logger', () => ({
+vi.mock('../../lib/logger', () => ({
   log,
 }));
 
-vi.mock('./stateFactory', () => ({
+vi.mock('./../stateFactory', () => ({
   getInitialState: vi.fn(() => makeInitialState()),
 }));
 
-vi.mock('../assets/git-info.txt?raw', () => ({
+vi.mock('../../assets/git-info.txt?raw', () => ({
   default: 'abc123\n',
 }));
 

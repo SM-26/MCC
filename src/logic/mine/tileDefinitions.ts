@@ -1,5 +1,5 @@
 // src/logic/tileDefinitions.ts
-import type { MineTileType, ResourcesType } from '../types';
+import type { MineTileType, ResourcesType } from '../../types';
 
 export interface TileDef {
   level: number;

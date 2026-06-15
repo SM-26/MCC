@@ -1,2 +1,2 @@
-67eb044
-refactor MineGen and Save.svelte.ts + tests
+efb86e9
+splitting the types and store into the logic sub folders.
