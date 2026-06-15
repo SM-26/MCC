@@ -3,7 +3,7 @@
 import type { Ages } from '../mine/mineTypes';
 import type { Route } from '../world/worldTypes';
 
-import type { CartSlot, CartType, Platform, PlatformId, Station, StationId, Train, TrainId, TrainState, TrainyardInventory } from './stationTypes';
+import type { CartSlot, CartType, Platform, PlatformId, Station, StationId, TrainId, TrainState, TrainyardInventory } from './stationTypes';
 
 import {
   createEmptyStation,
@@ -32,11 +32,11 @@ export function createStationStore(initial?: Partial<Station>) {
   const state = $state<Station>(
     initial
       ? {
-          ...createEmptyStation(initial.id ?? createStationId()),
-          ...initial,
-          platforms: initial.platforms ?? [],
-          trainyardInventory: initial.trainyardInventory ?? createEmptyTrainyardInventory(),
-        }
+        ...createEmptyStation(initial.id ?? createStationId()),
+        ...initial,
+        platforms: initial.platforms ?? [],
+        trainyardInventory: initial.trainyardInventory ?? createEmptyTrainyardInventory(),
+      }
       : createEmptyStation(createStationId()),
   );
 

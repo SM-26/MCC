@@ -4,12 +4,12 @@ import type { GameState } from './save/saveTypes';
 import type { PlotState } from './mine/mineTypes';
 import type { WorldState } from './world/worldTypes';
 
-import { generatePlot } from './mine/mineGen';
-
 import { createDefaultEngineeringState } from './engineering/engineeringTypes';
 import { createDefaultSavedNavigation } from './app/navigationTypes';
 import { createDefaultSettingsState } from './app/settingsTypes';
 import { createEmptyAgeResources } from './mine/mineTypes';
+import { engineeringStore } from './engineering/engineeringStore.svelte';
+import { generatePlot } from './mine/mineGen';
 
 function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotId = `plot-${plotIndex}`, plotName = 'Prague'): PlotState {
   return {
@@ -19,7 +19,7 @@ function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotId = `plot
     ageResources: createEmptyAgeResources(),
     northExpansions: [
       {
-        mineDepths: [generatePlot(worldSeed, 0, plotIndex)],
+        mineDepths: [generatePlot(worldSeed, engineeringStore.current.resetCount, 0, plotIndex)],
         selectedMiner: null,
         draggedMiner: null,
         lastTick: 0,

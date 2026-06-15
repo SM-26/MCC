@@ -1,3 +1,4 @@
+// THIS FILE IS NOT UP TO DATE! USE WITH CAUTION!
 # MCC V2 - Mines & Choo-Choos v2
 
 A mobile-first idle railway tycoon game built with Svelte 5 and Bits-UI.

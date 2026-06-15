@@ -1,5 +1,9 @@
+// src/logic/mine/mineActions.ts
+
 import { generatePlot, getClearStatus } from '../mine/mineGen';
 import type { GameState, MineDepth, Miner, PlotState, NorthExpansion } from '../../types';
+import type { EngineeringState } from '../engineering/engineeringTypes';
+import { engineeringStore } from '../engineering/engineeringStore.svelte';
 
 export const BASE_MINER_COST = 50;
 export const BASE_PLOT_COST = 100;
@@ -13,12 +17,12 @@ export interface BuyMinerResult extends ActionResult {
   minerCost: number;
 }
 
-export function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotName = 'Prague'): PlotState {
+export function createDefaultPlotState(worldSeed: string, resetCount: number, plotIndex = 0, plotName = 'Prague'): PlotState {
   return {
     plotName,
     northExpansions: [
       {
-        mineDepths: [generatePlot(worldSeed, 0, plotIndex)],
+        mineDepths: [generatePlot(worldSeed, resetCount, 0, plotIndex)],
         selectedMiner: null,
         draggedMiner: null,
         lastTick: 0,
@@ -178,8 +182,7 @@ export function digDeeper(gameState: GameState): ActionResult {
 
   const nextDepth = activeMine.depth + 1;
   const plotIndex = gameState.world.activePlotIndex;
-  const nextMine = generatePlot(gameState.settings.worldSeed, nextDepth, plotIndex);
-
+  const nextMine = generatePlot(gameState.settings.worldSeed, engineeringStore.current.resetCount, nextDepth, plotIndex);
   const validMinerTiles = new Set(
     nextMine.tiles
       .flat()
@@ -284,7 +287,7 @@ function tryBuyNorthPlot(gameState: GameState, nextIndex: number): ActionResult 
     return { ok: false, message: 'You reached the north expansion limit!' };
   }
 
-  const newPlotState = createDefaultPlotState(gameState.settings.worldSeed, nextIndex, `Plot ${nextIndex}`);
+  const newPlotState = createDefaultPlotState(gameState.settings.worldSeed, engineeringStore.current.resetCount, nextIndex, `Plot ${nextIndex}`);
 
   gameState.world.plots.push(newPlotState);
   gameState.money -= BASE_PLOT_COST;

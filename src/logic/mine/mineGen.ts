@@ -4,6 +4,9 @@ import seedrandom from 'seedrandom';
 import type { MineDepth, MineTile, MineTileType } from '../../types';
 import { TILE_DEFS } from './tileDefinitions';
 
+import type { SettingsState } from '../app/settingsTypes';
+import type { EngineeringState } from '../engineering/engineeringTypes';
+
 export type ClearStatus = 'none' | 'soft' | 'hard';
 
 const BASE_COLS = 5;
@@ -13,19 +16,6 @@ const BLOCKERS_START_DEPTH = 2;
 
 const RESOURCE_ORDER: MineTileType[] = ['rubble', 'coal', 'oil', 'copper', 'superalloy'];
 
-/**
- * Average non-dirt share for each offset within a 5-depth bracket.
- *
- * Example:
- * - depth 0 => offset 0 => 40%
- * - depth 1 => offset 1 => 50%
- * - depth 2 => offset 2 => 60%
- * - depth 3 => offset 3 => 70%
- * - depth 4 => offset 4 => 80%
- *
- * Dirt is whatever remains after allocating resource tiles.
- * Later tuning can change this formula without changing generator structure.
- */
 const getBracketResourceShare = (depth: number): number => {
   const offset = depth % DEPTHS_PER_BRACKET;
   return Math.min(0.4 + offset * 0.1, 1);
@@ -39,30 +29,15 @@ export const MineGenConfig = {
   blockerDensity: 0.1,
   resourceOrder: RESOURCE_ORDER,
 
-  /**
-   * Returns grid dimensions for a mine.
-   *
-   * Rules:
-   * - Columns are fixed width for now.
-   * - Rows grow with north expansion index.
-   * - Bottom row is always reserved as an empty access corridor.
-   */
   getDimensions: (_depth: number, northExpansionIndex: number) => {
     const cols = BASE_COLS;
     const rows = BASE_ROWS + Math.floor((northExpansionIndex + 1) / 2);
     return { rows, cols };
   },
 
-  /**
-   * Returns the average non-dirt share for the given depth's position inside its
-   * current 5-depth bracket.
-   */
   getResourceShare: (depth: number) => getBracketResourceShare(depth),
 };
 
-/**
- * Creates a new tile from a registered tile definition.
- */
 function createTile(type: MineTileType): MineTile {
   const def = TILE_DEFS[type];
 
@@ -76,9 +51,6 @@ function createTile(type: MineTileType): MineTile {
   };
 }
 
-/**
- * Returns all row/column positions above the bottom access row.
- */
 function getFillablePositions(rows: number, cols: number): Array<[number, number]> {
   const positions: Array<[number, number]> = [];
 
@@ -91,9 +63,6 @@ function getFillablePositions(rows: number, cols: number): Array<[number, number
   return positions;
 }
 
-/**
- * Shuffles an array in place using the provided deterministic RNG.
- */
 function shuffleInPlace<T>(items: T[], rng: seedrandom.PRNG): void {
   for (let i = items.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -101,16 +70,6 @@ function shuffleInPlace<T>(items: T[], rng: seedrandom.PRNG): void {
   }
 }
 
-/**
- * Returns the active resource set for a depth.
- *
- * Progression rules:
- * - Depths are grouped into 5-level brackets.
- * - Early brackets use dirt + exactly 1 resource.
- * - After exhausting the single-resource phase, later brackets use dirt + 2
- *   contiguous resources.
- * - The resource order is controlled by MineGenConfig.resourceOrder.
- */
 function getActiveResourcesForDepth(depth: number): MineTileType[] {
   const bracketIndex = Math.floor(depth / DEPTHS_PER_BRACKET);
   const resources = MineGenConfig.resourceOrder;
@@ -126,12 +85,6 @@ function getActiveResourcesForDepth(depth: number): MineTileType[] {
   return resources.slice(startIndex, startIndex + 2);
 }
 
-/**
- * Distributes an exact number of resource tiles across the active resources.
- *
- * Distribution is as even as possible, with any remainder assigned from left to
- * right in the active resource order.
- */
 function allocateResourceCounts(resources: MineTileType[], totalResourceTiles: number): Record<MineTileType, number> {
   const counts = Object.fromEntries(resources.map((resource) => [resource, 0])) as Record<MineTileType, number>;
 
@@ -149,21 +102,12 @@ function allocateResourceCounts(resources: MineTileType[], totalResourceTiles: n
   return counts;
 }
 
-/**
- * Returns the total number of non-dirt tiles to place in the fillable area.
- *
- * Count-based generation is used instead of repeated weighted tile rolls so the
- * generator has stronger balancing guarantees and tighter tests.
- */
 function getResourceTileCount(depth: number, fillableTileCount: number): number {
   const share = MineGenConfig.getResourceShare(depth);
   const rawCount = fillableTileCount * share;
   return Math.max(0, Math.min(fillableTileCount, Math.round(rawCount)));
 }
 
-/**
- * Creates a deterministic tile pool for all fillable cells above the bottom row.
- */
 function buildTilePool(depth: number, fillableTileCount: number): MineTileType[] {
   const activeResources = getActiveResourcesForDepth(depth);
   const resourceTileCount = getResourceTileCount(depth, fillableTileCount);
@@ -185,9 +129,6 @@ function buildTilePool(depth: number, fillableTileCount: number): MineTileType[]
   return pool;
 }
 
-/**
- * Returns orthogonal neighbors inside the grid.
- */
 function getOrthogonalNeighbors(row: number, col: number, rows: number, cols: number): Array<[number, number]> {
   const neighbors: Array<[number, number]> = [];
   const candidates: Array<[number, number]> = [
@@ -206,9 +147,6 @@ function getOrthogonalNeighbors(row: number, col: number, rows: number, cols: nu
   return neighbors;
 }
 
-/**
- * Returns 8-direction neighbors inside the grid.
- */
 function getAllNeighbors(row: number, col: number, rows: number, cols: number): Array<[number, number]> {
   const neighbors: Array<[number, number]> = [];
 
@@ -230,20 +168,10 @@ function getAllNeighbors(row: number, col: number, rows: number, cols: number): 
   return neighbors;
 }
 
-/**
- * Returns whether a tile blocks reachability checks.
- */
 function isBlockedTile(tile: MineTile): boolean {
   return tile.type === 'blocker';
 }
 
-/**
- * Flood-fills reachable non-blocker tiles from the bottom access corridor.
- *
- * Reachability uses orthogonal movement:
- * - start from every non-blocker tile in the bottom row
- * - flood into all orthogonally adjacent non-blocker tiles
- */
 function getReachableTiles(tiles: MineTile[][], rows: number, cols: number): Set<string> {
   const visited = new Set<string>();
   const queue: Array<[number, number]> = [];
@@ -273,10 +201,6 @@ function getReachableTiles(tiles: MineTile[][], rows: number, cols: number): Set
   return visited;
 }
 
-/**
- * Returns whether every non-blocker tile above the bottom row is reachable from
- * the bottom access corridor.
- */
 function preservesReachability(tiles: MineTile[][], rows: number, cols: number): boolean {
   const reachable = getReachableTiles(tiles, rows, cols);
 
@@ -291,13 +215,6 @@ function preservesReachability(tiles: MineTile[][], rows: number, cols: number):
   return true;
 }
 
-/**
- * Returns whether placing a blocker at the given tile would create an illegal
- * blocker chain.
- *
- * Chain validation uses 8-direction connectivity and preserves the current
- * DFS-path-based interpretation of "too long."
- */
 function wouldCreateLongChain(tiles: MineTile[][], row: number, col: number, rows: number, cols: number): boolean {
   const maxLength = Math.min(rows, cols) - 1;
 
@@ -320,10 +237,6 @@ function wouldCreateLongChain(tiles: MineTile[][], row: number, col: number, row
   return dfs(row, col, new Set()) > maxLength;
 }
 
-/**
- * Performs a temporary blocker placement and validates the result against all
- * structural rules.
- */
 function isPlacementValid(tiles: MineTile[][], row: number, col: number, rows: number, cols: number): boolean {
   const originalTile = tiles[row][col];
   tiles[row][col] = createTile('blocker');
@@ -336,13 +249,6 @@ function isPlacementValid(tiles: MineTile[][], row: number, col: number, rows: n
   return !createsLongChain && !breaksReachability;
 }
 
-/**
- * Attempts to place blockers while preserving all structural constraints.
- *
- * Blocker density is a soft target:
- * - the generator tries to place up to the configured density
- * - it may place fewer blockers if valid positions run out
- */
 function applyBlockers(tiles: MineTile[][], rows: number, cols: number, rng: seedrandom.PRNG): void {
   const fillablePositions = getFillablePositions(rows, cols);
   const maxBlockers = Math.floor(fillablePositions.length * MineGenConfig.blockerDensity);
@@ -364,18 +270,11 @@ function applyBlockers(tiles: MineTile[][], rows: number, cols: number, rng: see
 }
 
 /**
- * Generates a deterministic MineDepth based on world seed, depth, and north
- * expansion index.
- *
- * Generation pipeline:
- * - determine dimensions
- * - create an empty grid
- * - fill every non-bottom tile using exact count allocation
- * - keep bottom row empty as the access corridor
- * - optionally place blockers from depth 2 onward
+ * Generate deterministic MineDepth based on world seed, reset count, depth, and north expansion.
  */
-export function generatePlot(worldSeed: string, depth: number, northExpansionIndex: number): MineDepth {
-  const rng = seedrandom(`${worldSeed}-${depth}-${northExpansionIndex}`);
+export function generatePlot(worldSeed: string, resetCount: number, depth: number, northExpansionIndex: number): MineDepth {
+  // Include resetCount in the seed string (matching worldGen pattern)
+  const rng = seedrandom(`${worldSeed}-${resetCount}-${depth}-${northExpansionIndex}`);
   const { rows, cols } = MineGenConfig.getDimensions(depth, northExpansionIndex);
 
   const tiles: MineTile[][] = Array.from({ length: rows }, (_, row) => Array.from({ length: cols }, () => createTile(row === rows - 1 ? 'empty' : 'dirt')));
@@ -402,9 +301,6 @@ export function generatePlot(worldSeed: string, depth: number, northExpansionInd
   };
 }
 
-/**
- * Aggregates all tile types present in a mine depth.
- */
 export function getPlotStats(plot: MineDepth): Record<MineTileType, number> {
   const stats = Object.fromEntries(Object.keys(TILE_DEFS).map((key) => [key, 0])) as Record<MineTileType, number>;
 
@@ -415,19 +311,10 @@ export function getPlotStats(plot: MineDepth): Record<MineTileType, number> {
   return stats;
 }
 
-/**
- * Determines whether a depth is not cleared, soft cleared, or hard cleared.
- *
- * Rules:
- * - hard: no dirt and no resources/rubble remain
- * - soft: resources/rubble are gone but dirt remains
- * - none: at least one resource/rubble remains
- */
 export function getClearStatus(plot: MineDepth): ClearStatus {
   const stats = getPlotStats(plot);
 
   const resourceCount = (stats.rubble || 0) + (stats.coal || 0) + (stats.oil || 0) + (stats.copper || 0) + (stats.superalloy || 0);
-
   const dirtCount = stats.dirt || 0;
 
   if (resourceCount === 0 && dirtCount === 0) {
@@ -441,14 +328,6 @@ export function getClearStatus(plot: MineDepth): ClearStatus {
   return 'none';
 }
 
-/**
- * Returns clear progress as a percentage.
- *
- * Progress is based on the fillable area only:
- * - bottom-row access tiles are excluded
- * - blockers do not count against progress
- * - remaining dirt and remaining resources/rubble do count against progress
- */
 export function getClearProgress(plot: MineDepth): number {
   const stats = getPlotStats(plot);
   const totalFillableTiles = (plot.rows - 1) * plot.cols;

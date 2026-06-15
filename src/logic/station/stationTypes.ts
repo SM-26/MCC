@@ -1,7 +1,7 @@
 // src/logic/station/stationTypes.ts
 
 import type { Ages } from '../mine/mineTypes';
-import type { DestinationType, Route } from '../world/worldTypes';
+import type { Route } from '../world/worldTypes';
 
 export type StationId = string;
 export type PlatformId = string;
