@@ -4,7 +4,7 @@ import type { Destination, DestinationId, DestinationType, PlotId, Route, WorldC
 
 import { getActivePlot, getCellById, getDestinationFromCell, getPlotById, isRouteToDestination } from './worldTypes';
 
-function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'fog'): WorldCell {
+function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'empty'): WorldCell {
   return {
     id,
     name,
@@ -16,11 +16,10 @@ function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: num
   };
 }
 
-function createDefaultWorldPlot(plotId: PlotId, cellId: WorldCellId, plotName: string): WorldPlot {
+function createDefaultWorldPlot(plotId: PlotId, cellId: WorldCellId): WorldPlot {
   return {
     plotId,
     cellId,
-    plotName,
     discovered: true,
   };
 }
@@ -84,7 +83,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       state.cells.push(cell);
     },
 
-    createCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'fog') {
+    createCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'empty') {
       state.cells.push(createDefaultWorldCell(id, name, q, r, ring, type));
     },
 
@@ -112,8 +111,23 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       state.plots.push(plot);
     },
 
-    createPlot(plotId: PlotId, cellId: WorldCellId, plotName: string) {
-      state.plots.push(createDefaultWorldPlot(plotId, cellId, plotName));
+    createPlot(plotId: PlotId, cellId: WorldCellId) {
+      state.plots.push(createDefaultWorldPlot(plotId, cellId));
+    },
+
+    createPlotFromCell(cellId: WorldCellId): boolean {
+      const cell = getCellById(state, cellId);
+      if (!cell || cell.type !== 'plot') {
+        return false;
+      }
+
+      if (state.plots.some((plot) => plot.cellId === cellId || plot.plotId === cellId)) {
+        return false;
+      }
+
+      state.plots.push(createDefaultWorldPlot(cell.id, cell.id));
+      state.activePlotIndex = state.plots.length - 1;
+      return true;
     },
 
     updatePlot(plotId: PlotId, updates: Partial<WorldPlot>): boolean {
@@ -123,16 +137,6 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       }
 
       Object.assign(plot, updates);
-      return true;
-    },
-
-    renamePlot(plotId: PlotId, plotName: string): boolean {
-      const plot = getPlotById(state, plotId);
-      if (!plot) {
-        return false;
-      }
-
-      plot.plotName = plotName;
       return true;
     },
 

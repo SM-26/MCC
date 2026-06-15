@@ -1,19 +1,18 @@
 // src/logic/save/saveStore.svelte.ts
 
 import type { GameState, PersistedGameState, SaveFile, SaveMetadata, SavedNavigation } from './saveTypes';
+import { getInitialNavigationState } from '../stateFactory.ts';
 
 function createDefaultMetadata(): SaveMetadata {
   return {
-    saveVersion: '0.0.0',
+    saveVersion: '6.6.6',
     saveCommitHash: 'dev',
     savedAt: 0,
   };
 }
 
 function createDefaultSavedNavigation(): SavedNavigation {
-  return {
-    activeTab: 'world',
-  };
+  return getInitialNavigationState();
 }
 
 function cloneGameState(gameState: GameState): GameState {

@@ -1,2 +1,2 @@
-91a278e
-very good working ui for worldview
+b3c14d5
+fixed some things, broke other things.

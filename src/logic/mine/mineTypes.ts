@@ -19,7 +19,6 @@ export interface AgeResources {
 
 export interface PlotState {
   plotId: PlotId;
-  plotName: string;
   currentAge: Ages; // default: 'Mechanical'
   ageResources: AgeResources;
   northExpansions: NorthExpansion[]; // default: [initial expansion]
@@ -66,35 +65,4 @@ export function createEmptyAgeResources(): AgeResources {
     copper: 0,
     superalloy: 0,
   };
-}
-
-export function createMineTile(type: MineTileType = 'empty', overrides: Partial<MineTile> = {}): MineTile {
-  const defaultResourceType: ResourceType = type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy' ? type : 'none';
-
-  return {
-    type,
-    level: 1,
-    hp: 0,
-    maxHp: 0,
-    value: 0,
-    resourceType: defaultResourceType,
-    ...overrides,
-  };
-}
-
-export function getActiveNorthExpansion(plot: PlotState): NorthExpansion | null {
-  return plot.northExpansions[plot.activeNorthExpansionIndex] ?? null;
-}
-
-export function getActiveMineDepth(plot: PlotState): MineDepthState | null {
-  const expansion = getActiveNorthExpansion(plot);
-  if (!expansion) {
-    return null;
-  }
-
-  return expansion.mineDepths[expansion.activeDepthIndex] ?? null;
-}
-
-export function getMineDepthByDepth(expansion: NorthExpansion, depth: number): MineDepthState | null {
-  return expansion.mineDepths.find((mineDepth) => mineDepth.depth === depth) ?? null;
 }

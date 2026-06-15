@@ -6,18 +6,21 @@ export type WorldCellId = string;
 export type DestinationId = string;
 export type PlotId = string;
 
-export type WorldCellType = 'fog' | 'empty' | 'plot' | 'city' | 'factory' | 'blocker';
+export type WorldCellType = 'empty' | 'plot' | 'city' | 'factory' | 'blocker';
 export type DestinationType = 'city' | 'factory' | 'plot';
 export type ResourceType = 'Oil' | 'Coal' | 'Copper' | 'SuperAlloy';
 
 /**
- * Tile kind semantic descriptions (per design doc):
- * - fog: unrevealed tile; valid exploration destination; not passable
+ * Tile kind semantic descriptions:
  * - empty: revealed but non-special tile; passable
  * - plot: destination for plot expansion and age-resource transfer; passable with penalty
  * - city: passenger destination; only passenger carts count; passable with penalty
  * - factory: cargo destination; only cargo carts count; accepts resources; passable with penalty
  * - blocker: impassable tile (river/lake/mountain flavor)
+ *
+ * Note:
+ * - Undiscovered cells are painted as fog by the UI.
+ * - Fog is no longer a stored tile type.
  */
 
 export interface Route {
@@ -30,43 +33,36 @@ export interface WorldCell {
   name: string;
   type: WorldCellType;
 
-  // Axial hex coordinates
   q: number;
   r: number;
-  ring: number; // distance from origin (0 = starting plot)
+  ring: number;
 
-  discovered: boolean; // default: false (fog is undiscovered)
+  discovered: boolean;
 
-  // Optional generated name (for plot/city/factory)
-
-  // Type-specific properties
-  capacity?: number; // for city/factory: max throughput
-  acceptedResources?: ResourceType[]; // for factory: which resources it accepts
+  capacity?: number;
+  acceptedResources?: ResourceType[];
 }
 
 export interface Destination {
   id: DestinationId;
   name: string;
   type: DestinationType;
-  distance: number; // axial hex distance from active plot
-  basePayout: number; // money/EI potential (from config/formula)
-  discovered: boolean; // default: false
+  distance: number;
+  basePayout: number;
+  discovered: boolean;
 }
 
 export interface WorldState {
-  cells: WorldCell[]; // world map data
-  plots: WorldPlot[]; // player-developed plots
-  activePlotIndex: number; // default: 0
+  cells: WorldCell[];
+  plots: WorldPlot[];
+  activePlotIndex: number;
 }
 
 export interface WorldPlot {
   plotId: PlotId;
   cellId: WorldCellId;
-  plotName: string;
-  discovered: boolean; // default: true once acquired
+  discovered: boolean;
 }
-
-// Helper functions
 
 export function getActivePlot(world: WorldState): WorldPlot | null {
   return world.plots[world.activePlotIndex] ?? null;
@@ -81,7 +77,7 @@ export function getPlotById(world: WorldState, plotId: PlotId): WorldPlot | null
 }
 
 export function getDestinationFromCell(cell: WorldCell): Destination | null {
-  if (cell.type === 'fog' || cell.type === 'empty' || cell.type === 'blocker') {
+  if (!cell.discovered || cell.type === 'empty' || cell.type === 'blocker') {
     return null;
   }
 
@@ -89,8 +85,8 @@ export function getDestinationFromCell(cell: WorldCell): Destination | null {
     id: cell.id,
     name: cell.name,
     type: cell.type,
-    distance: 0, // Will be computed by pathing logic later
-    basePayout: 0, // Will be set from config/formula during generation
+    distance: 0,
+    basePayout: 0,
     discovered: cell.discovered,
   };
 }
@@ -98,8 +94,6 @@ export function getDestinationFromCell(cell: WorldCell): Destination | null {
 export function isRouteToDestination(route: Route, destination: Destination): boolean {
   return route.destinationId === destination.id && route.destinationType === destination.type;
 }
-
-// Coord helpers (wrapping hex.ts)
 
 export function makeWorldCellId(q: number, r: number): WorldCellId {
   return `${q},${r}`;

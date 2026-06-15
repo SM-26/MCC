@@ -15,7 +15,6 @@ import { navigation } from '../app/navigationStore.svelte';
 
 const SAVE_STORAGE_KEY = 'mcc_save';
 
-// Debounce timer reference
 let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 function buildGameStateSnapshot(): GameState {
@@ -28,11 +27,6 @@ function buildGameStateSnapshot(): GameState {
   };
 }
 
-/**
- * Builds a fresh default persisted state snapshot.
- *
- * @returns A brand-new persisted state with default game data and default navigation.
- */
 function buildDefaultPersistedState(): PersistedGameState {
   const defaults = getInitialState();
 
@@ -42,14 +36,6 @@ function buildDefaultPersistedState(): PersistedGameState {
   };
 }
 
-/**
- * Applies a full GameState object to live stores.
- *
- * Side effects:
- * - mutates live app and feature stores
- *
- * @param state Full game state to assign into the live stores.
- */
 function applyGameState(state: GameState): void {
   gameState.setMoney(state.money);
   gameState.updateSettings(state.settings);
@@ -57,7 +43,7 @@ function applyGameState(state: GameState): void {
   worldStore.replace(state.world);
   engineeringStore.replace(state.engineering);
 
-  const firstPlot = state.plots[0]; // this line is the current compromise: If we later move to a true multi-plot runtime store, this file should switch to that.
+  const firstPlot = state.plots[0];
   if (firstPlot) {
     mineStore.replace(firstPlot);
   } else {
@@ -65,41 +51,18 @@ function applyGameState(state: GameState): void {
   }
 }
 
-/**
- * Applies a persisted state snapshot to live stores.
- *
- * Side effects:
- * - mutates live app and feature stores
- *
- * @param state Fully resolved persisted state to assign into live state.
- */
 function applyPersistedState(state: PersistedGameState): void {
   applyGameState(state);
   navigation.setActiveTab(state.navigation.activeTab);
 }
 
-/**
- * Creates a raw, serializable snapshot of current live state.
- *
- * @returns Serializable persisted state snapshot.
- */
 export function getSaveSnapshot(): PersistedGameState {
   return {
     ...buildGameStateSnapshot(),
-    navigation: {
-      activeTab: navigation.current.activeTab,
-    },
+    navigation: $state.snapshot(navigation.current),
   };
 }
 
-/**
- * Persists the current live state immediately.
- *
- * Side effects:
- * - reads from stores
- * - writes to localStorage
- * - logs success or failure
- */
 function saveNow(logContext: 'debounced save' | 'manual save'): void {
   const snapshot = getSaveSnapshot();
 
@@ -127,11 +90,6 @@ function saveNow(logContext: 'debounced save' | 'manual save'): void {
   }
 }
 
-/**
- * Full game state save function (debounced).
- *
- * Saves the full current state to localStorage after 500ms of inactivity.
- */
 export function debouncedSave(): void {
   if (saveTimeoutId) {
     clearTimeout(saveTimeoutId);
@@ -146,9 +104,6 @@ export function debouncedSave(): void {
   }, 500);
 }
 
-/**
- * Manual save function (immediate, no debounce).
- */
 export function manualSave(): void {
   try {
     saveNow('manual save');
@@ -157,16 +112,6 @@ export function manualSave(): void {
   }
 }
 
-/**
- * Load full game state from localStorage.
- *
- * Called on app initialization.
- *
- * Behavior:
- * - if no save exists, applies defaults and writes them
- * - if save is invalid, resets to defaults
- * - if save is valid, applies the loaded persisted state
- */
 export function loadGame(): void {
   try {
     saveStore.setStorageKey(SAVE_STORAGE_KEY);
@@ -205,16 +150,6 @@ export function loadGame(): void {
   }
 }
 
-/**
- * Reset progress with confirmation.
- *
- * Reset policy:
- * - cancel pending autosave
- * - clear persisted save
- * - apply fresh defaults
- * - write fresh defaults
- * - reload the page
- */
 export async function resetProgress(): Promise<void> {
   try {
     log.warn('save', 'Reset progress initiated - clearing all data');
