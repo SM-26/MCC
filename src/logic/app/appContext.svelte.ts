@@ -1,5 +1,5 @@
 // src/logic/app/appContext.svelte.ts
-import type { ScreenSize } from "../../lib/sizes";
+import type { ScreenSize } from '../../lib/sizes';
 export interface AppContextState {
   isPWAInstalled: boolean;
   isLoading: boolean;

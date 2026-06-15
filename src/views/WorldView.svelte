@@ -22,8 +22,13 @@
     selectedCell = cell;
   }
 
-  function goToMine() {
+  function openMine(cell: WorldCell) {
+    worldStore.setActivePlotById(cell.id);
     navigation.setActiveTab('mine');
+  }
+
+  function goToMine() {
+    if (activePlot) navigation.setActiveTab('mine');
   }
 
   function goToStation() {
@@ -41,31 +46,37 @@
       <h2>World Map</h2>
       <p>Choose a plot, city, or factory.</p>
     </div>
-
-    <div class="stats">
-      <span>Money: {gameState.current.money}</span>
-      <span>Active plot: {activePlot?.plotName ?? 'None'}</span>
-    </div>
   </header>
 
-  <WorldGrid {cells} onSelectCell={selectCell} />
+  <WorldGrid {cells} onSelectCell={selectCell} onSelectPlot={selectCell} onClearSelection={clearSelection} onOpenMine={openMine} />
 
+  <Button.Root onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root>
   <section class="details">
     <div>
-      <h3>{selectedCell ? selectedCell.name : 'Selection'}</h3>
+      {#if selectedCell?.discovered || gameState.current.settings.devMode}
+        <h3>{selectedCell ? selectedCell.name : 'Selection'}</h3>
+      {/if}
 
       {#if selectedCell}
-        <p>Type: {selectedCell.type}</p>
-        <p>Ring: {selectedCell.ring}</p>
-        <p>Coords: {selectedCell.q}, {selectedCell.r}</p>
-        <p>Status: {selectedCell.discovered ? 'Discovered' : 'Hidden'}</p>
+        {#if selectedCell.discovered || gameState.current.settings.devMode}
+          <p>Type: {selectedCell.type}</p>
+        {:else}
+          <p>Type: ???</p>
+        {/if}
 
-        {#if selectedCell.type === 'city'}
-          <p>Passenger destination.</p>
-        {:else if selectedCell.type === 'factory'}
-          <p>Cargo destination.</p>
-        {:else if selectedCell.type === 'plot'}
-          <p>Plot tile selected. Mine and station views will use this tile.</p>
+        <p>Ring: {selectedCell.ring}</p>
+        {#if gameState.current.settings.devMode}
+          <p>Coords: {selectedCell.q}, {selectedCell.r}</p>
+        {/if}
+        <p>Status: {selectedCell.discovered ? 'Discovered' : 'Hidden'}</p>
+        {#if selectedCell.discovered}
+          {#if selectedCell.type === 'city'}
+            <p>Passenger destination.</p>
+          {:else if selectedCell.type === 'factory'}
+            <p>Cargo destination.</p>
+          {:else if selectedCell.type === 'plot'}
+            <p>Plot tile selected. Mine and station views will use this tile.</p>
+          {/if}
         {/if}
       {:else}
         <p>Click a tile to inspect it.</p>
@@ -75,7 +86,9 @@
     <div class="actions">
       <Button.Root class="mini-btn" onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root>
       <Button.Root class="mini-btn" onclick={goToStation} disabled={!activePlot}>Go to station</Button.Root>
-      <Button.Root class="mini-btn" onclick={clearSelection}>Clear</Button.Root>
+      {#if gameState.current.settings.devMode}
+        <Button.Root class="mini-btn" onclick={clearSelection}>Clear</Button.Root>
+      {/if}
     </div>
   </section>
 </div>
@@ -93,13 +106,6 @@
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-  }
-
-  .stats {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    opacity: 0.9;
   }
 
   .details {

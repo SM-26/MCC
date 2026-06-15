@@ -1,52 +1,83 @@
-<!-- /src/components/world/WorldGrid.svelte -->
 <script lang="ts">
   import type { WorldCell, WorldCellId } from '../../logic/world/worldTypes';
+  import { gameState } from '../../logic/app/gameState.svelte';
 
   type Props = {
     cells: WorldCell[];
     selectedCellId?: WorldCellId | null;
     onSelectCell?: (cell: WorldCell) => void;
     onSelectPlot?: (cell: WorldCell) => void;
+    onClearSelection?: () => void;
+    onOpenMine?: (cell: WorldCell) => void;
   };
 
-  let { cells, selectedCellId = null, onSelectCell, onSelectPlot }: Props = $props();
-
+  const { cells, selectedCellId = null, onSelectCell, onSelectPlot, onClearSelection, onOpenMine }: Props = $props();
   const HEX_SIZE = 30;
-  const HEX_W = 62;
-  const HEX_H = 62;
+  const HEX_W = 80;
+  const HEX_H = 80;
   const SCALE_X = HEX_W / (Math.sqrt(3) * HEX_SIZE);
   const SCALE_Y = HEX_H / (2 * HEX_SIZE);
+  const SPACING_X = 1;
+  const SPACING_Y = 1.15;
 
   function axialToPixel(cell: WorldCell) {
     return {
-      x: HEX_SIZE * (Math.sqrt(3) * cell.q + (Math.sqrt(3) / 2) * cell.r) * SCALE_X,
-      y: HEX_SIZE * (1.5 * cell.r) * SCALE_Y,
+      x: HEX_SIZE * (Math.sqrt(3) * cell.q + (Math.sqrt(3) / 2) * cell.r) * SCALE_X * SPACING_X,
+      y: HEX_SIZE * (1.5 * cell.r) * SCALE_Y * SPACING_Y,
     };
   }
 
-  function handleClick(cell: WorldCell) {
-    if (cell.type === 'plot' && onSelectPlot) return onSelectPlot(cell);
+  function handleLayerClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('button.hex')) onClearSelection?.();
+  }
+
+  function handleClick(cell: WorldCell, event: MouseEvent) {
+    event.stopPropagation();
+    if (cell.type === 'plot') {
+      onSelectPlot?.(cell);
+      return;
+    }
     onSelectCell?.(cell);
+  }
+
+  function handleDoubleClick(cell: WorldCell, event: MouseEvent) {
+    event.stopPropagation();
+    if (cell.type === 'plot' && selectedCellId === cell.id) {
+      onOpenMine?.(cell);
+    }
   }
 </script>
 
 <div class="world-grid">
-  <div class="world-layer">
+  <div
+    class="world-layer"
+    role="button"
+    tabindex="0"
+    onclick={handleLayerClick}
+    onkeydown={(e) => (e.key === 'Enter' || e.key === ' ' ? (e.preventDefault(), onClearSelection?.()) : undefined)}
+  >
     {#each cells as cell (cell.id)}
       {@const pos = axialToPixel(cell)}
       <button
         class:selected={selectedCellId === cell.id}
         class={`hex type-${cell.type} ${cell.discovered ? 'discovered' : 'hidden'}`}
         style={`--x:${pos.x}px; --y:${pos.y}px; --w:${HEX_W}px; --h:${HEX_H}px;`}
-        onclick={() => handleClick(cell)}
+        onclick={(e) => handleClick(cell, e)}
+        ondblclick={(e) => handleDoubleClick(cell, e)}
         title={cell.name}
         aria-label={cell.name}
         type="button"
       >
         <span class="hex-shape"></span>
         <span class="hex-content">
-          <span class="label">{cell.name}</span>
-          <span class="coords">{cell.q}, {cell.r}</span>
+          {#if gameState.current.settings.devMode || cell.discovered}
+            <span class="label">{cell.name}</span>
+          {/if}
+
+          {#if gameState.current.settings.devMode}
+            <span class="coords">{cell.q}, {cell.r}</span>
+          {/if}
         </span>
       </button>
     {/each}
@@ -110,6 +141,7 @@
   .hex.hidden {
     opacity: 0.45;
   }
+
   .hex.selected {
     z-index: 2;
   }
@@ -117,18 +149,23 @@
   .type-plot .hex-shape {
     background: color-mix(in srgb, #3b82f6 22%, var(--mcc-bg-surface));
   }
+
   .type-city .hex-shape {
     background: color-mix(in srgb, #10b981 22%, var(--mcc-bg-surface));
   }
+
   .type-factory .hex-shape {
     background: color-mix(in srgb, #f59e0b 22%, var(--mcc-bg-surface));
   }
+
   .type-fog .hex-shape {
     background: color-mix(in srgb, #64748b 22%, var(--mcc-bg-surface));
   }
+
   .type-empty .hex-shape {
     background: color-mix(in srgb, #94a3b8 14%, var(--mcc-bg-surface));
   }
+
   .type-blocker .hex-shape {
     background: color-mix(in srgb, #ef4444 22%, var(--mcc-bg-surface));
   }

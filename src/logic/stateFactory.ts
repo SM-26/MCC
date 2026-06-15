@@ -12,7 +12,6 @@ import { engineeringStore } from './engineering/engineeringStore.svelte';
 import { generatePlot } from './mine/mineGen';
 import { generateWorld } from './world/worldGen';
 
-
 function createDefaultPlotState(worldSeed: string, plotIndex = 0, plotId = `plot-${plotIndex}`, plotName = 'Prague'): PlotState {
   return {
     plotId,
