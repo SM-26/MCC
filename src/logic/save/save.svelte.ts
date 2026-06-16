@@ -1,92 +1,80 @@
 // src/logic/save/save.svelte.ts
 
+import appVersion from '../../assets/version.txt?raw';
+import gitInfo from '../../assets/git-info.txt?raw';
 import { log } from '../../lib/logger';
-
+import { gameState } from '../app/gameState.svelte';
+import { navigation } from '../app/navigationStore.svelte';
+import { createDefaultNavigationState } from '../app/navigationTypes';
+import { getInitialState } from '../stateFactory';
+import { saveStore } from './saveStore.svelte';
 import type { GameState, PersistedGameState } from './saveTypes';
 
-import { getInitialNavigationState, getInitialState } from '../stateFactory';
-
-import { gameState } from '../app/gameState.svelte';
-import { mineStore } from '../mine/mineStore.svelte';
-import { worldStore } from '../world/worldStore.svelte';
-import { engineeringStore } from '../engineering/engineeringStore.svelte';
-import { saveStore } from './saveStore.svelte';
-import { navigation } from '../app/navigationStore.svelte';
-
 const SAVE_STORAGE_KEY = 'mcc_save';
+const SAVE_VERSION = appVersion.trim();
+const [commitHash = 'dev'] = gitInfo.trim().split('\n');
 
 let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-function buildGameStateSnapshot(): GameState {
-  return {
-    money: gameState.current.money,
-    world: $state.snapshot(worldStore.current),
-    plots: [$state.snapshot(mineStore.current)],
-    engineering: $state.snapshot(engineeringStore.current),
-    settings: $state.snapshot(gameState.current.settings),
-  };
-}
-
-function buildDefaultPersistedState(): PersistedGameState {
+function getPersistedSnapshot(): PersistedGameState {
   const defaults = getInitialState();
 
   return {
     ...defaults,
-    navigation: getInitialNavigationState(),
-  };
-}
-
-function applyGameState(state: GameState): void {
-  gameState.setMoney(state.money);
-  gameState.updateSettings(state.settings);
-
-  worldStore.replace(state.world);
-  engineeringStore.replace(state.engineering);
-
-  const firstPlot = state.plots[0];
-  if (firstPlot) {
-    mineStore.replace(firstPlot);
-  } else {
-    mineStore.reset();
-  }
-}
-
-function applyPersistedState(state: PersistedGameState): void {
-  applyGameState(state);
-  navigation.setActiveTab(state.navigation.activeTab);
-}
-
-export function getSaveSnapshot(): PersistedGameState {
-  return {
-    ...buildGameStateSnapshot(),
+    money: gameState.current.money,
+    settings: $state.snapshot(gameState.current.settings),
+    world: $state.snapshot(defaults.world),
+    plots: $state.snapshot(defaults.plots),
+    engineering: $state.snapshot(defaults.engineering),
     navigation: $state.snapshot(navigation.current),
   };
 }
 
-function saveNow(logContext: 'debounced save' | 'manual save'): void {
-  const snapshot = getSaveSnapshot();
+function applyDefaultState(): void {
+  const defaults = getInitialState();
 
-  const ok = saveStore.saveToLocalStorage(
-    {
-      money: snapshot.money,
-      world: snapshot.world,
-      plots: snapshot.plots,
-      engineering: snapshot.engineering,
-      settings: snapshot.settings,
-    },
-    {
-      navigation: snapshot.navigation,
-    },
-  );
+  gameState.setMoney(defaults.money);
+  gameState.updateSettings(defaults.settings);
+  navigation.replace(createDefaultNavigationState());
+}
 
-  if (!ok) {
-    throw new Error(saveStore.current.lastError ?? 'Unknown save failure.');
-  }
+function applyLoadedState(snapshot: PersistedGameState): void {
+  gameState.setMoney(snapshot.money);
+  gameState.updateSettings(snapshot.settings);
+  navigation.replace(snapshot.navigation);
+}
 
-  if (logContext === 'debounced save') {
-    log.debug('save', 'Debounced save wrote full game state to localStorage.');
-  } else {
-    log.info('save', 'Manual save triggered by user.');
+function persistSnapshot(snapshot: PersistedGameState): boolean {
+  const gameStateData: GameState = {
+    money: snapshot.money,
+    world: snapshot.world,
+    plots: snapshot.plots,
+    engineering: snapshot.engineering,
+    settings: snapshot.settings,
+  };
+
+  return saveStore.saveToLocalStorage(gameStateData, {
+    navigation: snapshot.navigation,
+    saveVersion: SAVE_VERSION,
+    saveCommitHash: commitHash,
+  });
+}
+
+function saveSnapshotNow(reason: string): void {
+  try {
+    const snapshot = getPersistedSnapshot();
+    log.debug(
+      'save',
+      `${reason}: activeTab=${snapshot.navigation.activeTab}, defaultView=${snapshot.settings.defaultView}, navbarPosition=${snapshot.settings.navbarPosition}`,
+    );
+
+    const ok = persistSnapshot(snapshot);
+
+    if (!ok) {
+      log.error('save', saveStore.current.lastError ?? 'Failed to save.');
+    }
+  } catch (error) {
+    log.error('save', `Failed to save game state: ${String(error)}`);
   }
 }
 
@@ -96,19 +84,15 @@ export function debouncedSave(): void {
   }
 
   saveTimeoutId = setTimeout(() => {
-    try {
-      saveNow('debounced save');
-    } catch (error) {
-      log.error('save', `Failed to save full game state: ${String(error)}`);
-    }
+    saveTimeoutId = null;
+    saveSnapshotNow('autosave');
   }, 500);
 }
 
 export function manualSave(): void {
-  try {
-    saveNow('manual save');
-  } catch (error) {
-    log.error('save', `Failed to manual save: ${String(error)}`);
+  saveSnapshotNow('manual save');
+  if (!saveStore.current.lastError) {
+    log.info('save', 'Manual save wrote full game state to localStorage.');
   }
 }
 
@@ -117,36 +101,36 @@ export function loadGame(): void {
     saveStore.setStorageKey(SAVE_STORAGE_KEY);
 
     const loaded = saveStore.loadFromLocalStorage();
+    log.debug('load', `loadFromLocalStorage -> ${loaded ? loaded.navigation.activeTab : 'null'}`);
 
     if (!loaded) {
-      const defaultState = buildDefaultPersistedState();
-      applyPersistedState(defaultState);
+      applyDefaultState();
 
-      const ok = saveStore.saveToLocalStorage(
-        {
-          money: defaultState.money,
-          world: defaultState.world,
-          plots: defaultState.plots,
-          engineering: defaultState.engineering,
-          settings: defaultState.settings,
-        },
-        {
-          navigation: defaultState.navigation,
-        },
-      );
+      const snapshot = getPersistedSnapshot();
+      persistSnapshot(snapshot);
 
-      if (!ok) {
-        log.warn('save', saveStore.current.lastError ?? 'No existing save found and default save could not be written.');
-      }
-
+      log.info('load', 'No save found, created default game state.');
       return;
     }
 
-    applyPersistedState(loaded);
+    applyLoadedState(loaded);
+    log.debug(
+      'load',
+      `applied loaded state: defaultView=${loaded.settings.defaultView}, activeTab=${loaded.navigation.activeTab}, navbarPosition=${loaded.settings.navbarPosition}`,
+    );
 
-    log.info('load', `Full game state loaded from localStorage (${saveStore.current.lastSaveMetadata?.saveVersion ?? 'unknown version'}).`);
+    if (loaded.settings.defaultView === 'world') {
+      navigation.setActiveTab('world');
+      log.debug('load', 'startup forced activeTab=world because defaultView=world');
+    } else {
+      navigation.setActiveTab(loaded.navigation.activeTab);
+      log.debug('load', `startup restored activeTab=${loaded.navigation.activeTab} because defaultView=last-active`);
+    }
+
+    log.info('load', 'Game state loaded from localStorage.');
   } catch (error) {
     log.error('load', `Failed to load game state: ${String(error)}`);
+    applyDefaultState();
   }
 }
 
@@ -160,31 +144,12 @@ export async function resetProgress(): Promise<void> {
     }
 
     saveStore.setStorageKey(SAVE_STORAGE_KEY);
+    saveStore.clearLocalStorageSave();
 
-    const cleared = saveStore.clearLocalStorageSave();
-    if (!cleared) {
-      throw new Error(saveStore.current.lastError ?? 'Failed to clear local save.');
-    }
+    applyDefaultState();
 
-    const defaultState = buildDefaultPersistedState();
-    applyPersistedState(defaultState);
-
-    const ok = saveStore.saveToLocalStorage(
-      {
-        money: defaultState.money,
-        world: defaultState.world,
-        plots: defaultState.plots,
-        engineering: defaultState.engineering,
-        settings: defaultState.settings,
-      },
-      {
-        navigation: defaultState.navigation,
-      },
-    );
-
-    if (!ok) {
-      throw new Error(saveStore.current.lastError ?? 'Failed to rewrite default save.');
-    }
+    const snapshot = getPersistedSnapshot();
+    persistSnapshot(snapshot);
 
     log.info('save', 'Progress reset successfully');
     window.location.reload();

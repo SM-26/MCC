@@ -4,7 +4,7 @@ import type { SettingsState } from './settingsTypes';
 import { createDefaultSettingsState } from './settingsTypes';
 
 export interface GameSessionState {
-  money: number; // default: 75
+  money: number;
   settings: SettingsState;
 }
 

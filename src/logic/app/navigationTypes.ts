@@ -23,6 +23,6 @@ export function createDefaultNavigationState(): NavigationState {
   };
 }
 
-export function createDefaultSavedNavigation(): SavedNavigation {
+export function createDefaultSavedNavigation(): NavigationState {
   return createDefaultNavigationState();
 }

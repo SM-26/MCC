@@ -18,8 +18,11 @@
   import WorldView from './views/WorldView.svelte';
   import MineView from './views/MineView.svelte';
   import SettingsView from './views/SettingsView.svelte';
+  import { log } from './lib/logger';
 
   let isReadyToSave = false;
+  let lastAutosaveSignature = '';
+  let currentTab = $state<TabId>(navigation.current.activeTab);
 
   const tabConfig: Record<TabId, { label: string; icon: string }> = {
     world: { label: 'World', icon: '🌍' },
@@ -35,9 +38,57 @@
     appContext.setScreenSize(getScreenSize(window.innerWidth));
   }
 
+  function buildAutosaveSignature(): string {
+    return [
+      gameState.current.money,
+      navigation.current.activeTab,
+      gameState.current.settings.navbarPosition,
+      gameState.current.settings.defaultView,
+      gameState.current.settings.devMode,
+      gameState.current.settings.soundEnabled,
+      gameState.current.settings.notificationsEnabled,
+      gameState.current.settings.theme,
+      gameState.current.settings.worldSeed,
+    ].join('|');
+  }
+
+  function queueAutosave(reason: string) {
+    if (!isReadyToSave) return;
+
+    const signature = buildAutosaveSignature();
+    if (signature === lastAutosaveSignature) return;
+
+    lastAutosaveSignature = signature;
+
+    log.debug(
+      'autosave',
+      `${reason}: activeTab=${navigation.current.activeTab}, navbarPosition=${gameState.current.settings.navbarPosition}, defaultView=${gameState.current.settings.defaultView}, theme=${gameState.current.settings.theme}`,
+    );
+    debouncedSave();
+  }
+
+  function handleTabChange(tab: TabId) {
+    if (tab === currentTab) return;
+
+    currentTab = tab;
+    navigation.setActiveTab(tab);
+
+    if (!isReadyToSave) return;
+
+    log.debug('autosave', `view changed: activeTab=${tab}`);
+    queueAutosave('view changed');
+  }
+
   onMount(() => {
+    log.debug('app', `onMount start: defaultView=${gameState.current.settings.defaultView}, activeTab=${navigation.current.activeTab}`);
+
     if (gameState.current.settings.defaultView === 'world') {
+      currentTab = 'world';
       navigation.setActiveTab('world');
+      log.debug('app', 'forced activeTab=world because defaultView=world');
+    } else {
+      currentTab = navigation.current.activeTab;
+      log.debug('app', `keeping loaded activeTab=${navigation.current.activeTab} because defaultView=last-active`);
     }
 
     window.addEventListener('resize', updateScreenSize);
@@ -47,6 +98,8 @@
       appContext.setIsLoading(false);
       appContext.setSplashVisible(false);
       isReadyToSave = true;
+      lastAutosaveSignature = buildAutosaveSignature();
+      log.debug('app', `save ready: activeTab=${navigation.current.activeTab}, navbarPosition=${gameState.current.settings.navbarPosition}`);
     }, 2500);
 
     return () => {
@@ -57,10 +110,17 @@
 
   $effect(() => {
     if (!isReadyToSave) return;
+
     void gameState.current.money;
-    void navigation.current.activeTab;
-    void gameState.current.settings;
-    debouncedSave();
+    void gameState.current.settings.navbarPosition;
+    void gameState.current.settings.defaultView;
+    void gameState.current.settings.devMode;
+    void gameState.current.settings.soundEnabled;
+    void gameState.current.settings.notificationsEnabled;
+    void gameState.current.settings.theme;
+    void gameState.current.settings.worldSeed;
+
+    queueAutosave('settings changed');
   });
 
   const currency = $derived(gameState.current.money ?? 0);
@@ -109,13 +169,13 @@
       {@render appHeaderContents('Mines & Choo-Choo', currency)}
     </header>
 
-    <Tabs.Root bind:value={navigation.current.activeTab} class="tabs-root nav-pos-{effectiveNavbarPosition}">
+    <Tabs.Root value={currentTab} onValueChange={handleTabChange} class="tabs-root nav-pos-{effectiveNavbarPosition}">
       {#if effectiveNavbarPosition === 'top'}
         <Tabs.List class="navtab-list navtab-top">
           {#each navigation.current.tabs as tab (tab)}
             {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
             {@const isCompact = appContext.current.screenSize === 'xs' || appContext.current.screenSize === 'sm'}
-            {@const isVisible = !isCompact || navigation.current.activeTab === tab}
+            {@const isVisible = !isCompact || currentTab === tab}
 
             <Tabs.Trigger value={tab} title={config.label}>
               <span class="tab-icon">{config.icon}</span>
@@ -140,7 +200,7 @@
           {#each navigation.current.tabs as tab (tab)}
             {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
             {@const isCompact = appContext.current.screenSize === 'xs' || appContext.current.screenSize === 'sm'}
-            {@const isVisible = !isCompact || navigation.current.activeTab === tab}
+            {@const isVisible = !isCompact || currentTab === tab}
 
             <Tabs.Trigger value={tab} title={config.label}>
               <span class="tab-icon">{config.icon}</span>

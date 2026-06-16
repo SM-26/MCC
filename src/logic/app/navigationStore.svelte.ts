@@ -2,6 +2,7 @@
 
 import type { NavigationState, TabId } from './navigationTypes';
 import { createDefaultNavigationState, isTabId } from './navigationTypes';
+import { log } from '../../lib/logger';
 
 function createDefaultNavigationStoreState(): NavigationState {
   return createDefaultNavigationState();
@@ -28,14 +29,17 @@ export function createNavigationStore(initial?: Partial<NavigationState>) {
     },
 
     setActiveTab(tab: TabId): boolean {
+      log.debug('navigation', `setActiveTab requested: ${tab}`);
+
       if (!isTabId(tab)) {
+        log.debug('navigation', `setActiveTab rejected: ${tab}`);
         return false;
       }
 
       state.activeTab = tab;
+      log.debug('navigation', `setActiveTab applied: ${state.activeTab}`);
       return true;
     },
-
     setTabs(tabs: TabId[]) {
       state.tabs = [...tabs];
     },

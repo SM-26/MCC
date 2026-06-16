@@ -1,19 +1,6 @@
 // src/logic/save/saveStore.svelte.ts
 
 import type { GameState, PersistedGameState, SaveFile, SaveMetadata, SavedNavigation } from './saveTypes';
-import { getInitialNavigationState } from '../stateFactory.ts';
-
-function createDefaultMetadata(): SaveMetadata {
-  return {
-    saveVersion: '6.6.6',
-    saveCommitHash: 'dev',
-    savedAt: 0,
-  };
-}
-
-function createDefaultSavedNavigation(): SavedNavigation {
-  return getInitialNavigationState();
-}
 
 function cloneGameState(gameState: GameState): GameState {
   return structuredClone(gameState);
@@ -21,6 +8,16 @@ function cloneGameState(gameState: GameState): GameState {
 
 function clonePersistedGameState(gameState: PersistedGameState): PersistedGameState {
   return structuredClone(gameState);
+}
+
+function createDefaultSavedNavigation(): SavedNavigation {
+  return {
+    activeTab: 'world',
+    tabs: ['world', 'mine', 'station', 'engineering', 'settings'],
+    showLabels: true,
+    showEmojis: true,
+    showActiveLabel: true,
+  };
 }
 
 function safeParseSaveFile(json: string): SaveFile | null {
@@ -71,22 +68,22 @@ export function createSaveStore() {
 
     buildSaveFile(
       gameState: GameState,
-      options?: {
+      options: {
         navigation?: Partial<SavedNavigation>;
-        saveVersion?: string;
-        saveCommitHash?: string;
+        saveVersion: string;
+        saveCommitHash: string;
         savedAt?: number;
       },
     ): SaveFile {
-      const savedAt = options?.savedAt ?? Date.now();
+      const savedAt = options.savedAt ?? Date.now();
 
       return {
         meta: {
-          saveVersion: options?.saveVersion ?? '0.0.0',
-          saveCommitHash: options?.saveCommitHash ?? 'dev',
+          saveVersion: options.saveVersion,
+          saveCommitHash: options.saveCommitHash,
           savedAt,
         },
-        data: this.buildPersistedGameState(gameState, options?.navigation),
+        data: this.buildPersistedGameState(gameState, options.navigation),
       };
     },
 
@@ -116,10 +113,11 @@ export function createSaveStore() {
 
     exportToJson(
       gameState: GameState,
-      options?: {
+      options: {
         navigation?: Partial<SavedNavigation>;
-        saveVersion?: string;
-        saveCommitHash?: string;
+        saveVersion: string;
+        saveCommitHash: string;
+        savedAt?: number;
       },
     ): string {
       const saveFile = this.buildSaveFile(gameState, options);
@@ -141,10 +139,11 @@ export function createSaveStore() {
 
     saveToLocalStorage(
       gameState: GameState,
-      options?: {
+      options: {
         navigation?: Partial<SavedNavigation>;
-        saveVersion?: string;
-        saveCommitHash?: string;
+        saveVersion: string;
+        saveCommitHash: string;
+        savedAt?: number;
       },
     ): boolean {
       if (typeof window === 'undefined') {
@@ -199,10 +198,11 @@ export function createSaveStore() {
 
     downloadSaveFile(
       gameState: GameState,
-      options?: {
+      options: {
         navigation?: Partial<SavedNavigation>;
-        saveVersion?: string;
-        saveCommitHash?: string;
+        saveVersion: string;
+        saveCommitHash: string;
+        savedAt?: number;
         filename?: string;
       },
     ): boolean {
@@ -218,7 +218,7 @@ export function createSaveStore() {
         const anchor = document.createElement('a');
 
         anchor.href = url;
-        anchor.download = options?.filename ?? 'save.json';
+        anchor.download = options.filename ?? 'save.json';
         anchor.click();
 
         URL.revokeObjectURL(url);

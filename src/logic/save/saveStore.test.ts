@@ -1,10 +1,17 @@
 // src/logic/save/saveStore.test.ts
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import type { GameState, SaveFile } from './saveTypes';
-
 import { createSaveStore } from './saveStore.svelte';
+import { createDefaultNavigationState } from '../app/navigationTypes';
+
+const defaultNavigation = {
+  activeTab: 'world' as const,
+  tabs: ['world', 'mine', 'station', 'engineering', 'settings'] as const,
+  showLabels: true,
+  showEmojis: true,
+  showActiveLabel: true,
+};
 
 function createMockGameState(): GameState {
   return {
@@ -15,7 +22,6 @@ function createMockGameState(): GameState {
         {
           plotId: 'plot-0',
           cellId: 'cell-plot-0',
-          plotName: 'Prague',
           discovered: true,
         },
       ],
@@ -24,7 +30,6 @@ function createMockGameState(): GameState {
     plots: [
       {
         plotId: 'plot-0',
-        plotName: 'Prague',
         currentAge: 'Mechanical',
         ageResources: {
           coal: 0,
@@ -82,6 +87,13 @@ function createMockGameState(): GameState {
   };
 }
 
+function createNavigation(overrides: Partial<typeof defaultNavigation> = {}) {
+  return {
+    ...defaultNavigation,
+    ...overrides,
+  };
+}
+
 describe('saveStore', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -130,9 +142,7 @@ describe('saveStore', () => {
 
       expect(persisted).toEqual({
         ...gameState,
-        navigation: {
-          activeTab: 'world',
-        },
+        navigation: defaultNavigation,
       });
 
       expect(persisted).not.toBe(gameState);
@@ -150,6 +160,7 @@ describe('saveStore', () => {
       });
 
       expect(persisted.navigation).toEqual({
+        ...defaultNavigation,
         activeTab: 'station',
       });
     });
@@ -161,11 +172,11 @@ describe('saveStore', () => {
       const persisted = store.buildPersistedGameState(gameState);
       persisted.money = 999;
       persisted.settings.worldSeed = 'changed';
-      persisted.plots[0].plotName = 'Changed';
+      persisted.plots[0].currentAge = 'Steam';
 
       expect(gameState.money).toBe(75);
       expect(gameState.settings.worldSeed).toBe('123456');
-      expect(gameState.plots[0].plotName).toBe('Prague');
+      expect(gameState.plots[0].currentAge).toBe('Mechanical');
     });
   });
 
@@ -184,9 +195,7 @@ describe('saveStore', () => {
         savedAt: 123456789,
       });
 
-      expect(saveFile.data.navigation).toEqual({
-        activeTab: 'world',
-      });
+      expect(saveFile.data.navigation).toEqual(defaultNavigation);
     });
 
     it('builds a save file with metadata overrides', () => {
@@ -207,6 +216,7 @@ describe('saveStore', () => {
       });
 
       expect(saveFile.data.navigation).toEqual({
+        ...defaultNavigation,
         activeTab: 'engineering',
       });
     });
@@ -224,9 +234,7 @@ describe('saveStore', () => {
         },
         data: {
           ...createMockGameState(),
-          navigation: {
-            activeTab: 'world',
-          },
+          navigation: defaultNavigation,
         },
       };
 
@@ -247,9 +255,7 @@ describe('saveStore', () => {
         },
         data: {
           ...createMockGameState(),
-          navigation: {
-            activeTab: 'mine',
-          },
+          navigation: createNavigation({ activeTab: 'mine' }),
         },
       };
 
@@ -281,9 +287,7 @@ describe('saveStore', () => {
         },
         data: {
           ...createMockGameState(),
-          navigation: {
-            activeTab: 'station',
-          },
+          navigation: createNavigation({ activeTab: 'station' }),
         },
       };
 
@@ -309,18 +313,16 @@ describe('saveStore', () => {
         },
         data: {
           ...createMockGameState(),
-          navigation: {
-            activeTab: 'world',
-          },
+          navigation: defaultNavigation,
         },
       };
 
       const loaded = store.loadFromSaveFile(saveFile);
       loaded.settings.worldSeed = 'changed';
-      loaded.plots[0].plotName = 'Changed';
+      loaded.plots[0].currentAge = 'Steam';
 
       expect(saveFile.data.settings.worldSeed).toBe('123456');
-      expect(saveFile.data.plots[0].plotName).toBe('Prague');
+      expect(saveFile.data.plots[0].currentAge).toBe('Mechanical');
     });
   });
 
@@ -345,6 +347,7 @@ describe('saveStore', () => {
         savedAt: 1000,
       });
       expect(parsed.data.navigation).toEqual({
+        ...defaultNavigation,
         activeTab: 'engineering',
       });
 
@@ -364,9 +367,7 @@ describe('saveStore', () => {
         },
         data: {
           ...createMockGameState(),
-          navigation: {
-            activeTab: 'mine',
-          },
+          navigation: createNavigation({ activeTab: 'mine' }),
         },
       };
 
@@ -409,6 +410,7 @@ describe('saveStore', () => {
 
       const parsed = JSON.parse(raw!);
       expect(parsed.data.navigation).toEqual({
+        ...defaultNavigation,
         activeTab: 'settings',
       });
       expect(store.current.lastSavedAt).toBe(333);
@@ -426,9 +428,7 @@ describe('saveStore', () => {
         },
         data: {
           ...createMockGameState(),
-          navigation: {
-            activeTab: 'station',
-          },
+          navigation: createNavigation({ activeTab: 'station' }),
         },
       };
 

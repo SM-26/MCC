@@ -1,2 +1,2 @@
-b3c14d5
-fixed some things, broke other things.
+f2663ba
+fixed navigation and settings, mineGen and worldGen still borken a bit. test files are fucked up as well.

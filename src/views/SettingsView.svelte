@@ -1,9 +1,11 @@
 <!-- /src/views/SettingsView.svelte -->
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { Toggle, Switch, Button, AlertDialog, Select, Accordion } from 'bits-ui';
+  import { log } from '../lib/logger';
   import { gameState } from '../logic/app/gameState.svelte';
 
-  import { manualSave, resetProgress } from '../logic/save/save.svelte';
+  import { debouncedSave, manualSave, resetProgress } from '../logic/save/save.svelte';
   import SettingsSection from '../components/settings/SettingsSection.svelte';
   import SettingsRow from '../components/settings/SettingsRow.svelte';
   import SettingsFooter from '../components/settings/SettingsFooter.svelte';
@@ -40,12 +42,25 @@
   ] satisfies SelectOption<ThemeMode>[];
 
   const currentPositionLabel = $derived(positionOptions.find((o) => o.value === gameState.current.settings.navbarPosition)?.label ?? 'Select Position');
-
   const currentThemeLabel = $derived(themeOptions.find((o) => o.value === gameState.current.settings.theme)?.label ?? 'Select Theme');
 
+  onMount(() => {
+    log.debug(
+      'settings',
+      `mount navbar=${gameState.current.settings.navbarPosition} view=${gameState.current.settings.defaultView} sound=${gameState.current.settings.soundEnabled} notifications=${gameState.current.settings.notificationsEnabled} dev=${gameState.current.settings.devMode} theme=${gameState.current.settings.theme}`,
+    );
+  });
+
   async function confirmAndReset() {
+    log.debug('settings', 'reset requested');
     await resetProgress();
     isResetDialogOpen = false;
+    log.debug('settings', 'reset dialog closed');
+  }
+
+  function saveSettingsChange(topic: string, details: string) {
+    log.debug('settings', `${topic}=${details}`);
+    debouncedSave();
   }
 </script>
 
@@ -54,7 +69,14 @@
     <Accordion.Root type="single" class="accordion-root">
       <SettingsSection value="interface" title="Interface Settings">
         <SettingsRow label="Menu Position" description="Choose where your primary application navigation tabs reside.">
-          <Select.Root type="single" bind:value={gameState.current.settings.navbarPosition}>
+          <Select.Root
+            type="single"
+            bind:value={gameState.current.settings.navbarPosition}
+            onValueChange={(value) => {
+              gameState.setNavbarPosition(value as NavPosition);
+              saveSettingsChange('navbarPosition', value);
+            }}
+          >
             <Select.Trigger class="select-trigger">
               <span>{currentPositionLabel}</span>
               <span class="select-arrow">▼</span>
@@ -73,7 +95,14 @@
         </SettingsRow>
 
         <SettingsRow label="Theme Engine" description="Adjust visual skin profiles for optimal viewing configurations.">
-          <Select.Root type="single" bind:value={gameState.current.settings.theme}>
+          <Select.Root
+            type="single"
+            bind:value={gameState.current.settings.theme}
+            onValueChange={(value) => {
+              gameState.setTheme(value as ThemeMode);
+              saveSettingsChange('theme', value);
+            }}
+          >
             <Select.Trigger class="select-trigger">
               <span>{currentThemeLabel}</span>
               <span class="select-arrow">▼</span>
@@ -97,7 +126,9 @@
           <Toggle.Root
             pressed={gameState.current.settings.defaultView === 'last-active'}
             onPressedChange={(pressed) => {
-              gameState.current.settings.defaultView = pressed ? 'last-active' : 'world';
+              const next = pressed ? 'last-active' : 'world';
+              gameState.setDefaultView(next);
+              saveSettingsChange('defaultView', next);
             }}
             class="toggle-root"
           >
@@ -106,19 +137,40 @@
         </SettingsRow>
 
         <SettingsRow label="Audio Effects" description="Toggle ambient sounds, railway alerts, and mining audio output." inline={true}>
-          <Switch.Root bind:checked={gameState.current.settings.soundEnabled} class="switch-root">
+          <Switch.Root
+            bind:checked={gameState.current.settings.soundEnabled}
+            onCheckedChange={(checked) => {
+              gameState.setSoundEnabled(checked);
+              saveSettingsChange('soundEnabled', String(checked));
+            }}
+            class="switch-root"
+          >
             <Switch.Thumb class="switch-thumb" />
           </Switch.Root>
         </SettingsRow>
 
         <SettingsRow label="Push Notifications" description="Allow system notifications when automation trains arrive at stations." inline={true}>
-          <Switch.Root bind:checked={gameState.current.settings.notificationsEnabled} class="switch-root">
+          <Switch.Root
+            bind:checked={gameState.current.settings.notificationsEnabled}
+            onCheckedChange={(checked) => {
+              gameState.setNotificationsEnabled(checked);
+              saveSettingsChange('notificationsEnabled', String(checked));
+            }}
+            class="switch-root"
+          >
             <Switch.Thumb class="switch-thumb" />
           </Switch.Root>
         </SettingsRow>
 
         <SettingsRow label="Developer Mode" description="Unlocks Dev mode and raw seed modifications." inline={true}>
-          <Toggle.Root class="toggle-root dev-mode" bind:pressed={gameState.current.settings.devMode}>
+          <Toggle.Root
+            class="toggle-root dev-mode"
+            pressed={gameState.current.settings.devMode}
+            onPressedChange={(pressed) => {
+              gameState.setDevMode(pressed);
+              saveSettingsChange('devMode', String(pressed));
+            }}
+          >
             <span>{gameState.current.settings.devMode ? 'Active' : 'Disabled'}</span>
           </Toggle.Root>
         </SettingsRow>
@@ -127,14 +179,33 @@
       <SettingsSection value="save" title="Save Management">
         <SettingsRow label="World Generation Seed" description="The core procedural numerical signature mapped to your universe map." inline={true}>
           {#if gameState.current.settings.devMode}
-            <input type="text" class="seed-input-field" bind:value={gameState.current.settings.worldSeed} placeholder="Enter world seed..." />
+            <input
+              type="text"
+              class="seed-input-field"
+              value={gameState.current.settings.worldSeed}
+              oninput={(e) => {
+                const value = (e.currentTarget as HTMLInputElement).value;
+                gameState.setWorldSeed(value);
+                log.debug('settings', `worldSeed=${value}`);
+                debouncedSave();
+              }}
+              placeholder="Enter world seed..."
+            />
           {:else}
             <code class="seed-badge">{gameState.current.settings.worldSeed}</code>
           {/if}
         </SettingsRow>
 
         <div class="action-grid">
-          <Button.Root class="action-btn save-btn" onclick={manualSave}>💾 Save Progress Now</Button.Root>
+          <Button.Root
+            class="action-btn save-btn"
+            onclick={() => {
+              log.debug('settings', 'manual save clicked');
+              manualSave();
+            }}
+          >
+            💾 Save Progress Now
+          </Button.Root>
 
           <AlertDialog.Root bind:open={isResetDialogOpen}>
             <AlertDialog.Trigger class="action-btn reset-btn">⚠️ Wipe & Reset Game Data</AlertDialog.Trigger>

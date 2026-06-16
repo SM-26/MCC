@@ -8,21 +8,21 @@ export type DefaultView = 'world' | 'last-active';
 export interface SettingsState {
   navbarPosition: NavPosition;
   defaultView: DefaultView;
-  devMode: boolean; // default: false
-  soundEnabled: boolean; // default: true
-  notificationsEnabled: boolean; // default: true
+  devMode: boolean;
+  soundEnabled: boolean;
+  notificationsEnabled: boolean;
   theme: ThemeMode;
-  worldSeed: string; // default: ''
+  worldSeed: string;
 }
 export function createDefaultSettingsState(): SettingsState {
   return {
-    navbarPosition: 'bottom',
+    navbarPosition: 'top',
     defaultView: 'world',
     devMode: false,
-    soundEnabled: true,
-    notificationsEnabled: true,
+    soundEnabled: false,
+    notificationsEnabled: false,
     theme: 'system',
-    worldSeed: '',
+    worldSeed: '123456',
   };
 }
 
