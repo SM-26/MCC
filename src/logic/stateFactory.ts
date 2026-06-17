@@ -9,13 +9,16 @@ import { generateWorld } from './world/worldGen';
 export function getInitialState(): GameState {
   const worldSeed = '123456';
   const resetCount = 0;
+  const world = generateWorld(worldSeed, resetCount, 1);
+  const plotCell = world.cells.find((cell) => cell.type === 'plot' && cell.ring === 0);
+  const plotId = plotCell ? `plot-${plotCell.id}` : 'plot-0';
 
   return {
     money: 75,
-    world: generateWorld(worldSeed, resetCount, 1),
+    world,
     plots: [
       {
-        plotId: 'plot-0',
+        plotId,
         currentAge: 'Mechanical',
         ageResources: {
           coal: 0,

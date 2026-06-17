@@ -1,3 +1,4 @@
+<!-- src/views/WorldView.svelte -->
 <script lang="ts">
   import { Button } from 'bits-ui';
   import { gameState } from '../logic/app/gameState.svelte';
@@ -10,20 +11,20 @@
 
   const cells = $derived(worldStore.current.cells);
   const activePlot = $derived(worldStore.activePlot);
+  const selectedCellId = $derived(selectedCell?.id ?? activePlot?.cellId ?? null);
 
   function selectCell(cell: WorldCell) {
-    if (cell.type === 'plot') {
-      worldStore.setActivePlotById(cell.id);
-      selectedCell = cell;
-      navigation.setActiveTab('mine');
-      return;
-    }
-
     selectedCell = cell;
   }
 
   function openMine(cell: WorldCell) {
-    worldStore.setActivePlotById(cell.id);
+    const plot = worldStore.current.plots.find((entry) => entry.cellId === cell.id || entry.plotId === `plot-${cell.id}`);
+    if (!plot) {
+      return;
+    }
+
+    worldStore.setActivePlotById(plot.plotId);
+    selectedCell = cell;
     navigation.setActiveTab('mine');
   }
 
@@ -48,9 +49,9 @@
     </div>
   </header>
 
-  <WorldGrid {cells} onSelectCell={selectCell} onSelectPlot={selectCell} onClearSelection={clearSelection} onOpenMine={openMine} />
+  <WorldGrid {cells} {selectedCellId} onSelectCell={selectCell} onSelectPlot={selectCell} onClearSelection={clearSelection} onOpenMine={openMine} />
 
-  <Button.Root onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root>
+  <!-- <Button.Root onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root> -->
   <section class="details">
     <div>
       {#if selectedCell?.discovered || gameState.current.settings.devMode}
@@ -84,10 +85,9 @@
     </div>
 
     <div class="actions">
-      <Button.Root class="mini-btn" onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root>
-      <Button.Root class="mini-btn" onclick={goToStation} disabled={!activePlot}>Go to station</Button.Root>
-      {#if gameState.current.settings.devMode}
-        <Button.Root class="mini-btn" onclick={clearSelection}>Clear</Button.Root>
+      {#if selectedCell?.type === 'plot'}
+        <Button.Root class="mini-btn" onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root>
+        <Button.Root class="mini-btn" onclick={goToStation} disabled={!activePlot}>Go to station</Button.Root>
       {/if}
     </div>
   </section>
@@ -98,7 +98,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 16px;
+    padding: 2px var(--spacing-md);
   }
 
   .topbar {
@@ -111,11 +111,11 @@
   .details {
     display: flex;
     justify-content: space-between;
-    gap: 16px;
+    gap: 6px;
     border: 1px solid var(--mcc-border);
     border-radius: 12px;
     background: var(--mcc-bg-surface);
-    padding: 16px;
+    padding: 2px var(--spacing-md);
   }
 
   .actions {

@@ -1,10 +1,27 @@
 // src/logic/world/worldStore.svelte.ts
 
-import type { Destination, DestinationId, DestinationType, PlotId, Route, WorldCell, WorldCellId, WorldPlot, WorldState } from './worldTypes';
+import type {
+  Destination,
+  DestinationId,
+  DestinationType,
+  PlotId,
+  Route,
+  WorldCell,
+  WorldCellId,
+  WorldPlot,
+  WorldState,
+} from './worldTypes';
 
 import { getActivePlot, getCellById, getDestinationFromCell, getPlotById, isRouteToDestination } from './worldTypes';
 
-function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'empty'): WorldCell {
+function createDefaultWorldCell(
+  id: WorldCellId,
+  name: string,
+  q: number,
+  r: number,
+  ring: number,
+  type: WorldCell['type'] = 'empty',
+): WorldCell {
   return {
     id,
     name,
@@ -39,12 +56,16 @@ function clampIndex(index: number, length: number): number {
   return Math.max(0, Math.min(index, length - 1));
 }
 
+function makePlotIdFromCellId(cellId: WorldCellId): PlotId {
+  return `plot-${cellId}`;
+}
+
 export function createWorldStore(initial?: Partial<WorldState>) {
   const state = $state<WorldState>({
     ...createDefaultWorldState(),
     ...initial,
-    cells: initial?.cells ?? [],
-    plots: initial?.plots ?? [],
+    cells: initial?.cells ? [...initial.cells] : [],
+    plots: initial?.plots ? [...initial.plots] : [],
     activePlotIndex: initial?.activePlotIndex ?? 0,
   });
 
@@ -53,6 +74,14 @@ export function createWorldStore(initial?: Partial<WorldState>) {
   const destinations = $derived(
     state.cells.map((cell) => getDestinationFromCell(cell)).filter((destination): destination is Destination => destination !== null),
   );
+
+  function findPlotIndexByCellId(cellId: WorldCellId): number {
+    return state.plots.findIndex((plot) => plot.cellId === cellId);
+  }
+
+  function findPlotIndexByPlotId(plotId: PlotId): number {
+    return state.plots.findIndex((plot) => plot.plotId === plotId);
+  }
 
   return {
     get current() {
@@ -72,7 +101,11 @@ export function createWorldStore(initial?: Partial<WorldState>) {
     },
 
     replace(next: WorldState) {
-      Object.assign(state, next);
+      Object.assign(state, {
+        ...next,
+        cells: [...next.cells],
+        plots: [...next.plots],
+      });
     },
 
     setActivePlotIndex(index: number) {
@@ -108,11 +141,17 @@ export function createWorldStore(initial?: Partial<WorldState>) {
     },
 
     addPlot(plot: WorldPlot) {
-      state.plots.push(plot);
+      state.plots.push({ ...plot });
     },
 
     createPlot(plotId: PlotId, cellId: WorldCellId) {
+      const existingIndex = findPlotIndexByPlotId(plotId);
+      if (existingIndex !== -1) {
+        return false;
+      }
+
       state.plots.push(createDefaultWorldPlot(plotId, cellId));
+      return true;
     },
 
     createPlotFromCell(cellId: WorldCellId): boolean {
@@ -121,11 +160,20 @@ export function createWorldStore(initial?: Partial<WorldState>) {
         return false;
       }
 
-      if (state.plots.some((plot) => plot.cellId === cellId || plot.plotId === cellId)) {
-        return false;
+      const existingByCell = findPlotIndexByCellId(cellId);
+      if (existingByCell !== -1) {
+        state.activePlotIndex = existingByCell;
+        return true;
       }
 
-      state.plots.push(createDefaultWorldPlot(cell.id, cell.id));
+      const plotId = makePlotIdFromCellId(cellId);
+      const existingByPlotId = findPlotIndexByPlotId(plotId);
+      if (existingByPlotId !== -1) {
+        state.activePlotIndex = existingByPlotId;
+        return true;
+      }
+
+      state.plots.push(createDefaultWorldPlot(plotId, cellId));
       state.activePlotIndex = state.plots.length - 1;
       return true;
     },
@@ -141,7 +189,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
     },
 
     setActivePlotById(plotId: PlotId): boolean {
-      const index = state.plots.findIndex((plot) => plot.plotId === plotId);
+      const index = findPlotIndexByPlotId(plotId);
       if (index === -1) {
         return false;
       }

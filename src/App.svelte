@@ -169,7 +169,7 @@
       {@render appHeaderContents('Mines & Choo-Choo', currency)}
     </header>
 
-    <Tabs.Root value={currentTab} onValueChange={handleTabChange} class="tabs-root nav-pos-{effectiveNavbarPosition}">
+    <Tabs.Root value={currentTab} onValueChange={(value) => handleTabChange(value as TabId)} class="tabs-root nav-pos-{effectiveNavbarPosition}">
       {#if effectiveNavbarPosition === 'top'}
         <Tabs.List class="navtab-list navtab-top">
           {#each navigation.current.tabs as tab (tab)}

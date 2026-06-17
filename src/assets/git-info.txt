@@ -1,2 +1,2 @@
-f2663ba
-fixed navigation and settings, mineGen and worldGen still borken a bit. test files are fucked up as well.
+f421c47
+world view fixed (mostly), MineView still need fixing

@@ -1,3 +1,4 @@
+<!-- src/components/world/WorldGrid.svelte -->
 <script lang="ts">
   import type { WorldCell, WorldCellId } from '../../logic/world/worldTypes';
   import { gameState } from '../../logic/app/gameState.svelte';
@@ -12,6 +13,11 @@
   };
 
   const { cells, selectedCellId = null, onSelectCell, onSelectPlot, onClearSelection, onOpenMine }: Props = $props();
+
+  $effect(() => {
+    console.log('WorldGrid props', cells.length, selectedCellId);
+  });
+
   const HEX_SIZE = 30;
   const HEX_W = 80;
   const HEX_H = 80;
@@ -34,10 +40,12 @@
 
   function handleClick(cell: WorldCell, event: MouseEvent) {
     event.stopPropagation();
+
     if (cell.type === 'plot') {
       onSelectPlot?.(cell);
       return;
     }
+
     onSelectCell?.(cell);
   }
 

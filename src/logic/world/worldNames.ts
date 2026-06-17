@@ -4,14 +4,14 @@ import { log } from '../../lib/logger';
 import type { ResourceType } from './worldTypes';
 
 export const PLOT_NAMES: string[] = [
-  'Prague',
+  'Tel Aviv',
   'Brno',
   'Berlin',
   'Munich',
   'Amsterdam',
   'Eindhoven',
   'Antwerp',
-  'Tel Aviv',
+  'Prague',
   'London',
   'Tokyo',
   'Sydney',

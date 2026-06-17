@@ -2,7 +2,7 @@
 
 import seedrandom from 'seedrandom';
 import type { SeededRng } from './worldNames';
-import { pickUniquePlotName, pickUniqueCityName, pickFactoryNameForResources, createNameState, getReservedNames } from './worldNames';
+import { pickUniquePlotName, pickUniqueCityName, pickFactoryNameForResources, createNameState } from './worldNames';
 import type { NameState } from './worldNames';
 
 import { getRingConfig, getRingTileCount, getMinCount, getMaxCount, getNormalizedWeights } from './worldBalance';
@@ -47,36 +47,12 @@ function createGenState(): GenState {
 }
 
 // ============================================================================
-// Ring 0 Generation (Starting Plot)
-// ============================================================================
-
-function generateRing0(rng: SeededRng): WorldCell {
-  const coord = makeHex(0, 0);
-  const nameState = createNameState();
-  const name = pickUniquePlotName(nameState, rng, []);
-
-  return {
-    id: hexCoordToId(coord),
-    name: name ?? 'Prague',
-    type: 'plot',
-    q: coord.q,
-    r: coord.r,
-    ring: 0,
-    discovered: true,
-  };
-}
-
-// ============================================================================
-// Ring Generation (1+)
+// Ring Generation
 // ============================================================================
 
 function generateRing(ring: number, rng: SeededRng, state: GenState): WorldCell[] {
-  if (ring === 0) {
-    return [generateRing0(rng)];
-  }
-
   const center = makeHex(0, 0);
-  const ringCoords = getHexRing(center, ring);
+  const ringCoords = ring === 0 ? [center] : getHexRing(center, ring);
   const ringConfig = getRingConfig(ring);
   const totalTiles = getRingTileCount(ring);
 
@@ -90,7 +66,7 @@ function generateRing(ring: number, rng: SeededRng, state: GenState): WorldCell[
     discovered: false,
   }));
 
-  const specialTiles = distributeSpecialTiles(ringConfig, totalTiles, rng, state);
+  const specialTiles = distributeSpecialTiles(ringConfig, totalTiles, rng, state, ring);
   const positions = shuffleArray(ringCoords, rng);
 
   for (let i = 0; i < specialTiles.length && i < positions.length; i++) {
@@ -102,11 +78,11 @@ function generateRing(ring: number, rng: SeededRng, state: GenState): WorldCell[
       continue;
     }
 
-    const name = generateTileName(tileType, state.nameState, rng);
+    const name = generateTileName(tileType, state.nameState, rng, ring);
     const cell = cells[cellIndex];
     cell.type = tileType;
     cell.name = name;
-    cell.discovered = true;
+    cell.discovered = ring === 0 && tileType === 'plot';
 
     state.tileCounts[tileType]++;
     state.nonEmptyCount++;
@@ -115,7 +91,13 @@ function generateRing(ring: number, rng: SeededRng, state: GenState): WorldCell[
   return cells;
 }
 
-function distributeSpecialTiles(ringConfig: RingConfig, totalTiles: number, rng: SeededRng, state: GenState): WorldCellType[] {
+function distributeSpecialTiles(
+  ringConfig: RingConfig,
+  totalTiles: number,
+  rng: SeededRng,
+  state: GenState,
+  ring: number,
+): WorldCellType[] {
   const specialTiles: WorldCellType[] = [];
   const targetNonEmpty = Math.min(ringConfig.nonEmptyCap, totalTiles);
 
@@ -142,7 +124,11 @@ function distributeSpecialTiles(ringConfig: RingConfig, totalTiles: number, rng:
     state.tileCounts[tileType]++;
   }
 
-  return specialTiles;
+  if (ring === 0 && specialTiles.length === 0) {
+    specialTiles.push('plot');
+  }
+
+  return specialTiles.slice(0, totalTiles);
 }
 
 function pickWeightedTileKind(ringConfig: RingConfig, rng: SeededRng, state: GenState): WorldCellType | null {
@@ -171,10 +157,10 @@ function pickWeightedTileKind(ringConfig: RingConfig, rng: SeededRng, state: Gen
   return null;
 }
 
-function generateTileName(tileType: WorldCellType, nameState: NameState, rng: SeededRng): string {
+function generateTileName(tileType: WorldCellType, nameState: NameState, rng: SeededRng, ring: number): string {
   switch (tileType) {
     case 'plot':
-      return pickUniquePlotName(nameState, rng, getReservedNames(0)) ?? 'Unknown';
+      return pickUniquePlotName(nameState, rng, ring === 0 ? [] : ['Prague']) ?? 'Unknown';
     case 'city':
       return pickUniqueCityName(nameState, rng) ?? 'Unknown';
     case 'factory': {
@@ -244,7 +230,7 @@ export function revealFogTile(cell: WorldCell, worldSeed: string, resetCount: nu
 
   if (chosenType !== 'empty') {
     const nameState = createNameState();
-    revealed.name = generateTileName(chosenType, nameState, rng);
+    revealed.name = generateTileName(chosenType, nameState, rng, cell.ring);
 
     if (chosenType === 'city' || chosenType === 'factory') {
       revealed.capacity = Math.floor(10 + rng() * 40);

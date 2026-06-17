@@ -7,6 +7,7 @@ import { gameState } from '../app/gameState.svelte';
 import { navigation } from '../app/navigationStore.svelte';
 import { createDefaultNavigationState } from '../app/navigationTypes';
 import { getInitialState } from '../stateFactory';
+import { worldStore } from '../world/worldStore.svelte';
 import { saveStore } from './saveStore.svelte';
 import type { GameState, PersistedGameState } from './saveTypes';
 
@@ -23,7 +24,7 @@ function getPersistedSnapshot(): PersistedGameState {
     ...defaults,
     money: gameState.current.money,
     settings: $state.snapshot(gameState.current.settings),
-    world: $state.snapshot(defaults.world),
+    world: $state.snapshot(worldStore.current),
     plots: $state.snapshot(defaults.plots),
     engineering: $state.snapshot(defaults.engineering),
     navigation: $state.snapshot(navigation.current),
@@ -35,12 +36,14 @@ function applyDefaultState(): void {
 
   gameState.setMoney(defaults.money);
   gameState.updateSettings(defaults.settings);
+  worldStore.replace(defaults.world);
   navigation.replace(createDefaultNavigationState());
 }
 
 function applyLoadedState(snapshot: PersistedGameState): void {
   gameState.setMoney(snapshot.money);
   gameState.updateSettings(snapshot.settings);
+  worldStore.replace(snapshot.world);
   navigation.replace(snapshot.navigation);
 }
 
