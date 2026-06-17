@@ -6,25 +6,32 @@
   import { worldStore } from '../logic/world/worldStore.svelte';
   import WorldGrid from '../components/world/WorldGrid.svelte';
   import type { WorldCell } from '../logic/world/worldTypes';
-
-  let selectedCell = $state<WorldCell | null>(null);
+  import { debouncedSave } from '../logic/save/save.svelte';
 
   const cells = $derived(worldStore.current.cells);
   const activePlot = $derived(worldStore.activePlot);
-  const selectedCellId = $derived(selectedCell?.id ?? activePlot?.cellId ?? null);
+  const selectedCell = $derived(
+    worldStore.current.selectedCellId
+      ? (worldStore.current.cells.find((cell) => cell.id === worldStore.current.selectedCellId) ?? null)
+      : activePlot?.cellId
+        ? (worldStore.current.cells.find((cell) => cell.id === activePlot.cellId) ?? null)
+        : null,
+  );
+  const selectedCellId = $derived(selectedCell?.id ?? null);
 
   function selectCell(cell: WorldCell) {
-    selectedCell = cell;
+    worldStore.setSelectedCellId(cell.id);
+    debouncedSave();
   }
 
   function openMine(cell: WorldCell) {
-    const plot = worldStore.current.plots.find((entry) => entry.cellId === cell.id || entry.plotId === `plot-${cell.id}`);
-    if (!plot) {
+    const ok = worldStore.setActivePlotByCellId(cell.id);
+    if (!ok) {
       return;
     }
 
-    worldStore.setActivePlotById(plot.plotId);
-    selectedCell = cell;
+    worldStore.setSelectedCellId(cell.id);
+    debouncedSave();
     navigation.setActiveTab('mine');
   }
 
@@ -37,7 +44,8 @@
   }
 
   function clearSelection() {
-    selectedCell = null;
+    worldStore.setSelectedCellId(null);
+    debouncedSave();
   }
 </script>
 

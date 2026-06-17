@@ -1,2 +1,2 @@
-f421c47
-world view fixed (mostly), MineView still need fixing
+118ec23
+kind of fixed mine view, it's playable but not perfect. need to fix 'activePlotIndex' not saving

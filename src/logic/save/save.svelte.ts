@@ -7,6 +7,7 @@ import { gameState } from '../app/gameState.svelte';
 import { navigation } from '../app/navigationStore.svelte';
 import { createDefaultNavigationState } from '../app/navigationTypes';
 import { getInitialState } from '../stateFactory';
+import { mineStore } from '../mine/mineStore.svelte';
 import { worldStore } from '../world/worldStore.svelte';
 import { saveStore } from './saveStore.svelte';
 import type { GameState, PersistedGameState } from './saveTypes';
@@ -16,6 +17,11 @@ const SAVE_VERSION = appVersion.trim();
 const [commitHash = 'dev'] = gitInfo.trim().split('\n');
 
 let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function getPlotIdForCell(cell: { type: string; id: string | number } | undefined): string | null {
+  if (!cell) return null;
+  return `${cell.type}-${cell.id}`;
+}
 
 function getPersistedSnapshot(): PersistedGameState {
   const defaults = getInitialState();
@@ -37,6 +43,7 @@ function applyDefaultState(): void {
   gameState.setMoney(defaults.money);
   gameState.updateSettings(defaults.settings);
   worldStore.replace(defaults.world);
+  mineStore.replace(defaults.plots[0]);
   navigation.replace(createDefaultNavigationState());
 }
 
@@ -44,6 +51,20 @@ function applyLoadedState(snapshot: PersistedGameState): void {
   gameState.setMoney(snapshot.money);
   gameState.updateSettings(snapshot.settings);
   worldStore.replace(snapshot.world);
+
+  const activeIndex = snapshot.world.activePlotIndex;
+  const activeCell = snapshot.world.cells[activeIndex];
+  const activePlotId = getPlotIdForCell(activeCell);
+  const activePlot =
+    snapshot.plots.find((plot) => plot.plotId === activePlotId) ??
+    snapshot.plots[activeIndex] ??
+    snapshot.plots[0] ??
+    null;
+
+  if (activePlot) {
+    mineStore.replace(activePlot);
+  }
+
   navigation.replace(snapshot.navigation);
 }
 

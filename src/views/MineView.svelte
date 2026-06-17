@@ -32,10 +32,12 @@
 
   const screenSize = $derived<ScreenSize>(appContext.current.screenSize);
   const activeShaftIndex = $derived(worldStore.current.activePlotIndex);
+  const selectedCellId = $derived(worldStore.current.selectedCellId);
+  const selectedCell = $derived(selectedCellId ? (worldStore.current.cells.find((cell) => cell.id === selectedCellId) ?? null) : null);
   const activePlotState = $derived(mineStore.current);
   const activeNorthExpansion = $derived(activePlotState.northExpansions[activePlotState.activeNorthExpansionIndex] ?? null);
   const activeMine = $derived(activeNorthExpansion?.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null);
-  const currentShaftLabel = $derived(activePlotState.plotName || `Shaft ${activeShaftIndex + 1}`);
+  const currentShaftLabel = $derived(selectedCell?.type === 'plot' ? selectedCell.name : `Shaft ${activeShaftIndex + 1}`);
   const nextShaftLabel = $derived(`Shaft ${activeShaftIndex + 2}`);
   const minerCost = $derived(getMinerCost(activeMine));
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));

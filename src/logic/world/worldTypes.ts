@@ -52,16 +52,17 @@ export interface Destination {
   discovered: boolean;
 }
 
-export interface WorldState {
-  cells: WorldCell[];
-  plots: WorldPlot[];
-  activePlotIndex: number;
-}
-
 export interface WorldPlot {
   plotId: PlotId;
   cellId: WorldCellId;
   discovered: boolean;
+}
+
+export interface WorldState {
+  cells: WorldCell[];
+  plots: WorldPlot[];
+  activePlotIndex: number;
+  selectedCellId: WorldCellId | null;
 }
 
 export function getActivePlot(world: WorldState): WorldPlot | null {

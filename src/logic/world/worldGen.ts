@@ -2,10 +2,21 @@
 
 import seedrandom from 'seedrandom';
 import type { SeededRng } from './worldNames';
-import { pickUniquePlotName, pickUniqueCityName, pickFactoryNameForResources, createNameState } from './worldNames';
+import {
+  pickUniquePlotName,
+  pickUniqueCityName,
+  pickFactoryNameForResources,
+  createNameState,
+} from './worldNames';
 import type { NameState } from './worldNames';
 
-import { getRingConfig, getRingTileCount, getMinCount, getMaxCount, getNormalizedWeights } from './worldBalance';
+import {
+  getRingConfig,
+  getRingTileCount,
+  getMinCount,
+  getMaxCount,
+  getNormalizedWeights,
+} from './worldBalance';
 import type { RingConfig } from './worldBalance';
 
 import { getHexRing, makeHex, hexCoordToId } from './hex';
@@ -131,7 +142,11 @@ function distributeSpecialTiles(
   return specialTiles.slice(0, totalTiles);
 }
 
-function pickWeightedTileKind(ringConfig: RingConfig, rng: SeededRng, state: GenState): WorldCellType | null {
+function pickWeightedTileKind(
+  ringConfig: RingConfig,
+  rng: SeededRng,
+  state: GenState,
+): WorldCellType | null {
   const normalizedWeights = getNormalizedWeights(ringConfig);
   const rngValue = rng();
 
@@ -203,6 +218,7 @@ export function generateWorld(worldSeed: string, resetCount: number, ringsToGene
     cells: state.generatedCells,
     plots: [],
     activePlotIndex: 0,
+    selectedCellId: null,
   };
 }
 

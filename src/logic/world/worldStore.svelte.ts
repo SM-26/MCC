@@ -12,7 +12,13 @@ import type {
   WorldState,
 } from './worldTypes';
 
-import { getActivePlot, getCellById, getDestinationFromCell, getPlotById, isRouteToDestination } from './worldTypes';
+import {
+  getActivePlot,
+  getCellById,
+  getDestinationFromCell,
+  getPlotById,
+  isRouteToDestination,
+} from './worldTypes';
 
 function createDefaultWorldCell(
   id: WorldCellId,
@@ -46,6 +52,7 @@ function createDefaultWorldState(): WorldState {
     cells: [],
     plots: [],
     activePlotIndex: 0,
+    selectedCellId: null,
   };
 }
 
@@ -67,12 +74,15 @@ export function createWorldStore(initial?: Partial<WorldState>) {
     cells: initial?.cells ? [...initial.cells] : [],
     plots: initial?.plots ? [...initial.plots] : [],
     activePlotIndex: initial?.activePlotIndex ?? 0,
+    selectedCellId: initial?.selectedCellId ?? null,
   });
 
   const activePlot = $derived(getActivePlot(state));
 
   const destinations = $derived(
-    state.cells.map((cell) => getDestinationFromCell(cell)).filter((destination): destination is Destination => destination !== null),
+    state.cells
+      .map((cell) => getDestinationFromCell(cell))
+      .filter((destination): destination is Destination => destination !== null),
   );
 
   function findPlotIndexByCellId(cellId: WorldCellId): number {
@@ -81,6 +91,22 @@ export function createWorldStore(initial?: Partial<WorldState>) {
 
   function findPlotIndexByPlotId(plotId: PlotId): number {
     return state.plots.findIndex((plot) => plot.plotId === plotId);
+  }
+
+  function resolveActivePlotIndexFromCellId(cellId: WorldCellId): number {
+    const plotId = makePlotIdFromCellId(cellId);
+
+    const indexByPlotId = findPlotIndexByPlotId(plotId);
+    if (indexByPlotId !== -1) {
+      return indexByPlotId;
+    }
+
+    const indexByCellId = findPlotIndexByCellId(cellId);
+    if (indexByCellId !== -1) {
+      return indexByCellId;
+    }
+
+    return -1;
   }
 
   return {
@@ -105,6 +131,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
         ...next,
         cells: [...next.cells],
         plots: [...next.plots],
+        selectedCellId: next.selectedCellId ?? null,
       });
     },
 
@@ -112,11 +139,47 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       state.activePlotIndex = clampIndex(index, state.plots.length);
     },
 
+    setActivePlotById(plotId: PlotId): boolean {
+      const index = findPlotIndexByPlotId(plotId);
+      if (index === -1) {
+        return false;
+      }
+
+      state.activePlotIndex = index;
+      return true;
+    },
+
+    setActivePlotByCellId(cellId: WorldCellId): boolean {
+      const index = resolveActivePlotIndexFromCellId(cellId);
+      if (index === -1) {
+        return false;
+      }
+
+      state.activePlotIndex = index;
+      state.selectedCellId = cellId;
+      return true;
+    },
+
+    setSelectedCellId(cellId: WorldCellId | null) {
+      state.selectedCellId = cellId;
+    },
+
+    getActivePlotIndexForCellId(cellId: WorldCellId): number {
+      return resolveActivePlotIndexFromCellId(cellId);
+    },
+
     addCell(cell: WorldCell) {
       state.cells.push(cell);
     },
 
-    createCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'empty') {
+    createCell(
+      id: WorldCellId,
+      name: string,
+      q: number,
+      r: number,
+      ring: number,
+      type: WorldCell['type'] = 'empty',
+    ) {
       state.cells.push(createDefaultWorldCell(id, name, q, r, ring, type));
     },
 
@@ -163,6 +226,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       const existingByCell = findPlotIndexByCellId(cellId);
       if (existingByCell !== -1) {
         state.activePlotIndex = existingByCell;
+        state.selectedCellId = cellId;
         return true;
       }
 
@@ -170,11 +234,13 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       const existingByPlotId = findPlotIndexByPlotId(plotId);
       if (existingByPlotId !== -1) {
         state.activePlotIndex = existingByPlotId;
+        state.selectedCellId = cellId;
         return true;
       }
 
       state.plots.push(createDefaultWorldPlot(plotId, cellId));
       state.activePlotIndex = state.plots.length - 1;
+      state.selectedCellId = cellId;
       return true;
     },
 
@@ -188,16 +254,6 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       return true;
     },
 
-    setActivePlotById(plotId: PlotId): boolean {
-      const index = findPlotIndexByPlotId(plotId);
-      if (index === -1) {
-        return false;
-      }
-
-      state.activePlotIndex = index;
-      return true;
-    },
-
     getCellById(cellId: WorldCellId): WorldCell | null {
       return getCellById(state, cellId);
     },
@@ -206,12 +262,23 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       return getPlotById(state, plotId);
     },
 
-    getDestinationById(destinationId: DestinationId, destinationType: DestinationType): Destination | null {
-      return destinations.find((destination) => destination.id === destinationId && destination.type === destinationType) ?? null;
+    getDestinationById(
+      destinationId: DestinationId,
+      destinationType: DestinationType,
+    ): Destination | null {
+      return (
+        destinations.find(
+          (destination) =>
+            destination.id === destinationId &&
+            destination.type === destinationType,
+        ) ?? null
+      );
     },
 
     isRouteValid(route: Route): boolean {
-      return destinations.some((destination) => isRouteToDestination(route, destination));
+      return destinations.some((destination) =>
+        isRouteToDestination(route, destination),
+      );
     },
   };
 }
