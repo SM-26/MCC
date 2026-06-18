@@ -17,6 +17,7 @@
 
   import WorldView from './views/WorldView.svelte';
   import MineView from './views/MineView.svelte';
+  import StationView from './views/StationView.svelte';
   import SettingsView from './views/SettingsView.svelte';
   import { log } from './lib/logger';
 
@@ -130,13 +131,6 @@
   }
 </script>
 
-{#snippet StationView()}
-  <div>
-    <h2>Train Station</h2>
-    <p>Upgrade tracks and manage cargo.</p>
-  </div>
-{/snippet}
-
 {#snippet EngineeringView()}
   <div>
     <h2>Engineering Laboratory</h2>
@@ -190,7 +184,7 @@
       <div class="tabs-panels">
         <Tabs.Content value="world" class="tab-panel"><WorldView /></Tabs.Content>
         <Tabs.Content value="mine" class="tab-panel"><MineView /></Tabs.Content>
-        <Tabs.Content value="station" class="tab-panel">{@render StationView()}</Tabs.Content>
+        <Tabs.Content value="station" class="tab-panel"><StationView /></Tabs.Content>
         <Tabs.Content value="engineering" class="tab-panel">{@render EngineeringView()}</Tabs.Content>
         <Tabs.Content value="settings" class="tab-panel"><SettingsView /></Tabs.Content>
       </div>

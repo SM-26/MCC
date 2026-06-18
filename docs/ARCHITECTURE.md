@@ -62,6 +62,17 @@ The current tab set is:
 - `engineering`
 - `settings`
 
+### Station tab specifics
+
+`StationView.svelte` manages the station of the **active plot** (`world.activePlotIndex` → `PlotState.station`). The station is a single optional object embedded on each plot (`mineTypes.ts: PlotState.station: Station | null`).
+
+- **Source of truth is the embedded `PlotState.station`**, read/written via `mineStore.current`. The module-level `stationStore` singleton is currently **dead/unused** — it predates the per-plot embedding and is kept only for reference.
+- **Mutations go through `stationActions.ts`** — pure functions that take state as an argument and return a `{ ok, nextMoney? }` result (mirrors the `mineActions.ts` convention). The view commits `gameState.current.money = result.nextMoney` and calls `debouncedSave()`.
+- **Building:** a station costs money and requires the surface level (expansion 0, depth 0) to be `getClearStatus() === 'hard'`. Building it creates the foundation platform at (0, 0).
+- **Platform-depth rule:** the foundation is depth 0 (expansion 0 only); every other platform goes at depths 1, 6, 11, 16, … (`depth > 0 && depth % 5 === 1`), on a hard-cleared level. See `isPlatformDepth` in `stationActions.ts`.
+- **Navigation:** StationView tracks its own focus via `Station.activePlatformId` (independent of MineView's deepest-depth pointer). Switching platforms and switching expansions are both done from the StationView selector.
+- **Train yard** (train assignment, carts, routes, trip ticks) is deferred — the view shows a placeholder panel for now.
+
 ## 5. File Structure Map
 
 ```text
@@ -97,7 +108,7 @@ The current tab set is:
 | `/src/views` | Full tab screens | `WorldView.svelte`, `StationView.svelte` |
 | `/src/logic/app` | App-wide contracts and preferences | `navigationTypes.ts`, `settingsTypes.ts` |
 | `/src/logic/mine` | Mine gameplay data and logic | `mineTypes.ts`, `mineStore.svelte.ts`, `mineGen.ts` |
-| `/src/logic/station` | Station and train domain | `stationTypes.ts`, `stationStore.svelte.ts` |
+| `/src/logic/station` | Station and train domain | `stationTypes.ts`, `stationActions.ts`, `stationStore.svelte.ts` |
 | `/src/logic/world` | World map and destination domain | `worldTypes.ts`, `worldStore.svelte.ts` |
 | `/src/logic/engineering` | Engineering Ideas progression | `engineeringTypes.ts`, `engineeringStore.svelte.ts` |
 | `/src/logic/save` | Save-file contracts and persistence helpers | `saveTypes.ts`, `saveStore.svelte.ts` |

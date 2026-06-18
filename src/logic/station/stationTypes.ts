@@ -17,6 +17,7 @@ export interface Station {
   id: StationId;
   platforms: Platform[]; // default: []
   trainyardInventory: TrainyardInventory;
+  activePlatformId: PlatformId | null; // default: null — which platform StationView is focused on
 }
 
 export interface Platform {
@@ -60,6 +61,7 @@ export function createEmptyStation(id: StationId): Station {
     id,
     platforms: [],
     trainyardInventory: createEmptyTrainyardInventory(),
+    activePlatformId: null,
   };
 }
 
