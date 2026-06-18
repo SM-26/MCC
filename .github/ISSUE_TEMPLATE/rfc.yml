@@ -1,0 +1,44 @@
+name: "🏗️ Architecture RFC"
+description: "Propose a significant architectural change or performance refactor."
+title: "[RFC] - <Short description of the architectural change>"
+labels: ["architecture", "refactor"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Architectural RFC
+        Use this template for major refactors (e.g., threading, state management, build optimizations).
+        **Target Branch:** `refactor/fresh-start`
+        **Reference Commit:** `1f08bd6`
+
+  - type: textarea
+    attributes:
+      label: 🎯 Problem Statement
+      description: What architectural bottleneck are you addressing? (e.g., Main thread blocking during init)
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 🛠 Proposed Strategy
+      description: Explain the pattern (e.g., "Decoupling State via Svelte Runes", "Web Worker for JSON parsing")
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: 📈 Performance Impact
+      description: How will this change reduce 'Long Tasks' or 'Forced Reflows'?
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: 🧩 Implementation Roadmap
+      description: Step-by-step breakdown.
+      placeholder: |
+        1. Create state manager
+        2. Move logic to Worker
+        3. Decouple LocalStorage sync
+    validations:
+      required: true
