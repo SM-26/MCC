@@ -31,7 +31,7 @@ function getPersistedSnapshot(): PersistedGameState {
     money: gameState.current.money,
     settings: $state.snapshot(gameState.current.settings),
     world: $state.snapshot(worldStore.current),
-    plots: $state.snapshot(defaults.plots),
+    plots: $state.snapshot(mineStore.current ? [mineStore.current] : []),
     engineering: $state.snapshot(defaults.engineering),
     navigation: $state.snapshot(navigation.current),
   };
@@ -43,7 +43,9 @@ function applyDefaultState(): void {
   gameState.setMoney(defaults.money);
   gameState.updateSettings(defaults.settings);
   worldStore.replace(defaults.world);
-  mineStore.replace(defaults.plots[0]);
+  if (defaults.plots[0]) {
+    mineStore.replace(defaults.plots[0]);
+  }
   navigation.replace(createDefaultNavigationState());
 }
 
@@ -52,17 +54,21 @@ function applyLoadedState(snapshot: PersistedGameState): void {
   gameState.updateSettings(snapshot.settings);
   worldStore.replace(snapshot.world);
 
-  const activeIndex = snapshot.world.activePlotIndex;
-  const activeCell = snapshot.world.cells[activeIndex];
-  const activePlotId = getPlotIdForCell(activeCell);
-  const activePlot =
-    snapshot.plots.find((plot) => plot.plotId === activePlotId) ??
-    snapshot.plots[activeIndex] ??
-    snapshot.plots[0] ??
-    null;
+  if (snapshot.plots.length > 0) {
+    const world = snapshot.world;
+    const activeIndex = world.activePlotIndex;
+    const activeCell = world.cells[activeIndex];
+    const activePlotId = getPlotIdForCell(activeCell);
 
-  if (activePlot) {
-    mineStore.replace(activePlot);
+    const activePlot =
+      (activeIndex >= 0 && activeIndex < snapshot.plots.length ? snapshot.plots[activeIndex] : null) ??
+      snapshot.plots.find((plot) => plot.plotId === activePlotId) ??
+      snapshot.plots[0] ??
+      null;
+
+    if (activePlot) {
+      mineStore.replace(activePlot);
+    }
   }
 
   navigation.replace(snapshot.navigation);

@@ -51,6 +51,7 @@
 
   function handleDoubleClick(cell: WorldCell, event: MouseEvent) {
     event.stopPropagation();
+
     if (cell.type === 'plot' && selectedCellId === cell.id) {
       onOpenMine?.(cell);
     }
@@ -164,10 +165,6 @@
 
   .type-factory .hex-shape {
     background: color-mix(in srgb, #f59e0b 22%, var(--mcc-bg-surface));
-  }
-
-  .type-fog .hex-shape {
-    background: color-mix(in srgb, #64748b 22%, var(--mcc-bg-surface));
   }
 
   .type-empty .hex-shape {

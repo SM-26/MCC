@@ -1,2 +1,2 @@
-118ec23
-kind of fixed mine view, it's playable but not perfect. need to fix 'activePlotIndex' not saving
+6aa5995
+I think i fixed the save for the mines

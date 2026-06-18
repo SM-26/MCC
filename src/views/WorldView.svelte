@@ -24,6 +24,12 @@
     debouncedSave();
   }
 
+  function selectPlot(cell: WorldCell) {
+    worldStore.setSelectedCellId(cell.id);
+    worldStore.setActivePlotByCellId(cell.id);
+    debouncedSave();
+  }
+
   function openMine(cell: WorldCell) {
     const ok = worldStore.setActivePlotByCellId(cell.id);
     if (!ok) {
@@ -57,9 +63,8 @@
     </div>
   </header>
 
-  <WorldGrid {cells} {selectedCellId} onSelectCell={selectCell} onSelectPlot={selectCell} onClearSelection={clearSelection} onOpenMine={openMine} />
+  <WorldGrid {cells} {selectedCellId} onSelectCell={selectCell} onSelectPlot={selectPlot} onClearSelection={clearSelection} onOpenMine={openMine} />
 
-  <!-- <Button.Root onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root> -->
   <section class="details">
     <div>
       {#if selectedCell?.discovered || gameState.current.settings.devMode}
