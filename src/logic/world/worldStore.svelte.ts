@@ -1,33 +1,10 @@
 // src/logic/world/worldStore.svelte.ts
 
-import type {
-  Destination,
-  DestinationId,
-  DestinationType,
-  PlotId,
-  Route,
-  WorldCell,
-  WorldCellId,
-  WorldPlot,
-  WorldState,
-} from './worldTypes';
+import type { Destination, DestinationId, DestinationType, PlotId, Route, WorldCell, WorldCellId, WorldPlot, WorldState } from './worldTypes';
 
-import {
-  getActivePlot,
-  getCellById,
-  getDestinationFromCell,
-  getPlotById,
-  isRouteToDestination,
-} from './worldTypes';
+import { getActivePlot, getCellById, getDestinationFromCell, getPlotById, isRouteToDestination } from './worldTypes';
 
-function createDefaultWorldCell(
-  id: WorldCellId,
-  name: string,
-  q: number,
-  r: number,
-  ring: number,
-  type: WorldCell['type'] = 'empty',
-): WorldCell {
+function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'empty'): WorldCell {
   return {
     id,
     name,
@@ -80,9 +57,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
   const activePlot = $derived(getActivePlot(state));
 
   const destinations = $derived(
-    state.cells
-      .map((cell) => getDestinationFromCell(cell))
-      .filter((destination): destination is Destination => destination !== null),
+    state.cells.map((cell) => getDestinationFromCell(cell)).filter((destination): destination is Destination => destination !== null),
   );
 
   function findPlotIndexByCellId(cellId: WorldCellId): number {
@@ -172,14 +147,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       state.cells.push(cell);
     },
 
-    createCell(
-      id: WorldCellId,
-      name: string,
-      q: number,
-      r: number,
-      ring: number,
-      type: WorldCell['type'] = 'empty',
-    ) {
+    createCell(id: WorldCellId, name: string, q: number, r: number, ring: number, type: WorldCell['type'] = 'empty') {
       state.cells.push(createDefaultWorldCell(id, name, q, r, ring, type));
     },
 
@@ -262,23 +230,12 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       return getPlotById(state, plotId);
     },
 
-    getDestinationById(
-      destinationId: DestinationId,
-      destinationType: DestinationType,
-    ): Destination | null {
-      return (
-        destinations.find(
-          (destination) =>
-            destination.id === destinationId &&
-            destination.type === destinationType,
-        ) ?? null
-      );
+    getDestinationById(destinationId: DestinationId, destinationType: DestinationType): Destination | null {
+      return destinations.find((destination) => destination.id === destinationId && destination.type === destinationType) ?? null;
     },
 
     isRouteValid(route: Route): boolean {
-      return destinations.some((destination) =>
-        isRouteToDestination(route, destination),
-      );
+      return destinations.some((destination) => isRouteToDestination(route, destination));
     },
   };
 }

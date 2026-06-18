@@ -188,3 +188,13 @@ export async function resetProgress(): Promise<void> {
     throw error;
   }
 }
+
+// Cleanup module-level timeout on page unload
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (saveTimeoutId) {
+      clearTimeout(saveTimeoutId);
+      saveTimeoutId = null;
+    }
+  });
+}

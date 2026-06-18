@@ -1,16 +1,5 @@
 // src/logic/mine/mineStore.svelte.ts
-import type {
-  AgeResources,
-  Ages,
-  MineDepthState,
-  MineTile,
-  MineTileType,
-  Miner,
-  NorthExpansion,
-  PlotId,
-  PlotState,
-  ResourceType,
-} from './mineTypes';
+import type { AgeResources, Ages, MineDepthState, MineTile, MineTileType, Miner, NorthExpansion, PlotId, PlotState, ResourceType } from './mineTypes';
 import { createEmptyAgeResources } from './mineTypes';
 
 function createDefaultMiner(overrides: Partial<Miner> = {}): Miner {
@@ -24,8 +13,7 @@ function createDefaultMiner(overrides: Partial<Miner> = {}): Miner {
 }
 
 function createDefaultMineTile(type: MineTileType = 'empty', overrides: Partial<MineTile> = {}): MineTile {
-  const resourceType: ResourceType =
-    type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy' ? type : 'none';
+  const resourceType: ResourceType = type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy' ? type : 'none';
 
   return {
     type,
@@ -111,11 +99,7 @@ function clampIndex(index: number, length: number): number {
   return Math.max(0, Math.min(index, length - 1));
 }
 
-function addAgeResource(
-  resources: AgeResources,
-  resourceType: Exclude<ResourceType, 'none' | 'money'>,
-  amount: number,
-) {
+function addAgeResource(resources: AgeResources, resourceType: Exclude<ResourceType, 'none' | 'money'>, amount: number) {
   resources[resourceType] += amount;
 }
 
@@ -156,17 +140,13 @@ export function createMineStore(initial?: Partial<PlotState>) {
       ...createDefaultPlotState(initial?.plotId),
       ...initial,
       ageResources: initial?.ageResources ?? createEmptyAgeResources(),
-      northExpansions: initial?.northExpansions
-        ? initial.northExpansions.map(cloneNorthExpansion)
-        : [createDefaultNorthExpansion()],
+      northExpansions: initial?.northExpansions ? initial.northExpansions.map(cloneNorthExpansion) : [createDefaultNorthExpansion()],
       station: initial?.station ? { ...initial.station } : null,
     }),
   );
 
   const activeNorthExpansion = $derived(state.northExpansions[state.activeNorthExpansionIndex] ?? null);
-  const activeMineDepth = $derived(
-    activeNorthExpansion ? (activeNorthExpansion.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null) : null,
-  );
+  const activeMineDepth = $derived(activeNorthExpansion ? (activeNorthExpansion.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null) : null);
 
   return {
     get current() {
@@ -210,9 +190,7 @@ export function createMineStore(initial?: Partial<PlotState>) {
       const next: NorthExpansion = {
         ...createDefaultNorthExpansion(),
         ...expansion,
-        mineDepths: expansion?.mineDepths
-          ? expansion.mineDepths.map(cloneMineDepthState)
-          : [createDefaultMineDepthState(0)],
+        mineDepths: expansion?.mineDepths ? expansion.mineDepths.map(cloneMineDepthState) : [createDefaultMineDepthState(0)],
         selectedMiner: expansion?.selectedMiner ? { ...expansion.selectedMiner } : null,
         draggedMiner: expansion?.draggedMiner ? { ...expansion.draggedMiner } : null,
       };

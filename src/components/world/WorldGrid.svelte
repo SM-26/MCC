@@ -2,6 +2,7 @@
 <script lang="ts">
   import type { WorldCell, WorldCellId } from '../../logic/world/worldTypes';
   import { gameState } from '../../logic/app/gameState.svelte';
+  import { log } from '../../lib/logger';
 
   type Props = {
     cells: WorldCell[];
@@ -15,7 +16,8 @@
   const { cells, selectedCellId = null, onSelectCell, onSelectPlot, onClearSelection, onOpenMine }: Props = $props();
 
   $effect(() => {
-    console.log('WorldGrid props', cells.length, selectedCellId);
+    // console.log('WorldGrid props', cells.length, selectedCellId);
+    log.debug('WorldGrid', 'Props updated:', { cells, selectedCellId });
   });
 
   const HEX_SIZE = 30;

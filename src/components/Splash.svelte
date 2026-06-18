@@ -13,9 +13,10 @@
   }
 
   let deferredPrompt: BeforeInstallPromptEvent | null = $state(null);
+  let splashTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   onMount(() => {
-    setTimeout(() => {
+    splashTimeoutId = setTimeout(() => {
       appContext.setSplashVisible(false);
     }, 3500);
 
@@ -51,6 +52,14 @@
         );
       }
     }, 5000);
+
+    // Cleanup splash timeout on unmount
+    return () => {
+      if (splashTimeoutId) {
+        clearTimeout(splashTimeoutId);
+        splashTimeoutId = null;
+      }
+    };
   });
 
   async function handleInstallPWA() {
