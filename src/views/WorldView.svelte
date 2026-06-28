@@ -9,49 +9,44 @@
   import { debouncedSave } from '../logic/save/save.svelte';
 
   const cells = $derived(worldStore.current.cells);
-  const activePlot = $derived(worldStore.activePlot);
-  const selectedCell = $derived(
-    worldStore.current.selectedCellId
-      ? (worldStore.current.cells.find((cell) => cell.id === worldStore.current.selectedCellId) ?? null)
-      : activePlot?.cellId
-        ? (worldStore.current.cells.find((cell) => cell.id === activePlot.cellId) ?? null)
-        : null,
+  const activePlotCell = $derived(worldStore.activePlotCell);
+  const inspectedCell = $derived(
+    worldStore.current.inspectedCellId
+      ? (worldStore.current.cells.find((cell) => cell.id === worldStore.current.inspectedCellId) ?? null)
+      : null,
   );
-  const selectedCellId = $derived(selectedCell?.id ?? null);
+  const inspectedCellId = $derived(inspectedCell?.id ?? null);
 
   function selectCell(cell: WorldCell) {
-    worldStore.setSelectedCellId(cell.id);
-    debouncedSave();
+    worldStore.setInspectedCellId(cell.id);
   }
 
   function selectPlot(cell: WorldCell) {
-    worldStore.setSelectedCellId(cell.id);
-    worldStore.setActivePlotByCellId(cell.id);
-    debouncedSave();
+    worldStore.setInspectedCellId(cell.id);
+    if (cell.type === 'plot') {
+      worldStore.setActivePlotCellId(cell.id);
+      debouncedSave();
+    }
   }
 
   function openMine(cell: WorldCell) {
-    const ok = worldStore.setActivePlotByCellId(cell.id);
-    if (!ok) {
-      return;
-    }
-
-    worldStore.setSelectedCellId(cell.id);
+    if (cell.type !== 'plot') return;
+    worldStore.setActivePlotCellId(cell.id);
+    worldStore.setInspectedCellId(cell.id);
     debouncedSave();
     navigation.setActiveTab('mine');
   }
 
   function goToMine() {
-    if (activePlot) navigation.setActiveTab('mine');
+    if (activePlotCell) navigation.setActiveTab('mine');
   }
 
   function goToStation() {
-    navigation.setActiveTab('station');
+    if (activePlotCell) navigation.setActiveTab('station');
   }
 
   function clearSelection() {
-    worldStore.setSelectedCellId(null);
-    debouncedSave();
+    worldStore.setInspectedCellId(null);
   }
 </script>
 
@@ -63,32 +58,32 @@
     </div>
   </header>
 
-  <WorldGrid {cells} {selectedCellId} onSelectCell={selectCell} onSelectPlot={selectPlot} onClearSelection={clearSelection} onOpenMine={openMine} />
+  <WorldGrid {cells} selectedCellId={inspectedCellId} onSelectCell={selectCell} onSelectPlot={selectPlot} onClearSelection={clearSelection} onOpenMine={openMine} />
 
   <section class="details">
     <div>
-      {#if selectedCell?.discovered || gameState.current.settings.devMode}
-        <h3>{selectedCell ? selectedCell.name : 'Selection'}</h3>
+      {#if inspectedCell?.discovered || gameState.current.settings.devMode}
+        <h3>{inspectedCell ? inspectedCell.name : 'Selection'}</h3>
       {/if}
 
-      {#if selectedCell}
-        {#if selectedCell.discovered || gameState.current.settings.devMode}
-          <p>Type: {selectedCell.type}</p>
+      {#if inspectedCell}
+        {#if inspectedCell.discovered || gameState.current.settings.devMode}
+          <p>Type: {inspectedCell.type}</p>
         {:else}
           <p>Type: ???</p>
         {/if}
 
-        <p>Ring: {selectedCell.ring}</p>
+        <p>Ring: {inspectedCell.ring}</p>
         {#if gameState.current.settings.devMode}
-          <p>Coords: {selectedCell.q}, {selectedCell.r}</p>
+          <p>Coords: {inspectedCell.q}, {inspectedCell.r}</p>
         {/if}
-        <p>Status: {selectedCell.discovered ? 'Discovered' : 'Hidden'}</p>
-        {#if selectedCell.discovered}
-          {#if selectedCell.type === 'city'}
+        <p>Status: {inspectedCell.discovered ? 'Discovered' : 'Hidden'}</p>
+        {#if inspectedCell.discovered}
+          {#if inspectedCell.type === 'city'}
             <p>Passenger destination.</p>
-          {:else if selectedCell.type === 'factory'}
+          {:else if inspectedCell.type === 'factory'}
             <p>Cargo destination.</p>
-          {:else if selectedCell.type === 'plot'}
+          {:else if inspectedCell.type === 'plot'}
             <p>Plot tile selected. Mine and station views will use this tile.</p>
           {/if}
         {/if}
@@ -98,9 +93,9 @@
     </div>
 
     <div class="actions">
-      {#if selectedCell?.type === 'plot'}
-        <Button.Root class="mini-btn" onclick={goToMine} disabled={!activePlot}>Go to mine</Button.Root>
-        <Button.Root class="mini-btn" onclick={goToStation} disabled={!activePlot}>Go to station</Button.Root>
+      {#if inspectedCell?.type === 'plot'}
+        <Button.Root class="mini-btn" onclick={goToMine} disabled={!activePlotCell}>Go to mine</Button.Root>
+        <Button.Root class="mini-btn" onclick={goToStation} disabled={!activePlotCell}>Go to station</Button.Root>
       {/if}
     </div>
   </section>

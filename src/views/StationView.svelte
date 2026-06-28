@@ -25,12 +25,8 @@
   const station = $derived(activePlotState.station);
   const money = $derived(gameState.current.money);
 
-  // --- world cell name for the header (mirrors MineView's derivation) ---
-  const selectedCellId = $derived(worldStore.current.selectedCellId);
-  const selectedCell = $derived(
-    selectedCellId ? (worldStore.current.cells.find((cell) => cell.id === selectedCellId) ?? null) : null,
-  );
-  const headerName = $derived(selectedCell?.type === 'plot' ? selectedCell.name : `Plot ${worldStore.current.activePlotIndex + 1}`);
+  // --- world cell name for the header ---
+  const headerName = $derived(worldStore.activePlotCell?.name ?? 'Station');
 
   // --- active platform (defensive ?? null covers old saves without the field) ---
   const activePlatform = $derived<Platform | null>(

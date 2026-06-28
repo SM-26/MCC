@@ -31,24 +31,23 @@
   import type { Miner, NorthExpansion } from '../logic/mine/mineTypes';
 
   const screenSize = $derived<ScreenSize>(appContext.current.screenSize);
-  const activeShaftIndex = $derived(worldStore.current.activePlotIndex);
-  const selectedCellId = $derived(worldStore.current.selectedCellId);
-  const selectedCell = $derived(selectedCellId ? (worldStore.current.cells.find((cell) => cell.id === selectedCellId) ?? null) : null);
+  const activePlotCellId = $derived(worldStore.current.activePlotCellId);
+  const activeWorldCell = $derived(worldStore.activePlotCell);
   const activePlotState = $derived(mineStore.current);
   const activeNorthExpansion = $derived(activePlotState.northExpansions[activePlotState.activeNorthExpansionIndex] ?? null);
   const activeMine = $derived(activeNorthExpansion?.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null);
-  const currentShaftLabel = $derived(selectedCell?.type === 'plot' ? selectedCell.name : `Shaft ${activeShaftIndex + 1}`);
-  const nextShaftLabel = $derived(`Shaft ${activeShaftIndex + 2}`);
+  const currentShaftLabel = $derived(activeWorldCell?.name ?? 'Mine');
+  const nextShaftLabel = $derived(`Shaft ${activePlotState.activeNorthExpansionIndex + 2}`);
   const minerCost = $derived(getMinerCost(activeMine));
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
-  const canGoPrevious = $derived(activeShaftIndex > 0);
+  const canGoPrevious = $derived(activePlotState.activeNorthExpansionIndex > 0);
   const canGoNext = $derived(false);
   const canDigDeeper = $derived(clearStatus === 'hard');
   const canBuyNextShaft = $derived(
     activeMine
-      ? activeMine.depth === 0 && clearStatus === 'soft' && gameState.current.money >= 100 && activeShaftIndex < engineeringStore.current.maxNorthExpansions
+      ? activeMine.depth === 0 && clearStatus === 'soft' && gameState.current.money >= 100 && activePlotState.activeNorthExpansionIndex < engineeringStore.current.maxNorthExpansions
       : false,
   );
   const canBuyStation = $derived(false);
@@ -157,7 +156,7 @@
   }
 
   function handleDigDeeperAction() {
-    const result = digDeeper(gameState.current.settings.worldSeed, 0, activeShaftIndex, activeNorthExpansion);
+    const result = digDeeper(gameState.current.settings.worldSeed, 0, activePlotState.activeNorthExpansionIndex, activeNorthExpansion);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
@@ -167,7 +166,7 @@
   }
 
   function handlePreviousShaft() {
-    const result = handlePreviousShaftAction(activeShaftIndex);
+    const result = handlePreviousShaftAction(activePlotState.activeNorthExpansionIndex);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
@@ -181,7 +180,7 @@
       resetCount: 0,
       money: gameState.current.money,
       maxShafts: engineeringStore.current.maxNorthExpansions,
-      activeShaftIndex,
+      activeShaftIndex: activePlotState.activeNorthExpansionIndex,
       shaftsLength: 1,
       activeNorthExpansion,
       activeMine,
@@ -206,7 +205,7 @@
       resetCount: 0,
       money: gameState.current.money,
       maxShafts: engineeringStore.current.maxNorthExpansions,
-      activeShaftIndex,
+      activeShaftIndex: activePlotState.activeNorthExpansionIndex,
       shaftsLength: 1,
       activeNorthExpansion,
       activeMine,
