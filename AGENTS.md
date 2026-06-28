@@ -126,3 +126,19 @@ Open `http://localhost:8080` to view the app.
 - Theme colors defined in `src/styles/theme.css`
 - Settings state lives in `src/stores/index.ts`
 - Use `appContext.screenSize` for responsive logic
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (via `gh` CLI); external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses `needs-triage`, `needs-info`, `ready-for-agent` (new labels to be created), `help wanted` (existing), and `wontfix` (existing). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo; domain docs live under `docs/` (`docs/CONTEXT.md`, `docs/adr/`). See `docs/agents/domain.md`.
