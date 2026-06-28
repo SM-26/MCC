@@ -120,6 +120,16 @@ describe('worldGen', () => {
       const typesMatch = world1.cells.every((c, i) => c.type === world2.cells[i].type);
       expect(typesMatch).toBe(false);
     });
+
+    it('should set activePlotCellId to the ring-0 plot cell id', () => {
+      const world = generateWorld('123456', 0, 1);
+      expect(world.activePlotCellId).toBe('0,0');
+    });
+
+    it('should set inspectedCellId to null', () => {
+      const world = generateWorld('123456', 0, 1);
+      expect(world.inspectedCellId).toBeNull();
+    });
   });
 
   describe('revealFogTile', () => {
