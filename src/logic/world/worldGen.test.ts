@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { makeSeededRng, generateWorld, revealFogTile } from './worldGen';
 import type { WorldState, WorldCell } from './worldTypes';
 
-// Helper: find a fog tile in the world
+// Helper: find an undiscovered tile in the world (fog in UI terms)
 function findFogTile(world: WorldState): WorldCell | undefined {
-  return world.cells.find((c) => c.type === 'fog');
+  return world.cells.find((c) => !c.discovered);
 }
 
 // Helper: create test world with rings
@@ -68,14 +68,14 @@ describe('worldGen', () => {
 
     it('should have fog tiles in ring 1', () => {
       const world = createTestWorld(1);
-      const fogTiles = world.cells.filter((c) => c.type === 'fog' && c.ring === 1);
+      const fogTiles = world.cells.filter((c) => !c.discovered && c.ring === 1);
 
       expect(fogTiles.length).toBeGreaterThan(0);
     });
 
     it('should have some special tiles in ring 1', () => {
       const world = createTestWorld(1);
-      const specialTiles = world.cells.filter((c) => c.ring === 1 && c.type !== 'fog' && c.type !== 'empty');
+      const specialTiles = world.cells.filter((c) => c.ring === 1 && c.type !== 'empty');
 
       expect(specialTiles.length).toBeGreaterThanOrEqual(1);
       expect(specialTiles.length).toBeLessThanOrEqual(3);
