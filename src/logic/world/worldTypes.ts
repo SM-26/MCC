@@ -60,13 +60,19 @@ export interface WorldPlot {
 
 export interface WorldState {
   cells: WorldCell[];
-  plots: WorldPlot[];
-  activePlotIndex: number;
-  selectedCellId: WorldCellId | null;
+  plots: WorldPlot[]; // DEPRECATED — removed in plots-map phase; kept for compile only
+  activePlotCellId: WorldCellId | null;
+  inspectedCellId: WorldCellId | null;
+}
+
+export function getActivePlotCell(world: WorldState): WorldCell | null {
+  if (!world.activePlotCellId) return null;
+  return world.cells.find((cell) => cell.id === world.activePlotCellId) ?? null;
 }
 
 export function getActivePlot(world: WorldState): WorldPlot | null {
-  return world.plots[world.activePlotIndex] ?? null;
+  // DEPRECATED shim — kept until plots[] is removed in the plots-map phase.
+  return world.plots.find((plot) => plot.cellId === world.activePlotCellId) ?? null;
 }
 
 export function getCellById(world: WorldState, cellId: WorldCellId): WorldCell | null {
