@@ -4,60 +4,57 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./mine/mineGen', () => ({
   generatePlot: vi.fn(),
+  buildPlot: vi.fn(),
 }));
 
-import { generatePlot } from './mine/mineGen';
+import { buildPlot, generatePlot } from './mine/mineGen';
+import { isPlotBuilt } from './mine/mineTypes';
 import { getInitialNavigationState, getInitialState } from './stateFactory';
 
 const mockedGeneratePlot = vi.mocked(generatePlot);
+const mockedBuildPlot = vi.mocked(buildPlot);
+
+const mockSurfaceDepth = {
+  depth: 0,
+  rows: 2,
+  cols: 2,
+  tiles: [
+    [
+      { type: 'empty' as const, level: 1, hp: 0, maxHp: 0, value: 0, resourceType: 'none' as const },
+      { type: 'empty' as const, level: 1, hp: 0, maxHp: 0, value: 0, resourceType: 'none' as const },
+    ],
+    [
+      { type: 'empty' as const, level: 1, hp: 0, maxHp: 0, value: 0, resourceType: 'none' as const },
+      { type: 'empty' as const, level: 1, hp: 0, maxHp: 0, value: 0, resourceType: 'none' as const },
+    ],
+  ],
+  miners: [],
+};
+
+function makeMockPlotState() {
+  return {
+    plotId: '0,0',
+    currentAge: 'Mechanical' as const,
+    ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
+    mineshafts: [
+      {
+        mineDepths: [mockSurfaceDepth],
+        selectedMiner: null,
+        draggedMiner: null,
+        lastTick: 0,
+        activeDepthIndex: 0,
+      },
+    ],
+    activeMineshaftIndex: 0,
+    station: null,
+  };
+}
 
 describe('stateFactory', () => {
   beforeEach(() => {
     mockedGeneratePlot.mockReset();
-    mockedGeneratePlot.mockReturnValue({
-      depth: 0,
-      rows: 2,
-      cols: 2,
-      tiles: [
-        [
-          {
-            type: 'empty',
-            level: 1,
-            hp: 0,
-            maxHp: 0,
-            value: 0,
-            resourceType: 'none',
-          },
-          {
-            type: 'empty',
-            level: 1,
-            hp: 0,
-            maxHp: 0,
-            value: 0,
-            resourceType: 'none',
-          },
-        ],
-        [
-          {
-            type: 'empty',
-            level: 1,
-            hp: 0,
-            maxHp: 0,
-            value: 0,
-            resourceType: 'none',
-          },
-          {
-            type: 'empty',
-            level: 1,
-            hp: 0,
-            maxHp: 0,
-            value: 0,
-            resourceType: 'none',
-          },
-        ],
-      ],
-      miners: [],
-    });
+    mockedBuildPlot.mockReset();
+    mockedBuildPlot.mockImplementation(() => makeMockPlotState());
   });
 
   describe('getInitialState', () => {
@@ -78,69 +75,61 @@ describe('stateFactory', () => {
         defaultView: 'world',
         devMode: false,
         soundEnabled: false,
-        notificationsEnabled: true,
-        theme: 'dark',
+        notificationsEnabled: false,
+        theme: 'system',
         worldSeed: '123456',
       });
     });
 
-    it('creates the default first plot', () => {
+    it('seeds the home plot into world.plots at the ring-0 cell id', () => {
       const state = getInitialState();
+      const { world } = state;
 
-      expect(state.plots).toHaveLength(1);
-      expect(state.plots[0]).toMatchObject({
-        plotId: 'plot-0',
-        plotName: 'Prague',
-        currentAge: 'Mechanical',
-        ageResources: {
-          coal: 0,
-          oil: 0,
-          copper: 0,
-          superalloy: 0,
-        },
-        activeNorthExpansionIndex: 0,
-        station: null,
-      });
+      expect(world.activePlotCellId).toBe('0,0');
+      expect(world.plots['0,0']).toBeDefined();
+      expect(isPlotBuilt(world.plots['0,0'])).toBe(true);
     });
 
-    it('creates one default north expansion with one generated mine depth', () => {
+    it('home plot has correct initial structure', () => {
       const state = getInitialState();
-      const plot = state.plots[0];
+      const plot = state.world.plots['0,0'];
 
-      expect(plot.northExpansions).toHaveLength(1);
-      expect(plot.northExpansions[0]).toMatchObject({
+      expect(plot).toMatchObject({
+        plotId: '0,0',
+        currentAge: 'Mechanical',
+        ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
+        activeMineshaftIndex: 0,
+        station: null,
+      });
+      expect(plot.mineshafts).toHaveLength(1);
+    });
+
+    it('creates one default mineshaft with one generated mine depth', () => {
+      const state = getInitialState();
+      const plot = state.world.plots['0,0'];
+
+      expect(plot.mineshafts).toHaveLength(1);
+      expect(plot.mineshafts[0]).toMatchObject({
         selectedMiner: null,
         draggedMiner: null,
         lastTick: 0,
         activeDepthIndex: 0,
       });
 
-      expect(plot.northExpansions[0].mineDepths).toHaveLength(1);
-      expect(plot.northExpansions[0].mineDepths[0]).toEqual(mockedGeneratePlot.mock.results[0]?.value);
+      expect(plot.mineshafts[0].mineDepths).toHaveLength(1);
+      expect(plot.mineshafts[0].mineDepths[0]).toBe(mockSurfaceDepth);
     });
 
-    it('builds world plot references from the initial plots', () => {
+    it('has no top-level plots array', () => {
       const state = getInitialState();
-
-      expect(state.world).toEqual({
-        cells: [],
-        plots: [
-          {
-            plotId: 'plot-0',
-            cellId: 'cell-plot-0',
-            plotName: 'Prague',
-            discovered: true,
-          },
-        ],
-        activePlotIndex: 0,
-      });
+      expect((state as unknown as Record<string, unknown>)['plots']).toBeUndefined();
     });
 
-    it('calls generatePlot with the expected seed, depth, and plot index', () => {
+    it('calls buildPlot with the home cell id, world seed, and reset count', () => {
       getInitialState();
 
-      expect(mockedGeneratePlot).toHaveBeenCalledTimes(1);
-      expect(mockedGeneratePlot).toHaveBeenCalledWith('123456', 0, 0, 0);
+      expect(mockedBuildPlot).toHaveBeenCalledTimes(1);
+      expect(mockedBuildPlot).toHaveBeenCalledWith('0,0', '123456', 0);
     });
 
     it('returns fresh state objects on each call', () => {
@@ -150,16 +139,12 @@ describe('stateFactory', () => {
       first.money = 999;
       first.settings.worldSeed = 'changed';
       first.engineering.engineeringIdeas = 42;
-      first.plots[0].plotName = 'Changed Plot';
-      first.plots[0].ageResources.coal = 10;
-      first.world.plots[0].plotName = 'Changed World Plot';
+      first.world.plots['0,0'].ageResources.coal = 10;
 
       expect(second.money).toBe(75);
       expect(second.settings.worldSeed).toBe('123456');
       expect(second.engineering.engineeringIdeas).toBe(0);
-      expect(second.plots[0].plotName).toBe('Prague');
-      expect(second.plots[0].ageResources.coal).toBe(0);
-      expect(second.world.plots[0].plotName).toBe('Prague');
+      expect(second.world.plots['0,0'].ageResources.coal).toBe(0);
     });
 
     it('does not share nested references between calls', () => {
@@ -169,11 +154,10 @@ describe('stateFactory', () => {
       expect(first).not.toBe(second);
       expect(first.settings).not.toBe(second.settings);
       expect(first.engineering).not.toBe(second.engineering);
-      expect(first.plots).not.toBe(second.plots);
-      expect(first.plots[0]).not.toBe(second.plots[0]);
-      expect(first.plots[0].northExpansions).not.toBe(second.plots[0].northExpansions);
       expect(first.world).not.toBe(second.world);
       expect(first.world.plots).not.toBe(second.world.plots);
+      expect(first.world.plots['0,0']).not.toBe(second.world.plots['0,0']);
+      expect(first.world.plots['0,0'].mineshafts).not.toBe(second.world.plots['0,0'].mineshafts);
     });
   });
 
@@ -181,6 +165,10 @@ describe('stateFactory', () => {
     it('returns the default saved navigation state', () => {
       expect(getInitialNavigationState()).toEqual({
         activeTab: 'world',
+        tabs: ['world', 'mine', 'station', 'engineering', 'settings'],
+        showLabels: true,
+        showEmojis: true,
+        showActiveLabel: true,
       });
     });
 
@@ -188,8 +176,8 @@ describe('stateFactory', () => {
       const first = getInitialNavigationState();
       const second = getInitialNavigationState();
 
-      expect(first).toEqual({ activeTab: 'world' });
-      expect(second).toEqual({ activeTab: 'world' });
+      expect(first.activeTab).toBe('world');
+      expect(second.activeTab).toBe('world');
       expect(first).not.toBe(second);
     });
   });
