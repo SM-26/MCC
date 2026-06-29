@@ -2,12 +2,13 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameState, SaveFile } from './saveTypes';
+import type { TabId } from '../app/navigationTypes';
 import { createSaveStore } from './saveStore.svelte';
 import { createDefaultNavigationState } from '../app/navigationTypes';
 
 const defaultNavigation = {
-  activeTab: 'world' as const,
-  tabs: ['world', 'mine', 'station', 'engineering', 'settings'] as const,
+  activeTab: 'world' as TabId,
+  tabs: ['world', 'mine', 'station', 'engineering', 'settings'] as TabId[],
   showLabels: true,
   showEmojis: true,
   showActiveLabel: true,
@@ -18,57 +19,51 @@ function createMockGameState(): GameState {
     money: 75,
     world: {
       cells: [],
-      plots: [
-        {
-          plotId: 'plot-0',
-          cellId: 'cell-plot-0',
-          discovered: true,
-        },
-      ],
-      activePlotIndex: 0,
-    },
-    plots: [
-      {
-        plotId: 'plot-0',
-        currentAge: 'Mechanical',
-        ageResources: {
-          coal: 0,
-          oil: 0,
-          copper: 0,
-          superalloy: 0,
-        },
-        northExpansions: [
-          {
-            mineDepths: [
-              {
-                depth: 0,
-                rows: 1,
-                cols: 1,
-                tiles: [
-                  [
-                    {
-                      type: 'empty',
-                      level: 1,
-                      hp: 0,
-                      maxHp: 0,
-                      value: 0,
-                      resourceType: 'none',
-                    },
-                  ],
-                ],
-                miners: [],
-              },
-            ],
-            selectedMiner: null,
-            draggedMiner: null,
-            lastTick: 0,
-            activeDepthIndex: 0,
+      plots: {
+        '0,0': {
+          plotId: '0,0',
+          currentAge: 'Mechanical',
+          ageResources: {
+            coal: 0,
+            oil: 0,
+            copper: 0,
+            superalloy: 0,
           },
-        ],
-        activeNorthExpansionIndex: 0,
-        station: null,
+          mineshafts: [
+            {
+              mineDepths: [
+                {
+                  depth: 0,
+                  rows: 1,
+                  cols: 1,
+                  tiles: [
+                    [
+                      {
+                        type: 'empty',
+                        level: 1,
+                        hp: 0,
+                        maxHp: 0,
+                        value: 0,
+                        resourceType: 'none',
+                      },
+                    ],
+                  ],
+                  miners: [],
+                },
+              ],
+              selectedMiner: null,
+              draggedMiner: null,
+              lastTick: 0,
+              activeDepthIndex: 0,
+            },
+          ],
+          activeMineshaftIndex: 0,
+          station: null,
+        },
       },
-    ],
+      activePlotCellId: '0,0',
+      inspectedCellId: null,
+    },
     engineering: {
       engineeringIdeas: 0,
       resetCount: 0,
@@ -97,7 +92,7 @@ function createNavigation(overrides: Partial<typeof defaultNavigation> = {}) {
 describe('saveStore', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    localStorage.clear();
+    window.localStorage.clear();
   });
 
   describe('initial state', () => {
@@ -147,7 +142,7 @@ describe('saveStore', () => {
 
       expect(persisted).not.toBe(gameState);
       expect(persisted.world).not.toBe(gameState.world);
-      expect(persisted.plots).not.toBe(gameState.plots);
+      expect(persisted.world.plots).not.toBe(gameState.world.plots);
       expect(persisted.settings).not.toBe(gameState.settings);
     });
 
@@ -172,11 +167,11 @@ describe('saveStore', () => {
       const persisted = store.buildPersistedGameState(gameState);
       persisted.money = 999;
       persisted.settings.worldSeed = 'changed';
-      persisted.plots[0].currentAge = 'Steam';
+      persisted.world.plots['0,0'].currentAge = 'Steam';
 
       expect(gameState.money).toBe(75);
       expect(gameState.settings.worldSeed).toBe('123456');
-      expect(gameState.plots[0].currentAge).toBe('Mechanical');
+      expect(gameState.world.plots['0,0'].currentAge).toBe('Mechanical');
     });
   });
 
@@ -187,7 +182,10 @@ describe('saveStore', () => {
 
       vi.spyOn(Date, 'now').mockReturnValue(123456789);
 
-      const saveFile = store.buildSaveFile(gameState);
+      const saveFile = store.buildSaveFile(gameState, {
+        saveVersion: '0.0.0',
+        saveCommitHash: 'dev',
+      });
 
       expect(saveFile.meta).toEqual({
         saveVersion: '0.0.0',
@@ -319,10 +317,10 @@ describe('saveStore', () => {
 
       const loaded = store.loadFromSaveFile(saveFile);
       loaded.settings.worldSeed = 'changed';
-      loaded.plots[0].currentAge = 'Steam';
+      loaded.world.plots['0,0'].currentAge = 'Steam';
 
       expect(saveFile.data.settings.worldSeed).toBe('123456');
-      expect(saveFile.data.plots[0].currentAge).toBe('Mechanical');
+      expect(saveFile.data.world.plots['0,0'].currentAge).toBe('Mechanical');
     });
   });
 
@@ -400,7 +398,9 @@ describe('saveStore', () => {
       vi.spyOn(Date, 'now').mockReturnValue(333);
 
       const ok = store.saveToLocalStorage(gameState, {
-        navigation: { activeTab: 'settings' },
+        navigation: { activeTab: 'settings' as TabId },
+        saveVersion: '0.0.0',
+        saveCommitHash: 'dev',
       });
 
       expect(ok).toBe(true);
@@ -474,7 +474,10 @@ describe('saveStore', () => {
         throw new Error('Quota exceeded');
       });
 
-      const ok = store.saveToLocalStorage(gameState);
+      const ok = store.saveToLocalStorage(gameState, {
+        saveVersion: '0.0.0',
+        saveCommitHash: 'dev',
+      });
 
       expect(ok).toBe(false);
       expect(store.current.lastError).toBe('Quota exceeded');
@@ -538,6 +541,8 @@ describe('saveStore', () => {
 
       const ok = store.downloadSaveFile(gameState, {
         filename: 'my-save.json',
+        saveVersion: '0.0.0',
+        saveCommitHash: 'dev',
       });
 
       expect(ok).toBe(true);
@@ -559,7 +564,10 @@ describe('saveStore', () => {
         throw new Error('Blob failed');
       });
 
-      const ok = store.downloadSaveFile(gameState);
+      const ok = store.downloadSaveFile(gameState, {
+        saveVersion: '0.0.0',
+        saveCommitHash: 'dev',
+      });
 
       expect(ok).toBe(false);
       expect(store.current.lastError).toBe('Blob failed');

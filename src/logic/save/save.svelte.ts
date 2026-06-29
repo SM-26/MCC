@@ -7,7 +7,8 @@ import { gameState } from '../app/gameState.svelte';
 import { navigation } from '../app/navigationStore.svelte';
 import { createDefaultNavigationState } from '../app/navigationTypes';
 import { getInitialState } from '../stateFactory';
-import { mineStore } from '../mine/mineStore.svelte';
+import { isPlotBuilt } from '../mine/mineTypes';
+import { plotsStore } from '../mine/plotsStore.svelte';
 import { worldStore } from '../world/worldStore.svelte';
 import { saveStore } from './saveStore.svelte';
 import type { GameState, PersistedGameState } from './saveTypes';
@@ -18,23 +19,22 @@ const [commitHash = 'dev'] = gitInfo.trim().split('\n');
 
 let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-function getPlotIdForCell(cell: { type: string; id: string | number } | undefined): string | null {
-  if (!cell) return null;
-  return `${cell.type}-${cell.id}`;
-}
-
 function getPersistedSnapshot(): PersistedGameState {
   const defaults = getInitialState();
-
+  const world = $state.snapshot(worldStore.current);
+  world.plots = plotsStore.snapshot();
   return {
     ...defaults,
     money: gameState.current.money,
     settings: $state.snapshot(gameState.current.settings),
-    world: $state.snapshot(worldStore.current),
-    plots: $state.snapshot(mineStore.current ? [mineStore.current] : []),
+    world,
     engineering: $state.snapshot(defaults.engineering),
     navigation: $state.snapshot(navigation.current),
   };
+}
+
+export function getSaveSnapshot(): PersistedGameState {
+  return getPersistedSnapshot();
 }
 
 function applyDefaultState(): void {
@@ -43,9 +43,7 @@ function applyDefaultState(): void {
   gameState.setMoney(defaults.money);
   gameState.updateSettings(defaults.settings);
   worldStore.replace(defaults.world);
-  if (defaults.plots[0]) {
-    mineStore.replace(defaults.plots[0]);
-  }
+  plotsStore.replaceAll(defaults.world.plots);
   navigation.replace(createDefaultNavigationState());
 }
 
@@ -53,22 +51,17 @@ function applyLoadedState(snapshot: PersistedGameState): void {
   gameState.setMoney(snapshot.money);
   gameState.updateSettings(snapshot.settings);
   worldStore.replace(snapshot.world);
+  plotsStore.replaceAll(snapshot.world.plots ?? {});
 
-  if (snapshot.plots.length > 0) {
-    const world = snapshot.world;
-    const activeIndex = world.activePlotIndex;
-    const activeCell = world.cells[activeIndex];
-    const activePlotId = getPlotIdForCell(activeCell);
-
-    const activePlot =
-      (activeIndex >= 0 && activeIndex < snapshot.plots.length ? snapshot.plots[activeIndex] : null) ??
-      snapshot.plots.find((plot) => plot.plotId === activePlotId) ??
-      snapshot.plots[0] ??
-      null;
-
-    if (activePlot) {
-      mineStore.replace(activePlot);
-    }
+  // Load guard: active plot must be a discovered, built plot cell; else fall back to home (0,0).
+  const world = snapshot.world;
+  const active = world.activePlotCellId;
+  const cell = active ? world.cells.find((c) => c.id === active) : null;
+  const plot = active ? (snapshot.world.plots?.[active] ?? null) : null;
+  const valid = !!cell && cell.type === 'plot' && cell.discovered && !!plot && isPlotBuilt(plot);
+  if (!valid) {
+    const home = world.cells.find((c) => c.type === 'plot' && c.ring === 0)?.id ?? null;
+    worldStore.setActivePlotCellId(home);
   }
 
   navigation.replace(snapshot.navigation);
@@ -78,7 +71,6 @@ function persistSnapshot(snapshot: PersistedGameState): boolean {
   const gameStateData: GameState = {
     money: snapshot.money,
     world: snapshot.world,
-    plots: snapshot.plots,
     engineering: snapshot.engineering,
     settings: snapshot.settings,
   };
@@ -90,21 +82,13 @@ function persistSnapshot(snapshot: PersistedGameState): boolean {
   });
 }
 
-function saveSnapshotNow(reason: string): void {
+function saveSnapshotNow(): boolean {
   try {
     const snapshot = getPersistedSnapshot();
-    log.debug(
-      'save',
-      `${reason}: activeTab=${snapshot.navigation.activeTab}, defaultView=${snapshot.settings.defaultView}, navbarPosition=${snapshot.settings.navbarPosition}`,
-    );
-
-    const ok = persistSnapshot(snapshot);
-
-    if (!ok) {
-      log.error('save', saveStore.current.lastError ?? 'Failed to save.');
-    }
+    return persistSnapshot(snapshot);
   } catch (error) {
     log.error('save', `Failed to save game state: ${String(error)}`);
+    return false;
   }
 }
 
@@ -115,14 +99,19 @@ export function debouncedSave(): void {
 
   saveTimeoutId = setTimeout(() => {
     saveTimeoutId = null;
-    saveSnapshotNow('autosave');
+    const ok = saveSnapshotNow();
+    if (!ok) {
+      log.error('save', `Failed to save full game state: Error: ${saveStore.current.lastError ?? 'unknown'}`);
+    }
   }, 500);
 }
 
 export function manualSave(): void {
-  saveSnapshotNow('manual save');
-  if (!saveStore.current.lastError) {
-    log.info('save', 'Manual save wrote full game state to localStorage.');
+  const ok = saveSnapshotNow();
+  if (ok) {
+    log.info('save', 'Manual save triggered by user.');
+  } else {
+    log.error('save', `Failed to manual save: Error: ${saveStore.current.lastError ?? 'unknown'}`);
   }
 }
 
@@ -135,19 +124,19 @@ export function loadGame(): void {
 
     if (!loaded) {
       applyDefaultState();
+      navigation.setActiveTab('world');
 
       const snapshot = getPersistedSnapshot();
-      persistSnapshot(snapshot);
+      const ok = persistSnapshot(snapshot);
+      if (!ok) {
+        log.warn('save', saveStore.current.lastError ?? 'Failed to write default save.');
+      }
 
       log.info('load', 'No save found, created default game state.');
       return;
     }
 
     applyLoadedState(loaded);
-    log.debug(
-      'load',
-      `applied loaded state: defaultView=${loaded.settings.defaultView}, activeTab=${loaded.navigation.activeTab}, navbarPosition=${loaded.settings.navbarPosition}`,
-    );
 
     if (loaded.settings.defaultView === 'world') {
       navigation.setActiveTab('world');
@@ -157,7 +146,8 @@ export function loadGame(): void {
       log.debug('load', `startup restored activeTab=${loaded.navigation.activeTab} because defaultView=last-active`);
     }
 
-    log.info('load', 'Game state loaded from localStorage.');
+    const version = saveStore.current.lastSaveMetadata?.saveVersion ?? 'unknown';
+    log.info('load', `Full game state loaded from localStorage (${version}).`);
   } catch (error) {
     log.error('load', `Failed to load game state: ${String(error)}`);
     applyDefaultState();
@@ -174,12 +164,20 @@ export async function resetProgress(): Promise<void> {
     }
 
     saveStore.setStorageKey(SAVE_STORAGE_KEY);
-    saveStore.clearLocalStorageSave();
+
+    const cleared = saveStore.clearLocalStorageSave();
+    if (!cleared) {
+      throw new Error(saveStore.current.lastError ?? 'Failed to clear local save.');
+    }
 
     applyDefaultState();
+    navigation.setActiveTab('world');
 
     const snapshot = getPersistedSnapshot();
-    persistSnapshot(snapshot);
+    const ok = persistSnapshot(snapshot);
+    if (!ok) {
+      throw new Error(saveStore.current.lastError ?? 'Failed to rewrite default save.');
+    }
 
     log.info('save', 'Progress reset successfully');
     window.location.reload();
