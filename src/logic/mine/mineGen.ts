@@ -1,7 +1,8 @@
 // src/logic/mine/mineGen.ts
 
 import seedrandom from 'seedrandom';
-import type { MineDepthState as MineDepth, MineTile, MineTileType } from './mineTypes';
+import { createEmptyAgeResources } from './mineTypes';
+import type { MineDepthState as MineDepth, MineTile, MineTileType, PlotState } from './mineTypes';
 import { TILE_DEFS } from './tileDefinitions';
 
 export type ClearStatus = 'none' | 'soft' | 'hard';
@@ -295,6 +296,18 @@ export function generatePlot(worldSeed: string, resetCount: number, depth: numbe
     cols,
     tiles,
     miners: [],
+  };
+}
+
+export function buildPlot(cellId: string, seed: string, resetCount: number): PlotState {
+  const surface = generatePlot(seed, resetCount, 0, 0);
+  return {
+    plotId: cellId,
+    currentAge: 'Mechanical',
+    ageResources: createEmptyAgeResources(),
+    mineshafts: [{ mineDepths: [surface], selectedMiner: null, draggedMiner: null, lastTick: 0, activeDepthIndex: 0 }],
+    activeMineshaftIndex: 0,
+    station: null,
   };
 }
 

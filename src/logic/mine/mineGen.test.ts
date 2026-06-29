@@ -3,7 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import type { MineDepthState as MineDepth, MineTile, MineTileType } from '../../logic/mine/mineTypes';
 import { TILE_DEFS } from './tileDefinitions';
-import { generatePlot, getClearProgress, getClearStatus, getPlotStats, MineGenConfig } from './mineGen';
+import { buildPlot, generatePlot, getClearProgress, getClearStatus, getPlotStats, MineGenConfig } from './mineGen';
+import { isPlotBuilt } from './mineTypes';
 
 function createTile(type: MineTileType): MineTile {
   const def = TILE_DEFS[type];
@@ -143,6 +144,15 @@ function hasIllegalBlockerChain(plot: MineDepth): boolean {
 function getNonBottomTiles(plot: MineDepth): MineTile[] {
   return plot.tiles.slice(0, -1).flat();
 }
+
+describe('buildPlot', () => {
+  it('buildPlot yields a Built plot with a tiled surface depth', () => {
+    const plot = buildPlot('0,0', '123456', 0);
+    expect(isPlotBuilt(plot)).toBe(true);
+    expect(plot.mineshafts[0].mineDepths[0].depth).toBe(0);
+    expect(plot.mineshafts[0].mineDepths[0].tiles.length).toBeGreaterThan(0);
+  });
+});
 
 describe('MineGen dimensions and determinism', () => {
   it('generates the exact same plot for the same seed, depth, and north expansion index', () => {
