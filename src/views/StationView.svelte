@@ -4,7 +4,7 @@
 
   import { debouncedSave } from '../logic/save/save.svelte';
   import { gameState } from '../logic/app/gameState.svelte';
-  import { mineStore } from '../logic/mine/mineStore.svelte';
+  import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { worldStore } from '../logic/world/worldStore.svelte';
   import { getExpansionLabel, toRoman } from '../logic/mine/mineLabels';
   import { getPlatformDisplayName } from '../logic/station/stationTypes';
@@ -21,8 +21,9 @@
   import type { Platform } from '../logic/station/stationTypes';
 
   // --- source of truth: the active plot's embedded station ---
-  const activePlotState = $derived(mineStore.current);
-  const station = $derived(activePlotState.station);
+  const activePlotCellId = $derived(worldStore.current.activePlotCellId);
+  const activePlotState = $derived(activePlotCellId ? plotsStore.get(activePlotCellId) : null);
+  const station = $derived(activePlotState?.station ?? null);
   const money = $derived(gameState.current.money);
 
   // --- world cell name for the header ---
@@ -33,10 +34,10 @@
     station?.platforms.find((p) => p.id === (station.activePlatformId ?? null)) ?? station?.platforms[0] ?? null,
   );
 
-  const eligiblePositions = $derived<EligiblePosition[]>(getEligiblePlatformPositions(activePlotState));
+  const eligiblePositions = $derived<EligiblePosition[]>(activePlotState ? getEligiblePlatformPositions(activePlotState) : []);
 
   // --- build affordances ---
-  const stationCheck = $derived(canBuildStation(activePlotState, money));
+  const stationCheck = $derived(activePlotState ? canBuildStation(activePlotState, money) : { ok: false, message: 'No active plot' });
   const canAffordStation = $derived(money >= STATION_COST);
   const canAffordPlatform = $derived(money >= PLATFORM_COST);
 
@@ -61,6 +62,7 @@
   }
 
   function handleBuildStation() {
+    if (!activePlotState) return;
     const result = buildStation(activePlotState, gameState.current.money);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
@@ -71,7 +73,7 @@
   }
 
   function handleBuildPlatform(position: EligiblePosition) {
-    if (!station) return;
+    if (!station || !activePlotState) return;
     const result = buildPlatform(station, activePlotState, position.northExpansionIndex, position.depth, gameState.current.money);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);

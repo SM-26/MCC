@@ -24,8 +24,9 @@
   import { appContext } from '../logic/app/appContext.svelte';
   import { engineeringStore } from '../logic/engineering/engineeringStore.svelte';
   import { gameState } from '../logic/app/gameState.svelte';
-  import { mineStore } from '../logic/mine/mineStore.svelte';
+  import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { worldStore } from '../logic/world/worldStore.svelte';
+  import { isPlotBuilt } from '../logic/mine/mineTypes';
 
   import type { ScreenSize } from '../lib/sizes';
   import type { Miner, Mineshaft } from '../logic/mine/mineTypes';
@@ -33,20 +34,20 @@
   const screenSize = $derived<ScreenSize>(appContext.current.screenSize);
   const activePlotCellId = $derived(worldStore.current.activePlotCellId);
   const activeWorldCell = $derived(worldStore.activePlotCell);
-  const activePlotState = $derived(mineStore.current);
-  const activeMineshaft = $derived(activePlotState.mineshafts[activePlotState.activeMineshaftIndex] ?? null);
+  const activePlotState = $derived(activePlotCellId ? plotsStore.get(activePlotCellId) : null);
+  const activeMineshaft = $derived(activePlotState?.mineshafts[activePlotState.activeMineshaftIndex] ?? null);
   const activeMine = $derived(activeMineshaft?.mineDepths[activeMineshaft.activeDepthIndex] ?? null);
   const currentShaftLabel = $derived(activeWorldCell?.name ?? 'Mine');
-  const nextShaftLabel = $derived(`Shaft ${activePlotState.activeMineshaftIndex + 2}`);
+  const nextShaftLabel = $derived(`Shaft ${(activePlotState?.activeMineshaftIndex ?? 0) + 2}`);
   const minerCost = $derived(getMinerCost(activeMine));
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
-  const canGoPrevious = $derived(activePlotState.activeMineshaftIndex > 0);
+  const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
   const canGoNext = $derived(false);
   const canDigDeeper = $derived(clearStatus === 'hard');
   const canBuyNextShaft = $derived(
-    activeMine
+    activeMine && activePlotState
       ? activeMine.depth === 0 && clearStatus === 'soft' && gameState.current.money >= 100 && activePlotState.activeMineshaftIndex < engineeringStore.current.maxNorthExpansions
       : false,
   );
@@ -156,6 +157,7 @@
   }
 
   function handleDigDeeperAction() {
+    if (!activePlotState) return;
     const result = digDeeper(gameState.current.settings.worldSeed, 0, activePlotState.activeMineshaftIndex, activeMineshaft);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
@@ -166,6 +168,7 @@
   }
 
   function handlePreviousShaft() {
+    if (!activePlotState) return;
     const result = handlePreviousShaftAction(activePlotState.activeMineshaftIndex);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
@@ -175,6 +178,7 @@
   }
 
   function handleNextShaft() {
+    if (!activePlotState) return;
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
@@ -200,6 +204,7 @@
   }
 
   function handleBuyNextShaft() {
+    if (!activePlotState) return;
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
@@ -258,7 +263,11 @@
   });
 </script>
 
-{#if activePlotState && activeMineshaft && activeMine}
+{#if !activePlotState || !isPlotBuilt(activePlotState)}
+  <div class="mine-not-built">
+    <p>Plot not built yet.</p>
+  </div>
+{:else if activeMineshaft && activeMine}
   <div class="mine-view size-{screenSize}">
     <MineHeader
       shaftLabel={currentShaftLabel}
@@ -391,5 +400,14 @@
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+  }
+
+  .mine-not-built {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    color: var(--mcc-text-muted);
+    font-size: 1rem;
   }
 </style>
