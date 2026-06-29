@@ -1,6 +1,8 @@
 // /src/logic/mine/mineAction.ts
-import { generatePlot, getClearStatus } from '../mine/mineGen';
+import { buildPlot, generatePlot, getClearStatus } from '../mine/mineGen';
+import { createScaffoldPlot, isPlotBuilt } from './mineTypes';
 import type { MineDepthState as MineDepth, Miner, Mineshaft, PlotState } from './mineTypes';
+import { plotsStore } from './plotsStore.svelte';
 
 export const BASE_MINER_COST = 50;
 export const BASE_SHAFT_COST = 100;
@@ -250,6 +252,33 @@ export function handlePreviousShaftAction(activeShaftIndex: number): ActionResul
   }
 
   return { ok: true };
+}
+
+// PROVISIONAL build economy (tune later)
+export const BUILD_COAL_COST = 10;
+export const BUILD_MONEY_COST = 100;
+
+/** Idempotent: ensure a discovered plot cell has a scaffold entry in the map. */
+export function ensurePlotScaffold(cellId: string): void {
+  if (!plotsStore.has(cellId)) {
+    plotsStore.set(cellId, createScaffoldPlot(cellId));
+  }
+}
+
+/** Spend accumulated coal + money to Build an under-construction plot. */
+export function tryBuildPlot(
+  cellId: string,
+  seed: string,
+  resetCount: number,
+  money: number,
+): { ok: boolean; nextMoney: number } {
+  const plot = plotsStore.get(cellId);
+  if (!plot || isPlotBuilt(plot)) return { ok: false, nextMoney: money };
+  if (plot.ageResources.coal < BUILD_COAL_COST || money < BUILD_MONEY_COST) {
+    return { ok: false, nextMoney: money };
+  }
+  plotsStore.set(cellId, buildPlot(cellId, seed, resetCount));
+  return { ok: true, nextMoney: money - BUILD_MONEY_COST };
 }
 
 export function handleBuyStationAction(args: { stationUnlocked: boolean; money: number; stationCost: number }): ActionResult {

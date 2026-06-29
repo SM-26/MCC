@@ -7,6 +7,11 @@
   import WorldGrid from '../components/world/WorldGrid.svelte';
   import type { WorldCell } from '../logic/world/worldTypes';
   import { debouncedSave } from '../logic/save/save.svelte';
+  import { plotsStore } from '../logic/mine/plotsStore.svelte';
+  import { isPlotBuilt } from '../logic/mine/mineTypes';
+  import { ensurePlotScaffold, tryBuildPlot } from '../logic/mine/mineActions';
+  import { engineeringStore } from '../logic/engineering/engineeringStore.svelte';
+  import { log } from '../lib/logger';
 
   const cells = $derived(worldStore.current.cells);
   const activePlotCell = $derived(worldStore.activePlotCell);
@@ -48,6 +53,27 @@
   function clearSelection() {
     worldStore.setInspectedCellId(null);
   }
+
+  const inspectedPlotBuilt = $derived(
+    inspectedCell?.type === 'plot' && !!plotsStore.get(inspectedCell.id) && isPlotBuilt(plotsStore.get(inspectedCell.id)!),
+  );
+
+  function buildPlotAction(cell: WorldCell) {
+    ensurePlotScaffold(cell.id);
+    const result = tryBuildPlot(
+      cell.id,
+      gameState.current.settings.worldSeed,
+      engineeringStore.current.resetCount,
+      gameState.current.money,
+    );
+    if (result.ok) {
+      gameState.setMoney(result.nextMoney);
+      log.info('WorldView', `Plot ${cell.id} built; money now ${result.nextMoney}`);
+      debouncedSave();
+    } else {
+      log.debug('WorldView', `Build plot ${cell.id} failed (coal or money insufficient)`);
+    }
+  }
 </script>
 
 <div class="world-view">
@@ -84,7 +110,11 @@
           {:else if inspectedCell.type === 'factory'}
             <p>Cargo destination.</p>
           {:else if inspectedCell.type === 'plot'}
-            <p>Plot tile selected. Mine and station views will use this tile.</p>
+            {#if inspectedPlotBuilt}
+              <p>Plot tile selected. Mine and station views will use this tile.</p>
+            {:else}
+              <p>Under construction. Gather coal and money to build this plot.</p>
+            {/if}
           {/if}
         {/if}
       {:else}
@@ -93,9 +123,12 @@
     </div>
 
     <div class="actions">
-      {#if inspectedCell?.type === 'plot'}
-        <Button.Root class="mini-btn" onclick={goToMine} disabled={!activePlotCell}>Go to mine</Button.Root>
-        <Button.Root class="mini-btn" onclick={goToStation} disabled={!activePlotCell}>Go to station</Button.Root>
+      {#if inspectedCell?.type === 'plot' && inspectedCell.discovered}
+        {#if !inspectedPlotBuilt}
+          <Button.Root class="mini-btn" onclick={() => buildPlotAction(inspectedCell!)}>Build plot</Button.Root>
+        {/if}
+        <Button.Root class="mini-btn" onclick={goToMine} disabled={!inspectedPlotBuilt}>Go to mine</Button.Root>
+        <Button.Root class="mini-btn" onclick={goToStation} disabled={!inspectedPlotBuilt}>Go to station</Button.Root>
       {/if}
     </div>
   </section>
