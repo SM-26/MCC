@@ -2,9 +2,17 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { MineDepthState, MineTile, NorthExpansion, PlotState } from './mineTypes';
+import type { MineDepthState, MineTile, Mineshaft, PlotState } from './mineTypes';
 
-import { createEmptyAgeResources, createMineTile, getActiveMineDepth, getActiveNorthExpansion, getMineDepthByDepth } from './mineTypes';
+import {
+  createEmptyAgeResources,
+  createMineTile,
+  createScaffoldPlot,
+  getActiveMineDepth,
+  getActiveMineshaft,
+  getMineDepthByDepth,
+  isPlotBuilt,
+} from './mineTypes';
 
 function makeTile(overrides: Partial<MineTile> = {}): MineTile {
   return createMineTile('empty', overrides);
@@ -24,7 +32,7 @@ function makeDepth(depth: number, overrides: Partial<MineDepthState> = {}): Mine
   };
 }
 
-function makeExpansion(overrides: Partial<NorthExpansion> = {}): NorthExpansion {
+function makeMineshaft(overrides: Partial<Mineshaft> = {}): Mineshaft {
   return {
     mineDepths: [makeDepth(0)],
     selectedMiner: null,
@@ -38,11 +46,10 @@ function makeExpansion(overrides: Partial<NorthExpansion> = {}): NorthExpansion 
 function makePlot(overrides: Partial<PlotState> = {}): PlotState {
   return {
     plotId: 'plot-0',
-    plotName: 'Prague',
     currentAge: 'Mechanical',
     ageResources: createEmptyAgeResources(),
-    northExpansions: [makeExpansion()],
-    activeNorthExpansionIndex: 0,
+    mineshafts: [makeMineshaft()],
+    activeMineshaftIndex: 0,
     station: null,
     ...overrides,
   };
@@ -119,77 +126,88 @@ describe('createMineTile', () => {
   });
 });
 
-describe('getActiveNorthExpansion', () => {
-  it('returns the active north expansion by index', () => {
-    const first = makeExpansion({ lastTick: 1 });
-    const second = makeExpansion({ lastTick: 2 });
+describe('getActiveMineshaft', () => {
+  it('returns the active mineshaft by index', () => {
+    const first = makeMineshaft({ lastTick: 1 });
+    const second = makeMineshaft({ lastTick: 2 });
 
     const plot = makePlot({
-      northExpansions: [first, second],
-      activeNorthExpansionIndex: 1,
+      mineshafts: [first, second],
+      activeMineshaftIndex: 1,
     });
 
-    expect(getActiveNorthExpansion(plot)).toBe(second);
+    expect(getActiveMineshaft(plot)).toBe(second);
   });
 
   it('returns null when the active index is out of bounds', () => {
     const plot = makePlot({
-      northExpansions: [makeExpansion()],
-      activeNorthExpansionIndex: 99,
+      mineshafts: [makeMineshaft()],
+      activeMineshaftIndex: 99,
     });
 
-    expect(getActiveNorthExpansion(plot)).toBeNull();
+    expect(getActiveMineshaft(plot)).toBeNull();
   });
 
-  it('returns null when there are no north expansions', () => {
+  it('returns null when there are no mineshafts', () => {
     const plot = makePlot({
-      northExpansions: [],
-      activeNorthExpansionIndex: 0,
+      mineshafts: [],
+      activeMineshaftIndex: 0,
     });
 
-    expect(getActiveNorthExpansion(plot)).toBeNull();
+    expect(getActiveMineshaft(plot)).toBeNull();
   });
 });
 
 describe('getActiveMineDepth', () => {
-  it('returns the active mine depth from the active north expansion', () => {
+  it('returns the active mine depth from the active mineshaft', () => {
     const depth0 = makeDepth(0);
     const depth1 = makeDepth(1);
 
-    const expansion = makeExpansion({
+    const shaft = makeMineshaft({
       mineDepths: [depth0, depth1],
       activeDepthIndex: 1,
     });
 
     const plot = makePlot({
-      northExpansions: [expansion],
-      activeNorthExpansionIndex: 0,
+      mineshafts: [shaft],
+      activeMineshaftIndex: 0,
     });
 
     expect(getActiveMineDepth(plot)).toBe(depth1);
   });
 
-  it('returns null when there is no active north expansion', () => {
+  it('returns null when there is no active mineshaft', () => {
     const plot = makePlot({
-      northExpansions: [],
-      activeNorthExpansionIndex: 0,
+      mineshafts: [],
+      activeMineshaftIndex: 0,
     });
 
     expect(getActiveMineDepth(plot)).toBeNull();
   });
 
   it('returns null when the active depth index is out of bounds', () => {
-    const expansion = makeExpansion({
+    const shaft = makeMineshaft({
       mineDepths: [makeDepth(0)],
       activeDepthIndex: 99,
     });
 
     const plot = makePlot({
-      northExpansions: [expansion],
-      activeNorthExpansionIndex: 0,
+      mineshafts: [shaft],
+      activeMineshaftIndex: 0,
     });
 
     expect(getActiveMineDepth(plot)).toBeNull();
+  });
+});
+
+describe('createScaffoldPlot', () => {
+  it('is Tile-less and not built', () => {
+    const plot = createScaffoldPlot('2,1');
+    expect(plot.plotId).toBe('2,1');
+    expect(plot.mineshafts).toHaveLength(1);
+    expect(plot.mineshafts[0].mineDepths).toHaveLength(0);
+    expect(plot.station).toBeNull();
+    expect(isPlotBuilt(plot)).toBe(false);
   });
 });
 
@@ -197,26 +215,26 @@ describe('getMineDepthByDepth', () => {
   it('returns the matching mine depth by depth number', () => {
     const depth0 = makeDepth(0);
     const depth2 = makeDepth(2);
-    const expansion = makeExpansion({
+    const shaft = makeMineshaft({
       mineDepths: [depth0, depth2],
     });
 
-    expect(getMineDepthByDepth(expansion, 2)).toBe(depth2);
+    expect(getMineDepthByDepth(shaft, 2)).toBe(depth2);
   });
 
   it('returns null when the depth does not exist', () => {
-    const expansion = makeExpansion({
+    const shaft = makeMineshaft({
       mineDepths: [makeDepth(0), makeDepth(1)],
     });
 
-    expect(getMineDepthByDepth(expansion, 5)).toBeNull();
+    expect(getMineDepthByDepth(shaft, 5)).toBeNull();
   });
 
-  it('returns null when the expansion has no mine depths', () => {
-    const expansion = makeExpansion({
+  it('returns null when the mineshaft has no mine depths', () => {
+    const shaft = makeMineshaft({
       mineDepths: [],
     });
 
-    expect(getMineDepthByDepth(expansion, 0)).toBeNull();
+    expect(getMineDepthByDepth(shaft, 0)).toBeNull();
   });
 });

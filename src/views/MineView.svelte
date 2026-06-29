@@ -28,26 +28,26 @@
   import { worldStore } from '../logic/world/worldStore.svelte';
 
   import type { ScreenSize } from '../lib/sizes';
-  import type { Miner, NorthExpansion } from '../logic/mine/mineTypes';
+  import type { Miner, Mineshaft } from '../logic/mine/mineTypes';
 
   const screenSize = $derived<ScreenSize>(appContext.current.screenSize);
   const activePlotCellId = $derived(worldStore.current.activePlotCellId);
   const activeWorldCell = $derived(worldStore.activePlotCell);
   const activePlotState = $derived(mineStore.current);
-  const activeNorthExpansion = $derived(activePlotState.northExpansions[activePlotState.activeNorthExpansionIndex] ?? null);
-  const activeMine = $derived(activeNorthExpansion?.mineDepths[activeNorthExpansion.activeDepthIndex] ?? null);
+  const activeMineshaft = $derived(activePlotState.mineshafts[activePlotState.activeMineshaftIndex] ?? null);
+  const activeMine = $derived(activeMineshaft?.mineDepths[activeMineshaft.activeDepthIndex] ?? null);
   const currentShaftLabel = $derived(activeWorldCell?.name ?? 'Mine');
-  const nextShaftLabel = $derived(`Shaft ${activePlotState.activeNorthExpansionIndex + 2}`);
+  const nextShaftLabel = $derived(`Shaft ${activePlotState.activeMineshaftIndex + 2}`);
   const minerCost = $derived(getMinerCost(activeMine));
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
-  const canGoPrevious = $derived(activePlotState.activeNorthExpansionIndex > 0);
+  const canGoPrevious = $derived(activePlotState.activeMineshaftIndex > 0);
   const canGoNext = $derived(false);
   const canDigDeeper = $derived(clearStatus === 'hard');
   const canBuyNextShaft = $derived(
     activeMine
-      ? activeMine.depth === 0 && clearStatus === 'soft' && gameState.current.money >= 100 && activePlotState.activeNorthExpansionIndex < engineeringStore.current.maxNorthExpansions
+      ? activeMine.depth === 0 && clearStatus === 'soft' && gameState.current.money >= 100 && activePlotState.activeMineshaftIndex < engineeringStore.current.maxNorthExpansions
       : false,
   );
   const canBuyStation = $derived(false);
@@ -69,18 +69,18 @@
     isDraggingMiner = false;
     draggedMiner = null;
     draggedPointerId = null;
-    if (activeNorthExpansion) activeNorthExpansion.draggedMiner = null;
+    if (activeMineshaft) activeMineshaft.draggedMiner = null;
   }
 
   function handleMinerPointerDown(event: PointerEvent, miner: Miner) {
-    if (!activeMine || !activeNorthExpansion) return;
+    if (!activeMine || !activeMineshaft) return;
     event.preventDefault();
     draggedMiner = miner;
     draggedPointerId = event.pointerId;
     isDraggingMiner = true;
     dragPos = { x: event.clientX, y: event.clientY };
-    activeNorthExpansion.selectedMiner = miner;
-    activeNorthExpansion.draggedMiner = miner;
+    activeMineshaft.selectedMiner = miner;
+    activeMineshaft.draggedMiner = miner;
     const element = event.currentTarget as HTMLElement | null;
     element?.setPointerCapture?.(event.pointerId);
   }
@@ -100,7 +100,7 @@
     return Number.isNaN(targetIdx) ? null : targetIdx;
   }
 
-  function handleDropResult(result: ReturnType<typeof moveOrMergeMiner>, draggedMiner: Miner, activeNorthExpansion: NorthExpansion) {
+  function handleDropResult(result: ReturnType<typeof moveOrMergeMiner>, draggedMiner: Miner, activeMineshaft: Mineshaft) {
     if (!result.ok) {
       if (result.reason === 'blocked-target') log.info('finishPointerDrag-> move miner', result.message);
       else triggerMobileToast(result.message);
@@ -108,17 +108,17 @@
     }
 
     if (result.action === 'merge') {
-      activeNorthExpansion.selectedMiner = result.mergedMiner;
+      activeMineshaft.selectedMiner = result.mergedMiner;
       triggerMobileToast(result.message);
     } else {
-      activeNorthExpansion.selectedMiner = draggedMiner;
+      activeMineshaft.selectedMiner = draggedMiner;
     }
 
     debouncedSave();
   }
 
   function finishPointerDrag(clientX: number, clientY: number) {
-    if (!activeMine || !draggedMiner || !activeNorthExpansion) {
+    if (!activeMine || !draggedMiner || !activeMineshaft) {
       resetDragState();
       return;
     }
@@ -130,7 +130,7 @@
     }
 
     const result = moveOrMergeMiner(activeMine, draggedMiner, targetIdx);
-    handleDropResult(result, draggedMiner, activeNorthExpansion);
+    handleDropResult(result, draggedMiner, activeMineshaft);
     resetDragState();
   }
 
@@ -156,7 +156,7 @@
   }
 
   function handleDigDeeperAction() {
-    const result = digDeeper(gameState.current.settings.worldSeed, 0, activePlotState.activeNorthExpansionIndex, activeNorthExpansion);
+    const result = digDeeper(gameState.current.settings.worldSeed, 0, activePlotState.activeMineshaftIndex, activeMineshaft);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
@@ -166,7 +166,7 @@
   }
 
   function handlePreviousShaft() {
-    const result = handlePreviousShaftAction(activePlotState.activeNorthExpansionIndex);
+    const result = handlePreviousShaftAction(activePlotState.activeMineshaftIndex);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
@@ -180,9 +180,9 @@
       resetCount: 0,
       money: gameState.current.money,
       maxShafts: engineeringStore.current.maxNorthExpansions,
-      activeShaftIndex: activePlotState.activeNorthExpansionIndex,
+      activeShaftIndex: activePlotState.activeMineshaftIndex,
       shaftsLength: 1,
-      activeNorthExpansion,
+      activeMineshaft,
       activeMine,
     });
 
@@ -205,9 +205,9 @@
       resetCount: 0,
       money: gameState.current.money,
       maxShafts: engineeringStore.current.maxNorthExpansions,
-      activeShaftIndex: activePlotState.activeNorthExpansionIndex,
+      activeShaftIndex: activePlotState.activeMineshaftIndex,
       shaftsLength: 1,
-      activeNorthExpansion,
+      activeMineshaft,
       activeMine,
     });
 
@@ -258,7 +258,7 @@
   });
 </script>
 
-{#if activePlotState && activeNorthExpansion && activeMine}
+{#if activePlotState && activeMineshaft && activeMine}
   <div class="mine-view size-{screenSize}">
     <MineHeader
       shaftLabel={currentShaftLabel}

@@ -50,7 +50,7 @@ export type {
     MineTileType,
     AgeResources,
     PlotState,
-    NorthExpansion,
+    Mineshaft,
     MineDepthState,
     Miner,
 } from '../mine/mineTypes';

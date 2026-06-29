@@ -1,6 +1,6 @@
 // /src/logic/mine/mineAction.ts
 import { generatePlot, getClearStatus } from '../mine/mineGen';
-import type { MineDepthState as MineDepth, Miner, PlotState, NorthExpansion } from './mineTypes';
+import type { MineDepthState as MineDepth, Miner, Mineshaft, PlotState } from './mineTypes';
 
 export const BASE_MINER_COST = 50;
 export const BASE_SHAFT_COST = 100;
@@ -22,7 +22,7 @@ export interface ShaftNavigationContext {
   maxShafts: number;
   activeShaftIndex: number;
   shaftsLength: number;
-  activeNorthExpansion: NorthExpansion | null;
+  activeMineshaft: Mineshaft | null;
   activeMine: MineDepth | null;
 }
 
@@ -35,7 +35,7 @@ export function createDefaultPlotState(worldSeed: string, resetCount: number, sh
   return {
     plotId: `${worldSeed}-${shaftIndex}`,
     // plotName: shaftName,
-    northExpansions: [
+    mineshafts: [
       {
         mineDepths: [generatePlot(worldSeed, resetCount, 0, shaftIndex)],
         selectedMiner: null,
@@ -44,7 +44,7 @@ export function createDefaultPlotState(worldSeed: string, resetCount: number, sh
         activeDepthIndex: 0,
       },
     ],
-    activeNorthExpansionIndex: 0,
+    activeMineshaftIndex: 0,
     ageResources: {
       coal: 0,
       oil: 0,
@@ -169,12 +169,12 @@ export function moveOrMergeMiner(activeMine: MineDepth | null, draggedMiner: Min
   return { ok: false, reason: 'blocked-target', message: 'Target tile must be empty' };
 }
 
-export function digDeeper(worldSeed: string, resetCount: number, activeShaftIndex: number, activeNorthExpansion: NorthExpansion | null): ActionResult {
-  if (!activeNorthExpansion) {
+export function digDeeper(worldSeed: string, resetCount: number, activeShaftIndex: number, activeMineshaft: Mineshaft | null): ActionResult {
+  if (!activeMineshaft) {
     return { ok: false, message: 'No active shaft expansion' };
   }
 
-  const activeMine = activeNorthExpansion.mineDepths[activeNorthExpansion.activeDepthIndex];
+  const activeMine = activeMineshaft.mineDepths[activeMineshaft.activeDepthIndex];
   if (!activeMine) {
     return { ok: false, message: 'No active mine depth' };
   }
@@ -198,29 +198,29 @@ export function digDeeper(worldSeed: string, resetCount: number, activeShaftInde
     tileIndex: validMinerTiles.has(miner.tileIndex) ? miner.tileIndex : ([...validMinerTiles][minerIndex] ?? 0),
   }));
 
-  activeNorthExpansion.mineDepths.push(nextMine);
-  activeNorthExpansion.activeDepthIndex = activeNorthExpansion.mineDepths.length - 1;
-  activeNorthExpansion.selectedMiner = null;
-  activeNorthExpansion.draggedMiner = null;
+  activeMineshaft.mineDepths.push(nextMine);
+  activeMineshaft.activeDepthIndex = activeMineshaft.mineDepths.length - 1;
+  activeMineshaft.selectedMiner = null;
+  activeMineshaft.draggedMiner = null;
 
   return { ok: true };
 }
 
-function resetNorthExpansionSelection(northExpansion: NorthExpansion) {
-  northExpansion.selectedMiner = null;
-  northExpansion.draggedMiner = null;
+function resetMineshaftSelection(mineshaft: Mineshaft) {
+  mineshaft.selectedMiner = null;
+  mineshaft.draggedMiner = null;
 }
 
 export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigationResult {
-  const { activeNorthExpansion, activeMine, activeShaftIndex, shaftsLength, money, maxShafts } = ctx;
+  const { activeMineshaft, activeMine, activeShaftIndex, shaftsLength, money, maxShafts } = ctx;
 
-  if (!activeNorthExpansion || !activeMine) {
+  if (!activeMineshaft || !activeMine) {
     return { ok: false, message: 'No active shaft context' };
   }
 
   if (activeMine.depth > 0) {
-    activeNorthExpansion.activeDepthIndex = 0;
-    resetNorthExpansionSelection(activeNorthExpansion);
+    activeMineshaft.activeDepthIndex = 0;
+    resetMineshaftSelection(activeMineshaft);
     return { ok: true };
   }
 

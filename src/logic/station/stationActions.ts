@@ -64,7 +64,7 @@ export function canBuildStation(plot: PlotState, money: number): ActionResult {
     return { ok: false, message: 'Station already built' };
   }
 
-  const foundation = plot.northExpansions[0]?.mineDepths.find((d) => d.depth === 0) ?? null;
+  const foundation = plot.mineshafts[0]?.mineDepths.find((d) => d.depth === 0) ?? null;
   if (!foundation) {
     return { ok: false, message: 'No mine to build on' };
   }
@@ -109,7 +109,7 @@ export function getEligiblePlatformPositions(plot: PlotState): EligiblePosition[
 
   const positions: EligiblePosition[] = [];
 
-  plot.northExpansions.forEach((expansion, expansionIndex) => {
+  plot.mineshafts.forEach((expansion, expansionIndex) => {
     expansion.mineDepths.forEach((depthState) => {
       if (!isPlatformDepth(depthState.depth)) return;
       if (getClearStatus(depthState) !== 'hard') return;
@@ -149,7 +149,7 @@ export function canBuildPlatform(
   }
 
   const depthState =
-    plot.northExpansions[northExpansionIndex]?.mineDepths.find((d) => d.depth === depth) ?? null;
+    plot.mineshafts[northExpansionIndex]?.mineDepths.find((d) => d.depth === depth) ?? null;
   if (!depthState) {
     return { ok: false, message: 'That depth has not been dug yet' };
   }
