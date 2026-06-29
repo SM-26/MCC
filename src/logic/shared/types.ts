@@ -22,7 +22,6 @@ export type {
     Destination,
     DestinationId,
     DestinationType,
-    WorldPlot,
     WorldState,
     Route,
 } from '../world/worldTypes';

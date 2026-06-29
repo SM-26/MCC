@@ -7,7 +7,7 @@ function makeWorld(partial: Partial<WorldState> = {}): WorldState {
     cells: [
       { id: '0,0', name: 'Home', type: 'plot', q: 0, r: 0, ring: 0, discovered: true },
     ],
-    plots: [],
+    plots: {},
     activePlotCellId: '0,0',
     inspectedCellId: null,
     ...partial,

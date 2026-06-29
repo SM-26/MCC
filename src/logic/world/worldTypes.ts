@@ -1,6 +1,7 @@
 // src/logic/world/worldTypes.ts
 
 import type { HexCoord } from './hex';
+import type { PlotState } from '../mine/mineTypes';
 
 export type WorldCellId = string;
 export type DestinationId = string;
@@ -52,15 +53,9 @@ export interface Destination {
   discovered: boolean;
 }
 
-export interface WorldPlot {
-  plotId: PlotId;
-  cellId: WorldCellId;
-  discovered: boolean;
-}
-
 export interface WorldState {
   cells: WorldCell[];
-  plots: WorldPlot[]; // DEPRECATED — removed in plots-map phase; kept for compile only
+  plots: Record<WorldCellId, PlotState>;
   activePlotCellId: WorldCellId | null;
   inspectedCellId: WorldCellId | null;
 }
@@ -70,17 +65,8 @@ export function getActivePlotCell(world: WorldState): WorldCell | null {
   return world.cells.find((cell) => cell.id === world.activePlotCellId) ?? null;
 }
 
-export function getActivePlot(world: WorldState): WorldPlot | null {
-  // DEPRECATED shim — kept until plots[] is removed in the plots-map phase.
-  return world.plots.find((plot) => plot.cellId === world.activePlotCellId) ?? null;
-}
-
 export function getCellById(world: WorldState, cellId: WorldCellId): WorldCell | null {
   return world.cells.find((cell) => cell.id === cellId) ?? null;
-}
-
-export function getPlotById(world: WorldState, plotId: PlotId): WorldPlot | null {
-  return world.plots.find((plot) => plot.plotId === plotId) ?? null;
 }
 
 export function getDestinationFromCell(cell: WorldCell): Destination | null {

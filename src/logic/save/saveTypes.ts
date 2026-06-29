@@ -3,12 +3,10 @@
 import type { GameSessionState } from '../app/gameState.svelte';
 import type { NavigationState } from '../app/navigationTypes';
 import type { EngineeringState } from '../engineering/engineeringTypes';
-import type { PlotState } from '../mine/mineTypes';
 import type { WorldState } from '../world/worldTypes';
 
 export interface GameState extends GameSessionState {
-  world: WorldState;
-  plots: PlotState[];
+  world: WorldState; // world.plots holds the developed-plot map
   engineering: EngineeringState;
 }
 

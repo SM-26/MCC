@@ -298,7 +298,7 @@ export function generateWorld(worldSeed: string, resetCount: number, ringsToGene
 
   return {
     cells: state.generatedCells,
-    plots: [],
+    plots: {},
     activePlotCellId: state.generatedCells.find((c) => c.type === 'plot' && c.ring === 0)?.id ?? null,
     inspectedCellId: null,
   };

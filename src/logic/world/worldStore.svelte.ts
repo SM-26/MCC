@@ -19,7 +19,7 @@ function createDefaultWorldCell(id: WorldCellId, name: string, q: number, r: num
 function createDefaultWorldState(): WorldState {
   return {
     cells: [],
-    plots: [],
+    plots: {},
     activePlotCellId: null,
     inspectedCellId: null,
   };
@@ -30,7 +30,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
     ...createDefaultWorldState(),
     ...initial,
     cells: initial?.cells ? [...initial.cells] : [],
-    plots: initial?.plots ? [...initial.plots] : [],
+    plots: initial?.plots ? { ...initial.plots } : {},
     activePlotCellId: initial?.activePlotCellId ?? null,
     inspectedCellId: initial?.inspectedCellId ?? null,
   });
@@ -62,7 +62,7 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       Object.assign(state, {
         ...next,
         cells: [...next.cells],
-        plots: [...next.plots],
+        plots: { ...next.plots },
         activePlotCellId: next.activePlotCellId ?? null,
         inspectedCellId: next.inspectedCellId ?? null,
       });
