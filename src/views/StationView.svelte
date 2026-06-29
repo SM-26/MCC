@@ -62,8 +62,8 @@
   }
 
   function handleBuildStation() {
-    if (!activePlotState) return;
-    const result = buildStation(activePlotState, gameState.current.money);
+    if (!activePlotState || !activePlotCellId) return;
+    const result = buildStation(activePlotState, gameState.current.money, activePlotCellId);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;

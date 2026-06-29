@@ -33,7 +33,6 @@ const mockSurfaceDepth = {
 
 function makeMockPlotState() {
   return {
-    plotId: '0,0',
     currentAge: 'Mechanical' as const,
     ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
     mineshafts: [
@@ -95,7 +94,6 @@ describe('stateFactory', () => {
       const plot = state.world.plots['0,0'];
 
       expect(plot).toMatchObject({
-        plotId: '0,0',
         currentAge: 'Mechanical',
         ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
         activeMineshaftIndex: 0,

@@ -44,14 +44,6 @@ describe('World-Mine Integration', () => {
     expect(initialState.world.activePlotCellId).toBe(ring0Cell!.id);
   });
 
-  it('plotId equals the cell id (no plot- prefix in new model)', () => {
-    const initialState = getInitialState();
-    const homeCellId = initialState.world.activePlotCellId!;
-    const plot = initialState.world.plots[homeCellId];
-    expect(plot).toBeDefined();
-    expect(plot.plotId).toBe(homeCellId);
-  });
-
   it('home plot has depth-0 surface with correct dimensions', () => {
     const initialState = getInitialState();
     const homeCellId = initialState.world.activePlotCellId!;
@@ -178,7 +170,6 @@ describe('World-Mine Integration', () => {
     const HOME = '0,0';
     const OTHER = '1,0';
     plotsStore.set(OTHER, {
-      plotId: OTHER,
       currentAge: 'Steam',
       ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
       mineshafts: [],
@@ -188,7 +179,7 @@ describe('World-Mine Integration', () => {
 
     worldStore.setActivePlotCellId(HOME);
     expect(worldStore.current.activePlotCellId).toBe(HOME);
-    expect(plotsStore.get(worldStore.current.activePlotCellId!)!.plotId).toBe(HOME);
+    expect(plotsStore.has(HOME)).toBe(true);
 
     worldStore.setActivePlotCellId(OTHER);
     expect(worldStore.current.activePlotCellId).toBe(OTHER);

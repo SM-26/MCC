@@ -35,7 +35,6 @@ export interface ShaftNavigationResult extends ActionResult {
 
 export function createDefaultPlotState(worldSeed: string, resetCount: number, shaftIndex = 0, shaftName = 'Shaft I'): PlotState {
   return {
-    plotId: `${worldSeed}-${shaftIndex}`,
     // plotName: shaftName,
     mineshafts: [
       {

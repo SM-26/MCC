@@ -84,13 +84,13 @@ export function canBuildStation(plot: PlotState, money: number): ActionResult {
  * Build the station on the plot, including the foundation platform at (0, 0).
  * Mutates `plot.station` in place. Returns `nextMoney` for the caller to commit.
  */
-export function buildStation(plot: PlotState, money: number): BuildResult {
+export function buildStation(plot: PlotState, money: number, cellId: string): BuildResult {
   const check = canBuildStation(plot, money);
   if (!check.ok) {
     return check;
   }
 
-  const station = createEmptyStation(stationIdFor(plot.plotId));
+  const station = createEmptyStation(stationIdFor(cellId));
   const foundation = createPlatform(platformIdFor(0, 0), 0, 0);
   station.platforms.push(foundation);
   station.activePlatformId = foundation.id;

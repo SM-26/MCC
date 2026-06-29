@@ -9,7 +9,6 @@ import type { WorldCellId } from '../world/worldTypes';
 
 function makeHomePlot(): PlotState {
   return {
-    plotId: '0,0',
     currentAge: 'Mechanical',
     ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
     mineshafts: [
@@ -340,7 +339,6 @@ describe('save.svelte.ts', async () => {
 
   it('loadGame applies a loaded persisted state', () => {
     const loadedPlot: PlotState = {
-      plotId: '0,0',
       currentAge: 'Steam',
       ageResources: { coal: 4, oil: 1, copper: 2, superalloy: 0 },
       mineshafts: [
@@ -411,7 +409,6 @@ describe('save.svelte.ts', async () => {
 
   it('loadGame falls back to home cell when active plot is not built', () => {
     const unbuiltPlot: PlotState = {
-      plotId: '0,0',
       currentAge: 'Mechanical',
       ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
       mineshafts: [

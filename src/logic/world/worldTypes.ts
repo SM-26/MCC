@@ -5,7 +5,6 @@ import type { PlotState } from '../mine/mineTypes';
 
 export type WorldCellId = string;
 export type DestinationId = string;
-export type PlotId = string;
 
 export type WorldCellType = 'empty' | 'plot' | 'city' | 'factory' | 'blocker';
 export type DestinationType = 'city' | 'factory' | 'plot';

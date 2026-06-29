@@ -302,7 +302,6 @@ export function generatePlot(worldSeed: string, resetCount: number, depth: numbe
 export function buildPlot(cellId: string, seed: string, resetCount: number): PlotState {
   const surface = generatePlot(seed, resetCount, 0, 0);
   return {
-    plotId: cellId,
     currentAge: 'Mechanical',
     ageResources: createEmptyAgeResources(),
     mineshafts: [{ mineDepths: [surface], selectedMiner: null, draggedMiner: null, lastTick: 0, activeDepthIndex: 0 }],

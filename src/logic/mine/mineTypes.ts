@@ -2,8 +2,6 @@
 
 import type { Station } from '../station/stationTypes';
 
-export type PlotId = string;
-
 export type Ages = 'Mechanical' | 'Steam' | 'Diesel' | 'Electric' | 'Maglev';
 
 export type ResourceType = 'none' | 'money' | 'coal' | 'oil' | 'copper' | 'superalloy';
@@ -18,7 +16,6 @@ export interface AgeResources {
 }
 
 export interface PlotState {
-  plotId: PlotId;
   currentAge: Ages; // default: 'Mechanical'
   ageResources: AgeResources;
   mineshafts: Mineshaft[]; // default: [initial mineshaft]
@@ -115,7 +112,6 @@ export function cloneMineshaft(shaft: Mineshaft): Mineshaft {
 
 export function clonePlotState(plot: PlotState): PlotState {
   return {
-    plotId: plot.plotId,
     currentAge: plot.currentAge,
     ageResources: { ...plot.ageResources },
     mineshafts: plot.mineshafts.map(cloneMineshaft),
@@ -124,9 +120,8 @@ export function clonePlotState(plot: PlotState): PlotState {
   };
 }
 
-export function createScaffoldPlot(cellId: PlotId): PlotState {
+export function createScaffoldPlot(cellId: string): PlotState {
   return {
-    plotId: cellId,
     currentAge: 'Mechanical',
     ageResources: createEmptyAgeResources(),
     mineshafts: [{ mineDepths: [], selectedMiner: null, draggedMiner: null, lastTick: 0, activeDepthIndex: 0 }],

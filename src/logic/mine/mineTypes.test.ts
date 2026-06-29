@@ -45,7 +45,6 @@ function makeMineshaft(overrides: Partial<Mineshaft> = {}): Mineshaft {
 
 function makePlot(overrides: Partial<PlotState> = {}): PlotState {
   return {
-    plotId: 'plot-0',
     currentAge: 'Mechanical',
     ageResources: createEmptyAgeResources(),
     mineshafts: [makeMineshaft()],
@@ -203,7 +202,6 @@ describe('getActiveMineDepth', () => {
 describe('createScaffoldPlot', () => {
   it('is Tile-less and not built', () => {
     const plot = createScaffoldPlot('2,1');
-    expect(plot.plotId).toBe('2,1');
     expect(plot.mineshafts).toHaveLength(1);
     expect(plot.mineshafts[0].mineDepths).toHaveLength(0);
     expect(plot.station).toBeNull();

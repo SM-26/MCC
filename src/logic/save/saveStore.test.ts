@@ -21,7 +21,6 @@ function createMockGameState(): GameState {
       cells: [],
       plots: {
         '0,0': {
-          plotId: '0,0',
           currentAge: 'Mechanical',
           ageResources: {
             coal: 0,

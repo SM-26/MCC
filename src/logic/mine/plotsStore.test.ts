@@ -8,7 +8,6 @@ describe('plotsStore', () => {
     const store = createPlotsStore();
     store.set('0,0', createScaffoldPlot('0,0'));
     expect(store.has('0,0')).toBe(true);
-    expect(store.get('0,0')?.plotId).toBe('0,0');
     expect(store.get('1,1')).toBeNull();
   });
 
