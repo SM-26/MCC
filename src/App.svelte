@@ -95,16 +95,24 @@
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
 
-    const splashTimer = window.setTimeout(() => {
-      appContext.setIsLoading(false);
-      appContext.setSplashVisible(false);
-      isReadyToSave = true;
-      lastAutosaveSignature = buildAutosaveSignature();
-      log.debug('app', `save ready: activeTab=${navigation.current.activeTab}, navbarPosition=${gameState.current.settings.navbarPosition}`);
-    }, 2500);
+    // Clear the splash once the first real frame paints (double-rAF) instead of
+    // waiting a fixed 2.5 s. Game state is already loaded synchronously in
+    // main.ts before mount, so no artificial delay is needed.
+    let outerRaf = 0;
+    let innerRaf = 0;
+    outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(() => {
+        appContext.setIsLoading(false);
+        appContext.setSplashVisible(false);
+        isReadyToSave = true;
+        lastAutosaveSignature = buildAutosaveSignature();
+        log.debug('app', `save ready: activeTab=${navigation.current.activeTab}, navbarPosition=${gameState.current.settings.navbarPosition}`);
+      });
+    });
 
     return () => {
-      window.clearTimeout(splashTimer);
+      cancelAnimationFrame(outerRaf);
+      cancelAnimationFrame(innerRaf);
       window.removeEventListener('resize', updateScreenSize);
     };
   });
