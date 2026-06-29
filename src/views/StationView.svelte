@@ -107,13 +107,7 @@
         {/if}
       </p>
     </div>
-    <Button.Root
-      class="trainyard-btn"
-      onclick={() => (showTrainyard = !showTrainyard)}
-      disabled={!station}
-    >
-      🚂 Train Yard
-    </Button.Root>
+    <Button.Root class="trainyard-btn" onclick={() => (showTrainyard = !showTrainyard)} disabled={!station}>🚂 Train Yard</Button.Root>
   </header>
 
   <!-- MAIN -->
@@ -128,9 +122,7 @@
       <!-- No station: build CTA -->
       <div class="cta-card">
         <h3>Build a Station</h3>
-        <p class="muted">
-          A station is the hub for every platform and train on this plot. Build it on a hard-cleared surface level (depth 0).
-        </p>
+        <p class="muted">A station is the hub for every platform and train on this plot. Build it on a hard-cleared surface level (depth 0).</p>
         <ul class="cta-reqs">
           <li class={canAffordStation ? 'met' : 'unmet'}>Cost: {STATION_COST} money</li>
           <li class={stationCheck.ok || !canAffordStation ? 'met' : 'unmet'}>Surface level (depth 0) hard-cleared</li>
@@ -199,11 +191,7 @@
             <p class="muted">Available on hard-cleared levels on the platform grid (depth 0, 1, 6, 11, …).</p>
             <div class="build-list">
               {#each eligiblePositions as pos (`${pos.northExpansionIndex}-${pos.depth}`)}
-                <Button.Root
-                  class="build-btn"
-                  onclick={() => handleBuildPlatform(pos)}
-                  disabled={!canAffordPlatform}
-                >
+                <Button.Root class="build-btn" onclick={() => handleBuildPlatform(pos)} disabled={!canAffordPlatform}>
                   <span>Expansion {toRoman(pos.northExpansionIndex)} · Depth {pos.depth}</span>
                   <span class="build-cost">{PLATFORM_COST}</span>
                 </Button.Root>

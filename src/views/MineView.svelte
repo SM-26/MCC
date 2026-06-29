@@ -48,7 +48,10 @@
   const canDigDeeper = $derived(clearStatus === 'hard');
   const canBuyNextShaft = $derived(
     activeMine && activePlotState
-      ? activeMine.depth === 0 && clearStatus === 'soft' && gameState.current.money >= 100 && activePlotState.activeMineshaftIndex < engineeringStore.current.maxNorthExpansions
+      ? activeMine.depth === 0 &&
+          clearStatus === 'soft' &&
+          gameState.current.money >= 100 &&
+          activePlotState.activeMineshaftIndex < engineeringStore.current.maxNorthExpansions
       : false,
   );
   const canBuyStation = $derived(false);

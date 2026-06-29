@@ -61,7 +61,9 @@ export interface WorldState {
 }
 
 export function getActivePlotCell(world: WorldState): WorldCell | null {
-  if (!world.activePlotCellId) return null;
+  if (!world.activePlotCellId) {
+    return null;
+  }
   return world.cells.find((cell) => cell.id === world.activePlotCellId) ?? null;
 }
 

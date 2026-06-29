@@ -79,14 +79,14 @@ All state lives in Svelte 5 stores using the `$state` and `$derived` runes. This
 
 ### Store Responsibilities
 
-| Store | Responsibility | Key Properties |
-|-------|---------------|----------------|
-| **gameState** | Player resources and settings | `money`, `settings` (theme, navbar, etc.) |
-| **worldStore** | World map, cells, and selection | `cells`, `activePlotCellId`, `inspectedCellId` |
-| **plotsStore** | Cell-keyed plot map (`Record<cellId, PlotState>`) | `get(cellId)` → `mineshafts`, `station`, `ageResources` |
-| **engineeringStore** | Tech tree progress | `engineeringIdeas`, `resetCount` |
-| **navigationStore** | Tab navigation | `activeTab`, `tabs`, UI preferences |
-| **appContext** | App-level context | `isPWAInstalled`, `isLoading`, `screenSize` |
+| Store                | Responsibility                                    | Key Properties                                          |
+| -------------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| **gameState**        | Player resources and settings                     | `money`, `settings` (theme, navbar, etc.)               |
+| **worldStore**       | World map, cells, and selection                   | `cells`, `activePlotCellId`, `inspectedCellId`          |
+| **plotsStore**       | Cell-keyed plot map (`Record<cellId, PlotState>`) | `get(cellId)` → `mineshafts`, `station`, `ageResources` |
+| **engineeringStore** | Tech tree progress                                | `engineeringIdeas`, `resetCount`                        |
+| **navigationStore**  | Tab navigation                                    | `activeTab`, `tabs`, UI preferences                     |
+| **appContext**       | App-level context                                 | `isPWAInstalled`, `isLoading`, `screenSize`             |
 
 ### Store Patterns
 
@@ -103,13 +103,13 @@ export function createStore(initial?: Partial<T>) {
     get current() {
       return state;
     },
-    
+
     // Mutations return boolean or structured result
     setProperty(value: T['property']): boolean {
       state.property = value;
       return true;
     },
-    
+
     // Derived values computed from state
     get derivedValue() {
       return $derived(computeFromState(state));
@@ -276,7 +276,7 @@ UI components subscribe to store changes automatically:
 ```svelte
 <script>
   import { worldStore } from '../logic/world/worldStore';
-  
+
   const cells = $derived(worldStore.current.cells);
   const activePlot = $derived(worldStore.activePlot);
 </script>
@@ -316,14 +316,14 @@ These are the critical points where world and mine logic connect:
 export function getInitialState(): GameState {
   const worldSeed = '123456';
   const resetCount = 0;
-  
+
   // Generate world with plot cell at ring 0
   const world = generateWorld(worldSeed, resetCount, 1);
-  
+
   // Find the starting plot cell (always (0,0))
   const plotCell = world.cells.find((cell) => cell.type === 'plot' && cell.ring === 0);
   const cellId = plotCell?.id ?? '0,0';
-  
+
   // Create scaffold for the starting plot — keyed by its cell id
   const initialPlot: PlotState = {
     mineshafts: [
@@ -335,10 +335,10 @@ export function getInitialState(): GameState {
     station: null,
     // ...
   };
-  
+
   world.plots[cellId] = initialPlot;
   world.activePlotCellId = cellId;
-  
+
   return { money: 75, world, engineering: {...}, settings: {...} };
 }
 ```
@@ -400,12 +400,14 @@ After any refactoring, verify these connection points:
 ### 1. Direct Store Mutation
 
 **❌ Bad:**
+
 ```typescript
 // Don't mutate plot state directly!
 plotsStore.get(cellId).mineshafts[0].mineDepths[0].tiles[0][0].type = 'coal';
 ```
 
 **✅ Good:**
+
 ```typescript
 // Mutate via plotsStore — it owns the reactive PlotState in place
 const plot = plotsStore.get(cellId);
@@ -417,12 +419,14 @@ if (plot) {
 ### 2. Missing Plot Entry on Discovery
 
 **❌ Bad:**
+
 ```typescript
 // User discovers plot but scaffold is never created
 cell.discovered = true; // Plot has no entry in world.plots yet!
 ```
 
 **✅ Good:**
+
 ```typescript
 // Create the scaffold in world.plots when a plot cell is first discovered
 if (cell.type === 'plot' && !plotsStore.get(cell.id)) {
@@ -433,6 +437,7 @@ if (cell.type === 'plot' && !plotsStore.get(cell.id)) {
 ### 3. Inconsistent Seed Usage
 
 **❌ Bad:**
+
 ```typescript
 // Different seeds for world and mine!
 const worldRng = seedrandom('123456');
@@ -440,6 +445,7 @@ const mineRng = seedrandom('789012'); // Wrong!
 ```
 
 **✅ Good:**
+
 ```typescript
 // Same seed for both, different reset counts if needed
 const worldRng = seedrandom(`${worldSeed}-${resetCount}`);
@@ -459,6 +465,7 @@ pnpm test:run src/logic/integration/sync.test.ts
 ```
 
 These tests verify:
+
 - World-mine connection points
 - Deterministic generation
 - State consistency
@@ -487,9 +494,10 @@ The MCC logic layer is well-architected with:
 ✅ **Reactive state management** using Svelte 5 stores  
 ✅ **Deterministic generation** for reproducible testing  
 ✅ **Action-result pattern** for consistent error handling  
-✅ **Shared utilities** to prevent code duplication  
+✅ **Shared utilities** to prevent code duplication
 
 The world-mine connection is solid but requires careful attention at three key points:
+
 1. Initial state creation (scaffold keyed by cell id)
 2. Plot selection (`activePlotCellId`)
 3. State persistence (`world.plots` map saved as part of world)

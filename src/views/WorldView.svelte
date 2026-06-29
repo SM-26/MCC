@@ -16,9 +16,7 @@
   const cells = $derived(worldStore.current.cells);
   const activePlotCell = $derived(worldStore.activePlotCell);
   const inspectedCell = $derived(
-    worldStore.current.inspectedCellId
-      ? (worldStore.current.cells.find((cell) => cell.id === worldStore.current.inspectedCellId) ?? null)
-      : null,
+    worldStore.current.inspectedCellId ? (worldStore.current.cells.find((cell) => cell.id === worldStore.current.inspectedCellId) ?? null) : null,
   );
   const inspectedCellId = $derived(inspectedCell?.id ?? null);
 
@@ -54,18 +52,11 @@
     worldStore.setInspectedCellId(null);
   }
 
-  const inspectedPlotBuilt = $derived(
-    inspectedCell?.type === 'plot' && !!plotsStore.get(inspectedCell.id) && isPlotBuilt(plotsStore.get(inspectedCell.id)!),
-  );
+  const inspectedPlotBuilt = $derived(inspectedCell?.type === 'plot' && !!plotsStore.get(inspectedCell.id) && isPlotBuilt(plotsStore.get(inspectedCell.id)!));
 
   function buildPlotAction(cell: WorldCell) {
     ensurePlotScaffold(cell.id);
-    const result = tryBuildPlot(
-      cell.id,
-      gameState.current.settings.worldSeed,
-      engineeringStore.current.resetCount,
-      gameState.current.money,
-    );
+    const result = tryBuildPlot(cell.id, gameState.current.settings.worldSeed, engineeringStore.current.resetCount, gameState.current.money);
     if (result.ok) {
       gameState.setMoney(result.nextMoney);
       log.info('WorldView', `Plot ${cell.id} built; money now ${result.nextMoney}`);
@@ -84,7 +75,14 @@
     </div>
   </header>
 
-  <WorldGrid {cells} selectedCellId={inspectedCellId} onSelectCell={selectCell} onSelectPlot={selectPlot} onClearSelection={clearSelection} onOpenMine={openMine} />
+  <WorldGrid
+    {cells}
+    selectedCellId={inspectedCellId}
+    onSelectCell={selectCell}
+    onSelectPlot={selectPlot}
+    onClearSelection={clearSelection}
+    onOpenMine={openMine}
+  />
 
   <section class="details">
     <div>

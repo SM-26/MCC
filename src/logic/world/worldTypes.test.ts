@@ -4,9 +4,7 @@ import { getActivePlotCell, type WorldState } from './worldTypes';
 
 function makeWorld(partial: Partial<WorldState> = {}): WorldState {
   return {
-    cells: [
-      { id: '0,0', name: 'Home', type: 'plot', q: 0, r: 0, ring: 0, discovered: true },
-    ],
+    cells: [{ id: '0,0', name: 'Home', type: 'plot', q: 0, r: 0, ring: 0, discovered: true }],
     plots: {},
     activePlotCellId: '0,0',
     inspectedCellId: null,

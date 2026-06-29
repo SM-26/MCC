@@ -2,12 +2,7 @@
 import { log } from '../../lib/logger';
 import type { WorldCellId } from '../world/worldTypes';
 import type { AgeResources, MineDepthState, MineTile, MineTileType, Miner, Mineshaft, PlotState, ResourceType } from './mineTypes';
-import {
-  cloneMineDepthState,
-  cloneMineshaft,
-  clonePlotState,
-  getMineDepthByDepth,
-} from './mineTypes';
+import { cloneMineDepthState, cloneMineshaft, clonePlotState, getMineDepthByDepth } from './mineTypes';
 
 // ── Local factory helpers (mirrors mineStore.svelte.ts private helpers) ───────
 
@@ -22,8 +17,7 @@ function createDefaultMiner(overrides: Partial<Miner> = {}): Miner {
 }
 
 function createDefaultMineTile(type: MineTileType = 'empty', overrides: Partial<MineTile> = {}): MineTile {
-  const resourceType: ResourceType =
-    type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy' ? type : 'none';
+  const resourceType: ResourceType = type === 'coal' || type === 'oil' || type === 'copper' || type === 'superalloy' ? type : 'none';
   return {
     type,
     level: 1,
@@ -36,9 +30,7 @@ function createDefaultMineTile(type: MineTileType = 'empty', overrides: Partial<
 }
 
 function createTileGrid(rows: number, cols: number, fill: MineTileType = 'empty'): MineTile[][] {
-  return Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => createDefaultMineTile(fill)),
-  );
+  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => createDefaultMineTile(fill)));
 }
 
 function createDefaultMineDepthState(depth = 0, rows = 5, cols = 5): MineDepthState {
@@ -79,30 +71,38 @@ function getResourceTypeForTileType(type: MineTileType): ResourceType {
 // ── Store factory ─────────────────────────────────────────────────────────────
 
 export function createPlotsStore(initial?: Record<WorldCellId, PlotState>) {
-  const state = $state<Record<WorldCellId, PlotState>>(
-    Object.fromEntries(Object.entries(initial ?? {}).map(([id, p]) => [id, clonePlotState(p)])),
-  );
+  const state = $state<Record<WorldCellId, PlotState>>(Object.fromEntries(Object.entries(initial ?? {}).map(([id, p]) => [id, clonePlotState(p)])));
 
   // Resolves the active mineshaft for a given cell.
   function activeShaft(cellId: WorldCellId): Mineshaft | null {
     const plot = state[cellId];
-    if (!plot) return null;
+    if (!plot) {
+      return null;
+    }
     return plot.mineshafts[plot.activeMineshaftIndex] ?? null;
   }
 
   // Resolves the active mine depth for a given cell.
   function activeDepth(cellId: WorldCellId): MineDepthState | null {
     const shaft = activeShaft(cellId);
-    if (!shaft) return null;
+    if (!shaft) {
+      return null;
+    }
     return shaft.mineDepths[shaft.activeDepthIndex] ?? null;
   }
 
   // Resolves the tile at (row, col) in the active depth for a given cell.
   function getTileAt(cellId: WorldCellId, row: number, col: number): MineTile | null {
     const mineDepth = activeDepth(cellId);
-    if (!mineDepth) return null;
-    if (row < 0 || row >= mineDepth.rows) return null;
-    if (col < 0 || col >= mineDepth.cols) return null;
+    if (!mineDepth) {
+      return null;
+    }
+    if (row < 0 || row >= mineDepth.rows) {
+      return null;
+    }
+    if (col < 0 || col >= mineDepth.cols) {
+      return null;
+    }
     return mineDepth.tiles[row]?.[col] ?? null;
   }
 
@@ -128,8 +128,12 @@ export function createPlotsStore(initial?: Record<WorldCellId, PlotState>) {
 
     /** Replace ALL entries atomically; each entry is an owned clone. */
     replaceAll(next: Record<WorldCellId, PlotState>): void {
-      for (const key of Object.keys(state)) delete state[key];
-      for (const [id, p] of Object.entries(next)) state[id] = clonePlotState(p);
+      for (const key of Object.keys(state)) {
+        delete state[key];
+      }
+      for (const [id, p] of Object.entries(next)) {
+        state[id] = clonePlotState(p);
+      }
     },
 
     /** Returns a plain-object snapshot of the full map (for serialisation). */
@@ -149,9 +153,7 @@ export function createPlotsStore(initial?: Record<WorldCellId, PlotState>) {
       const next: Mineshaft = {
         ...createDefaultMineshaft(),
         ...shaft,
-        mineDepths: shaft?.mineDepths
-          ? shaft.mineDepths.map(cloneMineDepthState)
-          : [createDefaultMineDepthState(0)],
+        mineDepths: shaft?.mineDepths ? shaft.mineDepths.map(cloneMineDepthState) : [createDefaultMineDepthState(0)],
         selectedMiner: shaft?.selectedMiner ? { ...shaft.selectedMiner } : null,
         draggedMiner: shaft?.draggedMiner ? { ...shaft.draggedMiner } : null,
       };
@@ -180,13 +182,17 @@ export function createPlotsStore(initial?: Record<WorldCellId, PlotState>) {
 
     setActiveMineshaftIndex(cellId: WorldCellId, index: number): void {
       const plot = state[cellId];
-      if (!plot) return;
+      if (!plot) {
+        return;
+      }
       plot.activeMineshaftIndex = clampIndex(index, plot.mineshafts.length);
     },
 
     setActiveDepthIndex(cellId: WorldCellId, index: number): void {
       const shaft = activeShaft(cellId);
-      if (!shaft) return;
+      if (!shaft) {
+        return;
+      }
       shaft.activeDepthIndex = clampIndex(index, shaft.mineDepths.length);
     },
 
@@ -259,13 +265,17 @@ export function createPlotsStore(initial?: Record<WorldCellId, PlotState>) {
 
     addAgeResource(cellId: WorldCellId, resourceType: Exclude<ResourceType, 'none' | 'money'>, amount = 1): void {
       const plot = state[cellId];
-      if (!plot) return;
+      if (!plot) {
+        return;
+      }
       addAgeResourceToMap(plot.ageResources, resourceType, amount);
     },
 
     spendAgeResource(cellId: WorldCellId, resourceType: Exclude<ResourceType, 'none' | 'money'>, amount = 1): void {
       const plot = state[cellId];
-      if (!plot) return;
+      if (!plot) {
+        return;
+      }
       plot.ageResources[resourceType] = Math.max(0, plot.ageResources[resourceType] - amount);
     },
   };

@@ -11,11 +11,7 @@
 
 import { getClearStatus } from '../mine/mineGen';
 import type { PlotState } from '../mine/mineTypes';
-import {
-  createEmptyStation,
-  createPlatform,
-  hasPlatformAtDepth,
-} from './stationTypes';
+import { createEmptyStation, createPlatform, hasPlatformAtDepth } from './stationTypes';
 import type { PlatformId, Station } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
@@ -105,37 +101,35 @@ export function buildStation(plot: PlotState, money: number, cellId: string): Bu
  */
 export function getEligiblePlatformPositions(plot: PlotState): EligiblePosition[] {
   const station = plot.station;
-  if (!station) return [];
+  if (!station) {
+    return [];
+  }
 
   const positions: EligiblePosition[] = [];
 
   plot.mineshafts.forEach((expansion, expansionIndex) => {
     expansion.mineDepths.forEach((depthState) => {
-      if (!isPlatformDepth(depthState.depth)) return;
-      if (getClearStatus(depthState) !== 'hard') return;
-      if (hasPlatformAtDepth(station, expansionIndex, depthState.depth)) return;
+      if (!isPlatformDepth(depthState.depth)) {
+        return;
+      }
+      if (getClearStatus(depthState) !== 'hard') {
+        return;
+      }
+      if (hasPlatformAtDepth(station, expansionIndex, depthState.depth)) {
+        return;
+      }
       positions.push({ northExpansionIndex: expansionIndex, depth: depthState.depth });
     });
   });
 
   // Stable order: by expansion, then by depth (shallow first).
-  positions.sort((a, b) =>
-    a.northExpansionIndex !== b.northExpansionIndex
-      ? a.northExpansionIndex - b.northExpansionIndex
-      : a.depth - b.depth,
-  );
+  positions.sort((a, b) => (a.northExpansionIndex !== b.northExpansionIndex ? a.northExpansionIndex - b.northExpansionIndex : a.depth - b.depth));
 
   return positions;
 }
 
 /** Can the player build a platform at this position right now? */
-export function canBuildPlatform(
-  station: Station,
-  plot: PlotState,
-  northExpansionIndex: number,
-  depth: number,
-  money: number,
-): ActionResult {
+export function canBuildPlatform(station: Station, plot: PlotState, northExpansionIndex: number, depth: number, money: number): ActionResult {
   if (!station) {
     return { ok: false, message: 'Build a station first' };
   }
@@ -148,8 +142,7 @@ export function canBuildPlatform(
     return { ok: false, message: 'Platform already exists here' };
   }
 
-  const depthState =
-    plot.mineshafts[northExpansionIndex]?.mineDepths.find((d) => d.depth === depth) ?? null;
+  const depthState = plot.mineshafts[northExpansionIndex]?.mineDepths.find((d) => d.depth === depth) ?? null;
   if (!depthState) {
     return { ok: false, message: 'That depth has not been dug yet' };
   }
@@ -169,13 +162,7 @@ export function canBuildPlatform(
  * Build a platform at (northExpansionIndex, depth). Mutates `station.platforms`
  * in place (sorted by expansion then depth) and focuses it. Returns `nextMoney`.
  */
-export function buildPlatform(
-  station: Station,
-  plot: PlotState,
-  northExpansionIndex: number,
-  depth: number,
-  money: number,
-): BuildResult {
+export function buildPlatform(station: Station, plot: PlotState, northExpansionIndex: number, depth: number, money: number): BuildResult {
   const check = canBuildPlatform(station, plot, northExpansionIndex, depth, money);
   if (!check.ok) {
     return check;

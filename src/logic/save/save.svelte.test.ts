@@ -147,7 +147,9 @@ const plotsStore = {
   set: vi.fn(),
   addAgeResource: vi.fn((cellId: WorldCellId, type: string, amount: number) => {
     const plot = plotsStore._state[cellId];
-    if (plot) ((plot.ageResources as unknown) as Record<string, number>)[type] += amount;
+    if (plot) {
+      (plot.ageResources as unknown as Record<string, number>)[type] += amount;
+    }
   }),
   setTile: vi.fn(),
 };

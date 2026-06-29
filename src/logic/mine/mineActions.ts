@@ -265,14 +265,11 @@ export function ensurePlotScaffold(cellId: string): void {
 }
 
 /** Spend accumulated coal + money to Build an under-construction plot. */
-export function tryBuildPlot(
-  cellId: string,
-  seed: string,
-  resetCount: number,
-  money: number,
-): { ok: boolean; nextMoney: number } {
+export function tryBuildPlot(cellId: string, seed: string, resetCount: number, money: number): { ok: boolean; nextMoney: number } {
   const plot = plotsStore.get(cellId);
-  if (!plot || isPlotBuilt(plot)) return { ok: false, nextMoney: money };
+  if (!plot || isPlotBuilt(plot)) {
+    return { ok: false, nextMoney: money };
+  }
   if (plot.ageResources.coal < BUILD_COAL_COST || money < BUILD_MONEY_COST) {
     return { ok: false, nextMoney: money };
   }
