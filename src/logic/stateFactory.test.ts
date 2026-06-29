@@ -7,11 +7,10 @@ vi.mock('./mine/mineGen', () => ({
   buildPlot: vi.fn(),
 }));
 
-import { buildPlot, generatePlot } from './mine/mineGen';
+import { buildPlot } from './mine/mineGen';
 import { isPlotBuilt } from './mine/mineTypes';
 import { getInitialNavigationState, getInitialState } from './stateFactory';
 
-const mockedGeneratePlot = vi.mocked(generatePlot);
 const mockedBuildPlot = vi.mocked(buildPlot);
 
 const mockSurfaceDepth = {
@@ -51,7 +50,6 @@ function makeMockPlotState() {
 
 describe('stateFactory', () => {
   beforeEach(() => {
-    mockedGeneratePlot.mockReset();
     mockedBuildPlot.mockReset();
     mockedBuildPlot.mockImplementation(() => makeMockPlotState());
   });

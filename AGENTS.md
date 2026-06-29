@@ -141,4 +141,4 @@ Uses `needs-triage`, `needs-info`, `ready-for-agent` (new labels to be created),
 
 ### Domain docs
 
-Single-context repo; domain docs live under `docs/` (`docs/CONTEXT.md`, `docs/adr/`). See `docs/agents/domain.md`.
+Single-context repo; domain docs live under `docs/` (`/CONTEXT.md`, `docs/adr/`). See `docs/agents/domain.md`.
