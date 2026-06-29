@@ -282,6 +282,18 @@ describe('save.svelte.ts', async () => {
     expect(snapshot.world.plots['0,0'].currentAge).toBe('Steam');
   });
 
+  // ── getSaveSnapshot — inspectedCellId not persisted ──────────────────────
+
+  it('getSaveSnapshot does not persist inspectedCellId but does persist activePlotCellId', () => {
+    worldStore.current.inspectedCellId = '1,0';
+    worldStore.current.activePlotCellId = '0,0';
+
+    const snapshot = getSaveSnapshot();
+
+    expect(snapshot.world.inspectedCellId).toBeNull();
+    expect(snapshot.world.activePlotCellId).toBe('0,0');
+  });
+
   // ── manualSave ────────────────────────────────────────────────────────────
 
   it('manualSave writes the current snapshot immediately through saveStore', () => {

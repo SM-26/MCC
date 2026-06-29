@@ -30,7 +30,10 @@ export function createWorldStore(initial?: Partial<WorldState>) {
     ...createDefaultWorldState(),
     ...initial,
     cells: initial?.cells ? [...initial.cells] : [],
-    plots: initial?.plots ? { ...initial.plots } : {},
+    // Runtime source of truth is plotsStore; worldStore.current.plots is intentionally
+    // kept empty/inert and is only a placeholder for the persisted WorldState shape
+    // (overwritten by the save snapshot in getPersistedSnapshot).
+    plots: {},
     activePlotCellId: initial?.activePlotCellId ?? null,
     inspectedCellId: initial?.inspectedCellId ?? null,
   });
@@ -62,7 +65,10 @@ export function createWorldStore(initial?: Partial<WorldState>) {
       Object.assign(state, {
         ...next,
         cells: [...next.cells],
-        plots: { ...next.plots },
+        // Runtime source of truth is plotsStore; worldStore.current.plots is intentionally
+        // kept empty/inert and is only a placeholder for the persisted WorldState shape
+        // (overwritten by the save snapshot in getPersistedSnapshot).
+        plots: {},
         activePlotCellId: next.activePlotCellId ?? null,
         inspectedCellId: next.inspectedCellId ?? null,
       });

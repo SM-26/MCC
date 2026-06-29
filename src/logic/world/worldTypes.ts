@@ -54,6 +54,7 @@ export interface Destination {
 
 export interface WorldState {
   cells: WorldCell[];
+  // Persisted shape only — at runtime the source of truth is plotsStore; worldStore.current.plots is NOT kept up to date.
   plots: Record<WorldCellId, PlotState>;
   activePlotCellId: WorldCellId | null;
   inspectedCellId: WorldCellId | null;

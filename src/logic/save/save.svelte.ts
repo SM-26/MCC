@@ -23,6 +23,7 @@ function getPersistedSnapshot(): PersistedGameState {
   const defaults = getInitialState();
   const world = $state.snapshot(worldStore.current);
   world.plots = plotsStore.snapshot();
+  world.inspectedCellId = null; // session-only; must not be persisted
   return {
     ...defaults,
     money: gameState.current.money,
