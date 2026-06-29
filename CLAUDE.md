@@ -62,21 +62,21 @@ Use `$state.snapshot(store.current)` when you need a plain-object copy (e.g. bef
 
 ```
 PlotState
-└── northExpansions: NorthExpansion[]
-    └── mineDepths: MineDepthState[]   ← depth 0 = surface
-        ├── tiles: MineTile[][]        ← [row][col]
+└── mineshafts: Mineshaft[]
+    └── mineDepths: MineDepth[]   ← depth 0 = surface
+        ├── tiles: MineTile[][]   ← [row][col]
         └── miners: Miner[]
 ```
 
-Active path: `mineStore.activeNorthExpansion` → `mineStore.activeMineDepth`.
+Active path: `plotsStore.get(activePlotCellId)` → active mineshaft → `activeMineDepth`.
 
 Mine and world grids are **seeded-random** (via `seedrandom`). `generatePlot` and `generateWorld` are deterministic given the same seed + reset count.
 
 ## World state
 
-The world is a hex grid. Cells use axial coordinates `(q, r)`; `ring` is Chebyshev distance from center. Cell IDs are `"q,r"` strings. Plot IDs are `"plot-<cellId>"`.
+The world is a hex grid. Cells use axial coordinates `(q, r)`; `ring` is Chebyshev distance from center. Cell IDs are `"q,r"` strings. A Plot is a Cell of type `plot` identified directly by its Cell id — there is no separate plot id.
 
-`WorldState.activePlotIndex` indexes into `WorldState.plots[]`, which references cells by `cellId`. The active mine plot is loaded by matching `plotId` between `worldStore` and `mineStore`.
+`WorldState.activePlotCellId` holds the Cell id of the active (managed) plot. `WorldState.inspectedCellId` holds the Cell being viewed/hovered in the World view (read-only, not persisted). Developed plots live in `world.plots: Record<cellId, PlotState>`, owned at runtime by `plotsStore` (`src/logic/mine/plotsStore.svelte.ts`). Mine and Station views read `plotsStore.get(activePlotCellId)` and mutate in place.
 
 ## Logging
 

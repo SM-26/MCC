@@ -30,9 +30,8 @@ The MCC logic layer is organized into three main layers:
 │                    STATE STORES LAYER                        │
 ├─────────────────────────────────────────────────────────────┤
 │  gameState      - Money, settings, theme                     │
-│  worldStore     - World map, cells, plots, destinations      │
-│  mineStore      - Plot state, miners, expansions, ages       │
-│  stationStore   - Platforms, trains, inventory               │
+│  worldStore     - World map, cells, destinations, selection  │
+│  plotsStore     - Cell-keyed plot map, mine/station state    │
 │  engineeringStore - Ideas, reset count, unlocks              │
 │  navigationStore - Active tab, UI preferences                │
 │  appContext     - PWA, loading, screen size                  │
@@ -55,7 +54,7 @@ The MCC logic layer is organized into three main layers:
 │                                                                │
 │  Station Logic (station/)                                    │
 │    - stationTypes.ts  : Station model                         │
-│    - stationStore.ts  : Platform and train management         │
+│    - stationActions.ts: Platform build and train management   │
 │                                                                │
 │  Shared (shared/)                                            │
 │    - types.ts         : Cross-domain type definitions        │
@@ -83,10 +82,9 @@ All state lives in Svelte 5 stores using the `$state` and `$derived` runes. This
 | Store | Responsibility | Key Properties |
 |-------|---------------|----------------|
 | **gameState** | Player resources and settings | `money`, `settings` (theme, navbar, etc.) |
-| **worldStore** | World map and destinations | `cells`, `plots`, `activePlotIndex`, `selectedCellId` |
-| **mineStore** | Plot state and mining | `northExpansions`, `activeNorthExpansionIndex`, `ageResources` |
-| **stationStore** | Train station infrastructure | `platforms`, `trainyardInventory`, `trains` |
-| **engineeringStore** | Tech tree progress | `engineeringIdeas`, `resetCount`, `maxNorthExpansions` |
+| **worldStore** | World map, cells, and selection | `cells`, `activePlotCellId`, `inspectedCellId` |
+| **plotsStore** | Cell-keyed plot map (`Record<cellId, PlotState>`) | `get(cellId)` → `mineshafts`, `station`, `ageResources` |
+| **engineeringStore** | Tech tree progress | `engineeringIdeas`, `resetCount` |
 | **navigationStore** | Tab navigation | `activeTab`, `tabs`, UI preferences |
 | **appContext** | App-level context | `isPWAInstalled`, `isLoading`, `screenSize` |
 
@@ -191,7 +189,7 @@ const initialState = getInitialState();
 
 // 2. Initialize stores with initial state
 worldStore.replace(initialState.world);
-mineStore.replace(initialState.plots[0]);
+plotsStore.replace(initialState.world.plots); // Record<cellId, PlotState>
 gameState.setMoney(initialState.money);
 // ... etc
 ```
@@ -204,9 +202,9 @@ WorldGrid.onSelectCell(cell)
   ↓
 WorldView.selectCell(cell)
   ↓
-worldStore.setSelectedCellId(cell.id)
+worldStore.setInspectedCellId(cell.id)  // read-only inspection, not persisted
   ↓
-UI updates to show selected cell info
+UI updates to show inspected cell info
   ↓
 debouncedSave() → Save to localStorage
 ```
@@ -319,47 +317,49 @@ export function getInitialState(): GameState {
   const worldSeed = '123456';
   const resetCount = 0;
   
-  // Generate world with plot at ring 0
+  // Generate world with plot cell at ring 0
   const world = generateWorld(worldSeed, resetCount, 1);
   
-  // Find the plot cell
+  // Find the starting plot cell (always (0,0))
   const plotCell = world.cells.find((cell) => cell.type === 'plot' && cell.ring === 0);
-  const plotId = plotCell ? `plot-${plotCell.id}` : 'plot-0';
+  const cellId = plotCell?.id ?? '0,0';
   
-  // Generate initial mine for that plot
+  // Create scaffold for the starting plot — keyed by its cell id
   const initialPlot: PlotState = {
-    plotId,
-    northExpansions: [
+    mineshafts: [
       {
         mineDepths: [generatePlot(worldSeed, resetCount, 0, 0)],
         // ... other fields
       },
     ],
+    station: null,
     // ...
   };
   
-  return { money: 75, world, plots: [initialPlot], engineering: {...}, settings: {...} };
+  world.plots[cellId] = initialPlot;
+  world.activePlotCellId = cellId;
+  
+  return { money: 75, world, engineering: {...}, settings: {...} };
 }
 ```
 
-**Key Connection:** Plot ID links world cell to mine plot.
+**Key Connection:** Cell id is the plot key — no separate plotId.
 
 ### 2. Plot Selection (`worldStore.svelte.ts`)
 
 ```typescript
-setActivePlotByCellId(cellId: WorldCellId): boolean {
-  const index = resolveActivePlotIndexFromCellId(cellId);
-  if (index === -1) {
-    return false; // Plot not found in plots array
+setActivePlotCellId(cellId: WorldCellId): boolean {
+  const plot = plotsStore.get(cellId);
+  if (!plot || !isPlotBuilt(plot)) {
+    return false; // Not a built plot
   }
 
-  state.activePlotIndex = index;
-  state.selectedCellId = cellId; // ← CRITICAL: Links world to mine
+  state.activePlotCellId = cellId; // ← CRITICAL: tells Mine/Station which plot is active
   return true;
 }
 ```
 
-**Key Connection:** `selectedCellId` tells mine which world cell is active.
+**Key Connection:** `activePlotCellId` is the single selection handle; `plotsStore.get(activePlotCellId)` gives the live plot state.
 
 ### 3. State Persistence (`save.svelte.ts`)
 
@@ -369,15 +369,14 @@ function getPersistedSnapshot(): PersistedGameState {
     ...defaults,
     money: gameState.current.money,
     settings: $state.snapshot(gameState.current.settings),
-    world: $state.snapshot(worldStore.current),
-    plots: $state.snapshot(mineStore.current ? [mineStore.current] : []),
+    world: $state.snapshot(worldStore.current), // world.plots holds all PlotState entries
     engineering: $state.snapshot(defaults.engineering),
     navigation: $state.snapshot(navigation.current),
   };
 }
 ```
 
-**Key Connection:** Both world and mine states are saved together.
+**Key Connection:** `world.plots` (the `Record<cellId, PlotState>` map) is saved as part of `world`; no separate plots array.
 
 ---
 
@@ -385,10 +384,10 @@ function getPersistedSnapshot(): PersistedGameState {
 
 After any refactoring, verify these connection points:
 
-- [ ] **Plot ID Format:** Every plot has `plotId` matching `plot-${cellId}` format
-- [ ] **World-Plot Link:** Every discovered plot cell has entry in `plots` array
-- [ ] **Active Plot Index:** `activePlotIndex` correctly references existing plot
-- [ ] **Selected Cell ID:** `selectedCellId` matches a world cell
+- [ ] **Plot Key:** Every plot entry in `world.plots` is keyed by its Cell id (`"q,r"`) — no separate plotId
+- [ ] **World-Plot Link:** Every discovered plot cell has an entry in `world.plots` (Record keyed by cellId)
+- [ ] **Active Plot Cell ID:** `activePlotCellId` references a Built plot cell
+- [ ] **Inspected Cell ID:** `inspectedCellId` (World-view only, not persisted) matches a world cell
 - [ ] **Mine Dimensions:** Mine grid dimensions match config (5x5 for depth 0)
 - [ ] **Tile Types:** Mine tiles match generation config for each depth
 - [ ] **Blocker Placement:** Blockers only appear at depths ≥2
@@ -402,45 +401,32 @@ After any refactoring, verify these connection points:
 
 **❌ Bad:**
 ```typescript
-// Don't mutate store directly!
-mineStore.current.tiles[0][0].type = 'coal';
+// Don't mutate plot state directly!
+plotsStore.get(cellId).mineshafts[0].mineDepths[0].tiles[0][0].type = 'coal';
 ```
 
 **✅ Good:**
 ```typescript
-// Use clone and replace
-const newTiles = mineStore.current.tiles.map(row => 
-  row.map(tile => ({ ...tile, type: 'coal' }))
-);
-
-mineStore.replace({
-  ...mineStore.current,
-  northExpansions: mineStore.current.northExpansions.map(expansion => ({
-    ...expansion,
-    mineDepths: expansion.mineDepths.map(depth => ({
-      ...depth,
-      tiles: newTiles
-    }))
-  }))
-});
+// Mutate via plotsStore — it owns the reactive PlotState in place
+const plot = plotsStore.get(cellId);
+if (plot) {
+  plot.mineshafts[0].mineDepths[0].tiles[0][0] = { ...tile, type: 'coal' };
+}
 ```
 
-### 2. Missing Plot in Plots Array
+### 2. Missing Plot Entry on Discovery
 
 **❌ Bad:**
 ```typescript
-// User discovers plot but it's not in plots array
-worldStore.createPlotFromCell(cellId); // Must be called!
+// User discovers plot but scaffold is never created
+cell.discovered = true; // Plot has no entry in world.plots yet!
 ```
 
 **✅ Good:**
 ```typescript
-// Always call createPlotFromCell when discovering new plot
-if (cell.type === 'plot' && !plotExists) {
-  const ok = worldStore.createPlotFromCell(cell.id);
-  if (!ok) {
-    log.error('Failed to create plot entry for discovered plot');
-  }
+// Create the scaffold in world.plots when a plot cell is first discovered
+if (cell.type === 'plot' && !plotsStore.get(cell.id)) {
+  plotsStore.set(cell.id, createScaffoldPlot());
 }
 ```
 
@@ -476,7 +462,7 @@ These tests verify:
 - World-mine connection points
 - Deterministic generation
 - State consistency
-- Plot ID format
+- Plot key integrity (cellId matches a plot cell)
 
 ### Manual Testing Checklist
 
@@ -504,8 +490,8 @@ The MCC logic layer is well-architected with:
 ✅ **Shared utilities** to prevent code duplication  
 
 The world-mine connection is solid but requires careful attention at three key points:
-1. Initial state creation (plot ID linking)
-2. Plot selection (active plot index)
-3. State persistence (save/load)
+1. Initial state creation (scaffold keyed by cell id)
+2. Plot selection (`activePlotCellId`)
+3. State persistence (`world.plots` map saved as part of world)
 
 With the shared types and utilities in place, future development can focus on features rather than infrastructure.

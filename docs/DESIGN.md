@@ -7,15 +7,15 @@ A portrait-first idle railway tycoon. The player manages a layered transport emp
 
 ## UI & Layout Structure
 * **Splash Screen:** Functional loading state; requests PWA installation if needed; hides immediately upon ready.
-* **Header:** Persistent global status display (Currency, EI, Active City).
+* **Header:** Persistent global status display (Currency, EI, Active Plot).
 * **Navigation Bar (Shell):** Five primary tabs (World, Mine, Station, EI, Settings). Persistent across the app; user can toggle orientation (top/bottom).
 * **Footer (Tab-Specific):** Contextual area displaying information specific to the active tab (e.g., active miner count, train schedules).
 * **Locked Tabs:** Station and EI tabs are visible but disabled until progression requirements are met.
 
 ## Core Layers & Mechanics
 * **World Generation:** Seed-based generation creating map layouts, city identities, and destination placements.
-* **Mine Generation:** Procedural generation of plots and depth-based rubble/resource tiles within cities.
-* **Plot/Mine:** Each city has an array of plots, and each plot has an array of mines. Miners are merged (Drag & Drop) to clear depth-based rubble.
+* **Mine Generation:** Procedural generation of depth-based rubble/resource tiles within plots.
+* **Plot:** A World Cell of type `plot` — the developable unit of the game. Each Plot owns its own Mine (an array of **mineshafts**, each with **mineDepths**) and a **station**. **City** and **Factory** are train-destination Cell types — siblings of Plot, not containers of it. Miners are merged (Drag & Drop) to clear depth-based rubble.
 * **Rail:** Station platforms are built on deep mine levels (depth 5, 10, 15...).
 * **Trains:** Assigned to a single route at a time. 
 * **Train Yard:** The management hub where players assign engines (Age-tier dependent) and cart configurations to platforms.

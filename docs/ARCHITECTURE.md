@@ -64,9 +64,9 @@ The current tab set is:
 
 ### Station tab specifics
 
-`StationView.svelte` manages the station of the **active plot** (`world.activePlotIndex` → `PlotState.station`). The station is a single optional object embedded on each plot (`mineTypes.ts: PlotState.station: Station | null`).
+`StationView.svelte` manages the station of the **active plot** (`world.activePlotCellId` → `plotsStore.get(activePlotCellId).station`). The station is a single optional object embedded on each plot (`mineTypes.ts: PlotState.station: Station | null`).
 
-- **Source of truth is the embedded `PlotState.station`**, read/written via `mineStore.current`. The module-level `stationStore` singleton is currently **dead/unused** — it predates the per-plot embedding and is kept only for reference.
+- **Source of truth is the embedded `PlotState.station`**, read/written via `plotsStore.get(activePlotCellId)`. The module-level `stationStore` singleton is **deleted** — it predated the per-plot embedding.
 - **Mutations go through `stationActions.ts`** — pure functions that take state as an argument and return a `{ ok, nextMoney? }` result (mirrors the `mineActions.ts` convention). The view commits `gameState.current.money = result.nextMoney` and calls `debouncedSave()`.
 - **Building:** a station costs money and requires the surface level (expansion 0, depth 0) to be `getClearStatus() === 'hard'`. Building it creates the foundation platform at (0, 0).
 - **Platform-depth rule:** the foundation is depth 0 (expansion 0 only); every other platform goes at depths 1, 6, 11, 16, … (`depth > 0 && depth % 5 === 1`), on a hard-cleared level. See `isPlatformDepth` in `stationActions.ts`.
@@ -107,8 +107,8 @@ The current tab set is:
 | `/src/components` | Reusable UI building blocks | `Button.svelte`, `Navbar.svelte` |
 | `/src/views` | Full tab screens | `WorldView.svelte`, `StationView.svelte` |
 | `/src/logic/app` | App-wide contracts and preferences | `navigationTypes.ts`, `settingsTypes.ts` |
-| `/src/logic/mine` | Mine gameplay data and logic | `mineTypes.ts`, `mineStore.svelte.ts`, `mineGen.ts` |
-| `/src/logic/station` | Station and train domain | `stationTypes.ts`, `stationActions.ts`, `stationStore.svelte.ts` |
+| `/src/logic/mine` | Mine gameplay data and logic | `mineTypes.ts`, `plotsStore.svelte.ts`, `mineGen.ts` |
+| `/src/logic/station` | Station and train domain | `stationTypes.ts`, `stationActions.ts` |
 | `/src/logic/world` | World map and destination domain | `worldTypes.ts`, `worldStore.svelte.ts` |
 | `/src/logic/engineering` | Engineering Ideas progression | `engineeringTypes.ts`, `engineeringStore.svelte.ts` |
 | `/src/logic/save` | Save-file contracts and persistence helpers | `saveTypes.ts`, `saveStore.svelte.ts` |
@@ -125,8 +125,8 @@ This project uses **feature stores**, not one monolithic global store.
 - Type-only modules do not need stores.
 
 Examples:
-- `mineStore.svelte.ts` mutates plot/mine/miner state
-- `worldStore.svelte.ts` manages world cells, destinations, and active plot selection
+- `plotsStore.svelte.ts` owns the cell-keyed plot map (`Record<cellId, PlotState>`); Mine and Station views call `plotsStore.get(activePlotCellId)` and mutate in place
+- `worldStore.svelte.ts` manages world cells, destinations, and active plot selection (`activePlotCellId` / `inspectedCellId`)
 - `engineeringStore.svelte.ts` manages Engineering Ideas progression
 - `saveStore.svelte.ts` handles save serialization and persistence boundaries
 
