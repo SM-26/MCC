@@ -89,7 +89,13 @@
           {#if inspectedCell.discovered || gameState.current.settings.devMode}
             <h3 class="cell-name">{inspectedCell.name}</h3>
             <p class="cell-sub">
-              {inspectedCell.type === 'plot' ? 'Plot' : inspectedCell.type === 'city' ? 'City' : inspectedCell.type === 'factory' ? 'Factory' : inspectedCell.type}
+              {inspectedCell.type === 'plot'
+                ? 'Plot'
+                : inspectedCell.type === 'city'
+                  ? 'City'
+                  : inspectedCell.type === 'factory'
+                    ? 'Factory'
+                    : inspectedCell.type}
               · Ring {inspectedCell.ring}
               · {inspectedCell.discovered ? 'Discovered' : 'Hidden'}
               {#if gameState.current.settings.devMode}&nbsp;({inspectedCell.q}, {inspectedCell.r}){/if}

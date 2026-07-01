@@ -50,17 +50,8 @@
   --mcc-red-edge: #8f271d;
 
   /* Shared glass helpers */
-  --mcc-glass-sheen: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.14),
-    rgba(255, 255, 255, 0.03) 46%,
-    rgba(255, 255, 255, 0)
-  );
-  --mcc-btn-sheen: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0.04)
-  );
+  --mcc-glass-sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03) 46%, rgba(255, 255, 255, 0));
+  --mcc-btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
 
   /* ============================================================
      THEME COLOUR — default is the brand navy. Everything in the

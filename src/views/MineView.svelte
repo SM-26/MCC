@@ -44,9 +44,7 @@
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
-  const clearStatusLabel = $derived(
-    clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared',
-  );
+  const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
   const canGoNext = $derived(false);
   const canDigDeeper = $derived(clearStatus === 'hard');
@@ -302,9 +300,7 @@
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
 
     <div class="mine-actions">
-      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction} disabled={!canDigDeeper}>
-        Dig deeper ↓
-      </Button.Root>
+      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction} disabled={!canDigDeeper}>Dig deeper ↓</Button.Root>
       <Button.Root class="buy-btn" onclick={handleBuyMiner} disabled={!playerCanBuyMiner}>
         Buy Miner (${minerCost})
       </Button.Root>

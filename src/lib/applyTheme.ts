@@ -22,9 +22,7 @@ export function applyTheme(mode: ThemeMode, userColor: string = '#14213d'): void
   } else if (mode === 'user') {
     resolved = 'user';
   } else if (mode === 'system') {
-    resolved = window.matchMedia('(prefers-color-scheme: light)').matches
-      ? 'light'
-      : 'dark';
+    resolved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
 
   body.dataset.theme = resolved;
@@ -40,7 +38,9 @@ export function applyTheme(mode: ThemeMode, userColor: string = '#14213d'): void
 export function watchSystemTheme(getMode: () => ThemeMode, getUserColor: () => string): () => void {
   const mq = window.matchMedia('(prefers-color-scheme: light)');
   const handler = () => {
-    if (getMode() === 'system') applyTheme('system', getUserColor());
+    if (getMode() === 'system') {
+      applyTheme('system', getUserColor());
+    }
   };
   mq.addEventListener('change', handler);
   return () => mq.removeEventListener('change', handler);

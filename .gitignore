@@ -8,7 +8,6 @@ dist/
 
 # Editor files
 .vscode/
-.agents/
 .idea/
 *.swp
 *.swo
@@ -27,3 +26,8 @@ Thumbs.db
 .env.*.local
 *:Zone.Identifier
 .fallow/
+
+# Agents files
+.agents/
+docs/superpowers/
+.superpowers

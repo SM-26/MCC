@@ -87,9 +87,9 @@
             <span class="label">{cell.name}</span>
           {:else}
             <svg class="fog-icon" viewBox="0 0 24 18" fill="currentColor" aria-hidden="true">
-              <rect x="1" y="1" width="22" height="3" rx="1.5" opacity="0.8"/>
-              <rect x="3" y="7" width="18" height="3" rx="1.5" opacity="0.6"/>
-              <rect x="0" y="13" width="24" height="3" rx="1.5" opacity="0.4"/>
+              <rect x="1" y="1" width="22" height="3" rx="1.5" opacity="0.8" />
+              <rect x="3" y="7" width="18" height="3" rx="1.5" opacity="0.6" />
+              <rect x="0" y="13" width="24" height="3" rx="1.5" opacity="0.4" />
             </svg>
           {/if}
 

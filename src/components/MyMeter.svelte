@@ -42,12 +42,7 @@
     height: 100% !important;
     border-radius: 999px;
     /* Glossy top highlight over whatever status colour the component sets */
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.5),
-      rgba(255, 255, 255, 0.05) 55%,
-      rgba(0, 0, 0, 0.12)
-    );
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.05) 55%, rgba(0, 0, 0, 0.12));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
     transition:
       background-color 0.3s ease,
