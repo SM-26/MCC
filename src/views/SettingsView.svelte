@@ -4,6 +4,9 @@
   import { Toggle, Switch, Button, AlertDialog, Select, Accordion } from 'bits-ui';
   import { log } from '../lib/logger';
   import { gameState } from '../logic/app/gameState.svelte';
+  import { worldStore } from '../logic/world/worldStore.svelte';
+  import { plotsStore } from '../logic/mine/plotsStore.svelte';
+  import { ensurePlotScaffold } from '../logic/mine/mineActions';
 
   import { debouncedSave, manualSave, resetProgress } from '../logic/save/save.svelte';
   import SettingsSection from '../components/settings/SettingsSection.svelte';
@@ -60,6 +63,42 @@
 
   function saveSettingsChange(topic: string, details: string) {
     log.debug('settings', `${topic}=${details}`);
+    debouncedSave();
+  }
+
+  function cheatAddMoney() {
+    gameState.addMoney(1000);
+    log.debug('cheat', 'added 1000 money');
+    debouncedSave();
+  }
+
+  function cheatRevealWorld() {
+    worldStore.current.cells.forEach((cell) => worldStore.discoverCell(cell.id));
+    log.debug('cheat', 'revealed all world cells');
+    debouncedSave();
+  }
+
+  function cheatBuildActivePlot() {
+    const cellId = worldStore.current.activePlotCellId;
+    if (!cellId) {
+      log.debug('cheat', 'no active plot to build');
+      return;
+    }
+    const alreadyScaffolded = plotsStore.has(cellId);
+    ensurePlotScaffold(cellId);
+    log.debug('cheat', alreadyScaffolded ? `active plot ${cellId} already scaffolded` : `scaffolded active plot ${cellId}`);
+    debouncedSave();
+  }
+
+  function cheatDiscoverNeighborPlot() {
+    const cell = worldStore.current.cells.find((c) => c.type === 'plot' && !c.discovered);
+    if (!cell) {
+      log.debug('cheat', 'no undiscovered plot cells left');
+      return;
+    }
+    worldStore.discoverCell(cell.id);
+    ensurePlotScaffold(cell.id);
+    log.debug('cheat', `discovered + scaffolded neighbor plot ${cell.id}`);
     debouncedSave();
   }
 </script>
@@ -190,6 +229,17 @@
           </Toggle.Root>
         </SettingsRow>
       </SettingsSection>
+
+      {#if gameState.current.settings.devMode}
+        <SettingsSection value="cheats" title="Developer Cheats">
+          <div class="action-grid">
+            <Button.Root class="glass-btn" onclick={cheatAddMoney}>💰 Add $1,000</Button.Root>
+            <Button.Root class="glass-btn" onclick={cheatRevealWorld}>🗺️ Reveal All Cells</Button.Root>
+            <Button.Root class="glass-btn" onclick={cheatBuildActivePlot}>🏗️ Build Active Plot</Button.Root>
+            <Button.Root class="glass-btn" onclick={cheatDiscoverNeighborPlot}>📍 Discover Neighbor Plot</Button.Root>
+          </div>
+        </SettingsSection>
+      {/if}
 
       <SettingsSection value="save" title="Save Management">
         <SettingsRow label="World Generation Seed" description="The core procedural numerical signature mapped to your universe map." inline={true}>
