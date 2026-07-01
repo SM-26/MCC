@@ -145,9 +145,9 @@
   }
 
   .tile.drop-target {
-    outline: 2px dashed color-mix(in srgb, var(--mcc-accent) 65%, white 20%);
+    outline: 2px dashed color-mix(in srgb, var(--mcc-u) 65%, white 20%);
     outline-offset: -3px;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mcc-accent) 35%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mcc-u) 35%, transparent);
   }
 
   .icon {

@@ -1,4 +1,5 @@
 /* MCC V2 Main Styles */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap');
 @import './styles/theme.css';
 
 /* 1. Global Box Model Reset */
@@ -27,7 +28,7 @@ body {
   /* Prevent body scroll, let internal containers handle it */
   line-height: 1.5;
   font-size: 1rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   background-color: var(--mcc-bg-primary);
   color: var(--mcc-text-main);
 }

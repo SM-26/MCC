@@ -19,6 +19,7 @@
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import MineHeader from '../components/mine/MineHeader.svelte';
   import MineGrid from '../components/mine/MineGrid.svelte';
+  import MyMeter from '../components/MyMeter.svelte';
   import { log } from '../lib/logger';
 
   import { appContext } from '../logic/app/appContext.svelte';
@@ -43,6 +44,9 @@
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
+  const clearStatusLabel = $derived(
+    clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared',
+  );
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
   const canGoNext = $derived(false);
   const canDigDeeper = $derived(clearStatus === 'hard');
@@ -273,26 +277,34 @@
 {:else if activeMineshaft && activeMine}
   <div class="mine-view size-{screenSize}">
     <MineHeader
-      shaftLabel={currentShaftLabel}
-      {nextShaftLabel}
-      depth={activeMine.depth}
-      {clearStatus}
-      {clearPercent}
+      shaftIndex={activePlotState.activeMineshaftIndex}
+      shaftTotal={activePlotState.mineshafts.length}
       {canGoPrevious}
       {canGoNext}
-      {canBuyNextShaft}
-      {canDigDeeper}
-      {canBuyStation}
       onPreviousShaft={handlePreviousShaft}
       onNextShaft={handleNextShaft}
-      onBuyNextShaft={handleBuyNextShaft}
-      onBuyStation={handleBuyStation}
-      onDigDeeper={handleDigDeeperAction}
     />
+
+    <div class="soil-card">
+      <div class="soil-top">
+        <span class="plot-name">{currentShaftLabel}</span>
+      </div>
+      <MyMeter value={clearPercent} max={100} status={clearStatus} />
+      <div class="soil-meta">
+        <span>Depth {activeMine.depth}</span>
+        <span>{clearStatusLabel} · {clearPercent}%</span>
+      </div>
+      {#if canBuyNextShaft}
+        <Button.Root class="nav-btn" onclick={handleBuyNextShaft}>Buy next shaft</Button.Root>
+      {/if}
+    </div>
 
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
 
     <div class="mine-actions">
+      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction} disabled={!canDigDeeper}>
+        Dig deeper ↓
+      </Button.Root>
       <Button.Root class="buy-btn" onclick={handleBuyMiner} disabled={!playerCanBuyMiner}>
         Buy Miner (${minerCost})
       </Button.Root>
@@ -362,47 +374,99 @@
     --mine-miner-label-size: 0.76rem;
   }
 
-  .mine-grid-shell {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 0;
+  /* Glass soil card — plot name, meter, depth/status */
+  .soil-card {
+    flex: 0 0 auto;
+    margin: 0 var(--mine-padding);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--mcc-border);
+    border-radius: 14px;
+    background: var(--mcc-panel);
+    background-image: var(--mcc-glass-sheen);
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
     display: flex;
-    overflow: hidden;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .soil-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .plot-name {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: var(--mcc-text-main);
+  }
+
+  .soil-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--mcc-text-muted);
   }
 
   .mine-actions {
     flex: 0 0 auto;
-    margin-top: auto;
-    padding: var(--mine-gap) var(--mine-padding) var(--mine-padding);
+    padding: var(--spacing-xs) var(--mine-padding) var(--mine-padding);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .dig-deeper-btn {
+    width: 100%;
   }
 
   :global(.buy-btn) {
     width: 100%;
     min-height: 46px;
-    padding: 12px 14px;
-    border: 1px solid var(--mcc-buy-btn-border, #166534);
-    border-radius: 10px;
-    background: var(--mcc-buy-btn, #15803d);
-    color: var(--mcc-text-main);
-    font-weight: 700;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 14px;
+    color: #06301c;
+    font-weight: 800;
+    font-size: 1rem;
     cursor: pointer;
+    /* sheen layer over the green fill */
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.06) 46%, rgba(255, 255, 255, 0)),
+      linear-gradient(180deg, var(--mcc-green-top), var(--mcc-green-bot));
+    box-shadow:
+      0 4px 0 var(--mcc-green-edge),
+      0 7px 12px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
     transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      transform 0.15s ease,
+      transform 0.1s ease,
+      box-shadow 0.1s ease,
+      filter 0.15s ease,
       opacity 0.15s ease;
   }
 
   :global(.buy-btn:hover:not(:disabled)) {
-    background: var(--mcc-buy-btn-hover, #16a34a);
-    border-color: color-mix(in srgb, var(--mcc-buy-btn-border, #166534) 70%, white 30%);
-    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+
+  /* Press the chunky button "down" — collapse the 3D edge */
+  :global(.buy-btn:active:not(:disabled)) {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 var(--mcc-green-edge),
+      0 2px 6px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
   }
 
   :global(.buy-btn:disabled) {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+    filter: saturate(0.6);
   }
 
   .mine-not-built {

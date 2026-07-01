@@ -1,61 +1,29 @@
 <!-- /src/components/mine/MineHeader.svelte -->
 <script lang="ts">
   import { Button } from 'bits-ui';
-  import type { ClearStatus } from '../../logic/mine/mineGen';
-  import MyMeter from '../MyMeter.svelte';
 
   const {
-    shaftLabel,
-    nextShaftLabel,
-    depth,
-    clearStatus,
-    clearPercent,
+    shaftIndex = 0,
+    shaftTotal = 1,
     canGoPrevious = false,
     canGoNext = false,
-    canBuyNextShaft = false,
-    canDigDeeper = false,
-    canBuyStation = false,
     onPreviousShaft,
     onNextShaft,
-    onBuyNextShaft,
-    onBuyStation,
-    onDigDeeper,
   }: {
-    shaftLabel: string;
-    nextShaftLabel: string;
-    depth: number;
-    clearStatus: ClearStatus;
-    clearPercent: number;
+    shaftIndex?: number;
+    shaftTotal?: number;
     canGoPrevious?: boolean;
     canGoNext?: boolean;
-    canBuyNextShaft?: boolean;
-    canDigDeeper?: boolean;
-    canBuyStation?: boolean;
     onPreviousShaft: () => void;
     onNextShaft: () => void;
-    onBuyNextShaft: () => void;
-    onBuyStation: () => void;
-    onDigDeeper: () => void;
   } = $props();
 </script>
 
 <header class="header">
   <div class="nav-line">
-    <Button.Root class="nav-btn" onclick={onPreviousShaft} disabled={!canGoPrevious}>←</Button.Root>
-    <span class="shaft-label">{shaftLabel}</span>
-    <span class="shaft-sep">|</span>
-    <span class="shaft-label">{nextShaftLabel}</span>
-    <Button.Root class="nav-btn" onclick={onNextShaft} disabled={!canGoNext}>→</Button.Root>
-  </div>
-
-  <div class="stats">Current depth: {depth}</div>
-
-  <MyMeter value={clearPercent} max={100} status={clearStatus} />
-
-  <div class="actions">
-    <Button.Root class="nav-btn" onclick={onBuyNextShaft} disabled={!canBuyNextShaft}>Buy next shaft</Button.Root>
-    <Button.Root class="nav-btn" onclick={onDigDeeper} disabled={!canDigDeeper}>Dig deeper ↓</Button.Root>
-    <Button.Root class="nav-btn" onclick={onBuyStation} disabled={!canBuyStation}>Buy station</Button.Root>
+    <Button.Root class="nav-btn nav-arrow" onclick={onPreviousShaft} disabled={!canGoPrevious}>‹</Button.Root>
+    <span class="shaft-label">Shaft <b class="shaft-num">{shaftIndex + 1}</b> / {shaftTotal}</span>
+    <Button.Root class="nav-btn nav-arrow" onclick={onNextShaft} disabled={!canGoNext}>›</Button.Root>
   </div>
 </header>
 
@@ -71,42 +39,63 @@
 
   .nav-line {
     display: flex;
+    flex-direction: row;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-sm);
-    flex-wrap: wrap;
-    font-family: monospace;
-    align-self: center;
+    font-weight: 700;
   }
 
-  .shaft-label,
-  .stats {
+  .shaft-label {
     color: var(--mcc-text-main);
+    font-size: 1rem;
   }
 
-  .shaft-sep {
-    opacity: 0.65;
+  /* Current shaft number — fixed gold app accent */
+  .shaft-num {
+    color: var(--mcc-gold);
+    font-weight: 800;
   }
 
-  .actions {
-    display: flex;
-    gap: var(--spacing-sm);
-    flex-wrap: wrap;
-  }
-
+  /* Secondary / glass buttons (prev, next, …) */
   :global(.nav-btn) {
     min-height: 40px;
-    padding: 8px 10px;
+    padding: 8px 12px;
     border: 1px solid var(--mcc-border);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--mcc-bg-surface) 70%, white 8%);
+    border-radius: 12px;
+    background-color: var(--mcc-surface-2);
+    background-image: var(--mcc-btn-sheen);
     color: var(--mcc-text-main);
+    font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
     cursor: pointer;
+    transition:
+      filter 0.15s ease,
+      transform 0.1s ease,
+      opacity 0.15s ease;
+  }
+
+  :global(.nav-btn:hover:not(:disabled):not([data-disabled])) {
+    filter: brightness(1.12);
+  }
+
+  :global(.nav-btn:active:not(:disabled):not([data-disabled])) {
+    transform: translateY(1px);
+  }
+
+  /* Arrow buttons — square icon variant */
+  :global(.nav-arrow) {
+    flex: 0 0 auto;
+    width: 40px;
+    padding: 8px 0;
+    text-align: center;
   }
 
   :global(.nav-btn:disabled),
   :global(.nav-btn[data-disabled]) {
-    opacity: 0.45;
+    opacity: 0.42;
     cursor: not-allowed;
     pointer-events: none;
+    filter: saturate(0.6);
   }
 </style>

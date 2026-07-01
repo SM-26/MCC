@@ -70,6 +70,10 @@ export function createGameStateStore(initial?: Partial<GameSessionState>) {
       state.settings.theme = theme;
     },
 
+    setUserColor(userColor: string) {
+      state.settings.userColor = userColor;
+    },
+
     setWorldSeed(worldSeed: string) {
       state.settings.worldSeed = worldSeed;
     },

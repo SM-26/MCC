@@ -1,9 +1,27 @@
-/* MCC V2 Theme Variables */
+/* ============================================================
+   Mines & Choo-Choos — Theme tokens
+   ------------------------------------------------------------
+   ONE "theme colour" (--mcc-u) drives the whole neutral ground
+   through color-mix(). The mode (dark / light) chooses the mix
+   base. Gold (app accent) and the clear-status colours are
+   FIXED — they never change with --mcc-u.
+
+   Modes are selected by  body[data-theme='...']  (see applyTheme.ts):
+     (no attr) / dark  -> :root derivations
+     user              -> same (dark) derivations, --mcc-u := --mcc-user-color
+     light             -> light overrides
+
+   IMPORTANT: custom properties inherit their *substituted* value,
+   so the derived tokens must be declared on the SAME element that
+   sets --mcc-u. That's why the dark derivations live on a shared
+   selector ( :root, body[data-theme='user'] ) — each element then
+   re-substitutes them with its own --mcc-u.
+   ============================================================ */
+
 :root {
-  /* These stay the same regardless of theme */
+  /* ---------- Fixed / mode-independent ---------- */
   --error: #ba1a1a;
   --success: #198754;
-
   --outline: #938f99;
   --outline-variant: #49454f;
 
@@ -13,70 +31,134 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* Dark theme (default) */
-  --mcc-bg-primary: #1a1a1a;
-  --mcc-bg-surface: #14213d;
-  --mcc-text-main: #f0f0f0;
-  --mcc-text-muted: #89a7a7;
-  --mcc-accent: #3b00db;
+  /* App accent — fixed GOLD (active tab, current shaft #, selection ring) */
+  --mcc-gold: #e8b24c;
 
-  --mcc-primary: #0f3460;
-  --mcc-border: #2a2a4a;
+  /* Clear-status colours — must match MyMeter.svelte */
+  --mcc-status-none: #f0c507; /* not cleared   */
+  --mcc-status-soft: #e1891d; /* soft-cleared  */
+  --mcc-status-hard: #22c55e; /* hard-cleared  */
 
-  /* Light theme */
-  --mcc-bg-primary-light: #f8f9fa;
-  --mcc-bg-surface-light: #ffffff;
-  --mcc-text-main-light: #1a1a1a;
-  --mcc-text-muted-light: #4a6b6b;
-  --mcc-accent-light: #6750a4;
+  /* Primary (Buy / Save / Build) — glossy 3D green */
+  --mcc-green-top: #3fce74;
+  --mcc-green-bot: #1fa353;
+  --mcc-green-edge: #16753b;
 
-  /* MineView */
-  --mcc-surface-2: #1f2b4d;
-  --mcc-button-bg: #2b426d;
-  --mcc-button-hover: #355282;
-  --mcc-tile-empty: #262626;
-  --mcc-tile-blocker: #333333;
-  --mcc-tile-dirt: #6b5d4f;
-  --mcc-tile-dirt-border: #4a3f35;
-  --mcc-tile-blocker-border: #1a1a1a;
-  --mcc-hp-bg: #000000;
+  /* Danger (Reset / Nuke) — glossy 3D red */
+  --mcc-red-top: #f0685a;
+  --mcc-red-bot: #c5392c;
+  --mcc-red-edge: #8f271d;
+
+  /* Shared glass helpers */
+  --mcc-glass-sheen: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.03) 46%,
+    rgba(255, 255, 255, 0)
+  );
+  --mcc-btn-sheen: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0.04)
+  );
+
+  /* ============================================================
+     THEME COLOUR — default is the brand navy. Everything in the
+     derivation block is built from it. Change this one value
+     (or override it per-mode / per-user) and the UI repaints.
+     ============================================================ */
+  --mcc-u: #14213d;
+}
+
+/* ============================================================
+   DARK derivations — shared by default/dark (:root) and USER mode.
+   Declared on both selectors so each re-substitutes var(--mcc-u)
+   with its own theme colour.
+   ============================================================ */
+:root,
+body[data-theme='user'] {
+  --mcc-bg-primary: color-mix(in srgb, var(--mcc-u) 12%, #0b0b0f);
+  --mcc-bg-surface: var(--mcc-u);
+  --mcc-ground-1: color-mix(in srgb, var(--mcc-u) 50%, #070a12);
+  --mcc-ground-2: color-mix(in srgb, var(--mcc-u) 26%, #04060c);
+
+  --mcc-surface-2: color-mix(in srgb, var(--mcc-u) 86%, white 14%);
+  --mcc-panel: color-mix(in srgb, var(--mcc-u) 46%, transparent);
+  --mcc-panel-solid: color-mix(in srgb, var(--mcc-u) 40%, #0c111c);
+  --mcc-top-veil: color-mix(in srgb, var(--mcc-u) 16%, transparent);
+
+  --mcc-border: rgba(255, 255, 255, 0.14);
+  --mcc-text-main: #eef2f8;
+  --mcc-text-muted: color-mix(in srgb, var(--mcc-u) 22%, #9aa6ba);
+
+  /* Legacy alias — old code referenced --mcc-accent; now it's gold */
+  --mcc-accent: var(--mcc-gold);
+  --mcc-primary: var(--mcc-u);
+
+  /* Mine tiles */
+  --mcc-tile-empty: rgba(255, 255, 255, 0.05);
+  --mcc-tile-dirt: #6f6150;
+  --mcc-tile-dirt-border: #4a3f33;
+  --mcc-tile-blocker: #10141f;
+  --mcc-tile-blocker-border: #05070c;
+  --mcc-hp-bg: rgba(0, 0, 0, 0.55);
   --mcc-hp-fill: #ef4444;
-  --mcc-buy-btn: #15803d;
-  --mcc-buy-btn-hover: #16a34a;
-  --mcc-buy-btn-border: #166534;
+
+  /* Buttons (legacy names mapped to the new system) */
+  --mcc-button-bg: var(--mcc-surface-2);
+  --mcc-button-hover: color-mix(in srgb, var(--mcc-surface-2) 85%, white 15%);
+  --mcc-buy-btn: var(--mcc-green-bot);
+  --mcc-buy-btn-hover: var(--mcc-green-top);
+  --mcc-buy-btn-border: var(--mcc-green-edge);
 }
 
-/* Apply theme based on setting */
-body {
-  background: var(--mcc-bg-primary);
-  color: var(--mcc-text-main);
+/* USER mode: only the theme colour changes; the block above re-derives. */
+body[data-theme='user'] {
+  --mcc-u: var(--mcc-user-color, #14213d);
 }
 
+/* ============================================================
+   LIGHT mode — mixes toward white. Declared on the body element,
+   so overriding --mcc-u here (e.g. light+user) re-substitutes too.
+   ============================================================ */
 body[data-theme='light'] {
-  --mcc-bg-primary: var(--mcc-bg-primary-light);
-  --mcc-bg-surface: var(--mcc-bg-surface-light);
-  --mcc-text-main: var(--mcc-text-main-light);
-  --mcc-text-muted: var(--mcc-text-muted-light);
-  --mcc-accent: var(--mcc-accent-light);
+  --mcc-u: #14213d;
 
-  /* MineView */
-  --mcc-bg-primary: var(--mcc-bg-primary-light);
-  --mcc-bg-surface: var(--mcc-bg-surface-light);
-  --mcc-text-main: var(--mcc-text-main-light);
-  --mcc-text-muted: var(--mcc-text-muted-light);
-  --mcc-accent: var(--mcc-accent-light);
+  --mcc-bg-primary: color-mix(in srgb, var(--mcc-u) 8%, #fdfdff);
+  --mcc-bg-surface: #ffffff;
+  --mcc-ground-1: color-mix(in srgb, var(--mcc-u) 10%, #fdfdff);
+  --mcc-ground-2: color-mix(in srgb, var(--mcc-u) 5%, #eef1f6);
 
-  --mcc-surface-2: #e9eef8;
-  --mcc-button-bg: #d9e3f5;
-  --mcc-button-hover: #c8d7f0;
-  --mcc-tile-empty: #e8edf5;
-  --mcc-tile-blocker: #cfd6df;
-  --mcc-tile-dirt: #b79d84;
-  --mcc-tile-dirt-border: #8b735d;
-  --mcc-tile-blocker-border: #a8b0bb;
+  --mcc-surface-2: color-mix(in srgb, var(--mcc-u) 8%, #ffffff);
+  --mcc-panel: color-mix(in srgb, #ffffff 72%, transparent);
+  --mcc-panel-solid: color-mix(in srgb, #ffffff 86%, var(--mcc-u));
+  --mcc-top-veil: color-mix(in srgb, #ffffff 60%, transparent);
+
+  --mcc-border: color-mix(in srgb, var(--mcc-u) 16%, rgba(255, 255, 255, 0.6));
+  --mcc-text-main: #16202c;
+  --mcc-text-muted: color-mix(in srgb, var(--mcc-u) 30%, #5a6678);
+
+  --mcc-gold: #bf8624; /* darker gold reads better on light */
+
+  --mcc-tile-empty: rgba(0, 0, 0, 0.04);
+  --mcc-tile-dirt: #c2a888;
+  --mcc-tile-dirt-border: #a98e6e;
+  --mcc-tile-blocker: #ced4de;
+  --mcc-tile-blocker-border: #b3bcc8;
   --mcc-hp-bg: #d1d5db;
   --mcc-hp-fill: #dc2626;
-  --mcc-buy-btn: #198754;
-  --mcc-buy-btn-hover: #157347;
-  --mcc-buy-btn-border: #146c43;
+}
+
+/* Light + user-picked colour (optional combo — add class 'theme-user') */
+body[data-theme='light'].theme-user {
+  --mcc-u: var(--mcc-user-color, #14213d);
+}
+
+/* ============================================================
+   Base document — the ground is a soft vertical gradient.
+   ============================================================ */
+body {
+  background: linear-gradient(168deg, var(--mcc-ground-1), var(--mcc-ground-2));
+  background-attachment: fixed;
+  color: var(--mcc-text-main);
 }

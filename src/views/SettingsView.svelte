@@ -35,10 +35,10 @@
   ] satisfies SelectOption<NavPosition>[];
 
   const themeOptions = [
-    { value: 'dark', label: 'Dark Mode' },
-    { value: 'light', label: 'Light Mode', disabled: true },
-    { value: 'system', label: 'Auto (System Default)', disabled: true },
-    { value: 'user', label: 'User Custom', disabled: true },
+    { value: 'dark', label: 'Dark Mode', disabled: false },
+    { value: 'light', label: 'Light Mode', disabled: false },
+    { value: 'system', label: 'Auto (System Default)', disabled: false },
+    { value: 'user', label: 'User Custom', disabled: false },
   ] satisfies SelectOption<ThemeMode>[];
 
   const currentPositionLabel = $derived(positionOptions.find((o) => o.value === gameState.current.settings.navbarPosition)?.label ?? 'Select Position');
@@ -119,6 +119,21 @@
             </Select.Portal>
           </Select.Root>
         </SettingsRow>
+
+        {#if gameState.current.settings.theme === 'user'}
+          <SettingsRow label="Theme Colour" description="Pick the base colour the entire neutral palette derives from." inline={true}>
+            <input
+              type="color"
+              class="color-input-field"
+              value={gameState.current.settings.userColor}
+              oninput={(e) => {
+                const value = (e.currentTarget as HTMLInputElement).value;
+                gameState.setUserColor(value);
+                saveSettingsChange('userColor', value);
+              }}
+            />
+          </SettingsRow>
+        {/if}
       </SettingsSection>
 
       <SettingsSection value="system" title="System Controls">
@@ -301,6 +316,16 @@
     font-size: 0.9rem;
   }
 
+  .color-input-field {
+    width: 48px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--mcc-border);
+    border-radius: 8px;
+    background: var(--mcc-surface-2);
+    cursor: pointer;
+  }
+
   .seed-badge {
     padding: 6px 12px;
     border: 1px solid #334155;
@@ -320,24 +345,26 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 14px;
-    border: 1px solid #475569;
-    border-radius: 6px;
-    background: #0f172a;
-    color: #f3f4f6;
-    font-size: 0.9rem;
-    font-weight: 500;
+    padding: 9px 14px;
+    border: 1px solid var(--mcc-border);
+    border-radius: 12px;
+    background-color: var(--mcc-surface-2);
+    background-image: var(--mcc-btn-sheen);
+    color: var(--mcc-text-main);
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
     cursor: pointer;
-    transition: border-color 0.15s ease;
+    transition: filter 0.15s ease;
   }
 
   :global(.select-trigger:hover) {
-    border-color: #64748b;
+    filter: brightness(1.1);
   }
 
   .select-arrow {
     margin-left: 8px;
-    color: #94a3b8;
+    color: var(--mcc-text-muted);
     font-size: 0.65rem;
   }
 
@@ -345,35 +372,36 @@
     z-index: 100;
     min-width: 180px;
     padding: 4px;
-    border: 1px solid #475569;
-    border-radius: 6px;
-    background: #0f172a;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--mcc-border);
+    border-radius: 12px;
+    background: var(--mcc-panel-solid);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
   }
 
   :global(.select-item) {
     padding: 8px 12px;
-    border-radius: 4px;
-    color: #cbd5e1;
+    border-radius: 8px;
+    color: var(--mcc-text-main);
     font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
     user-select: none;
     outline: none;
   }
 
   :global(.select-item[data-highlighted]) {
-    background: #0284c7;
-    color: #fff;
+    background: var(--mcc-surface-2);
+    color: var(--mcc-text-main);
   }
 
   :global(.select-item[data-selected]) {
-    background: #2563eb;
-    color: #fff;
-    font-weight: 600;
+    color: var(--mcc-gold);
+    font-weight: 700;
   }
 
   :global(.select-item[data-disabled]) {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
     background: transparent;
   }
@@ -385,16 +413,18 @@
     position: relative;
     width: 50px;
     height: 28px;
-    border: 1px solid #475569;
+    border: 1px solid var(--mcc-border);
     border-radius: 9999px;
-    background-color: #0f172a;
+    background-color: var(--mcc-surface-2);
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s;
   }
 
   :global(.switch-root[data-state='checked']) {
-    background-color: #10b981;
-    border-color: #34d399;
+    background-color: var(--mcc-status-hard);
+    border-color: color-mix(in srgb, var(--mcc-status-hard) 70%, white 30%);
   }
 
   :global(.switch-thumb) {
@@ -406,7 +436,7 @@
     height: 20px;
     border-radius: 9999px;
     background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s;
   }
 
@@ -420,21 +450,25 @@
   :global(.toggle-root) {
     min-width: 90px;
     padding: 8px 16px;
-    border: 1px solid #475569;
-    border-radius: 6px;
-    background: #0f172a;
-    color: #94a3b8;
+    border: 1px solid var(--mcc-border);
+    border-radius: 12px;
+    background-color: var(--mcc-surface-2);
+    background-image: var(--mcc-btn-sheen);
+    color: var(--mcc-text-muted);
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 700;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      color 0.15s ease,
+      border-color 0.15s ease,
+      background-color 0.15s ease;
   }
 
-  :global(.toggle-root.dev-mode[data-state='on']) {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: #f59e0b;
-    color: #fbbf24;
+  :global(.toggle-root[data-state='on']) {
+    color: var(--mcc-gold);
+    border-color: color-mix(in srgb, var(--mcc-gold) 40%, transparent);
+    background-color: color-mix(in srgb, var(--mcc-gold) 10%, var(--mcc-surface-2));
   }
 
   /**
@@ -452,36 +486,64 @@
     justify-content: center;
     align-items: center;
     gap: 8px;
-    padding: 12px;
+    padding: 13px 16px;
     border: none;
-    border-radius: 8px;
-    color: #fff;
+    border-radius: 14px;
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
     transition:
       transform 0.1s ease,
+      box-shadow 0.1s ease,
       filter 0.15s ease;
   }
 
-  :global(.action-btn:active) {
-    transform: scale(0.98);
-  }
-
   :global(.save-btn) {
-    background: #2563eb;
+    color: #06301c;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.06) 46%, rgba(255, 255, 255, 0)),
+      linear-gradient(180deg, var(--mcc-green-top), var(--mcc-green-bot));
+    box-shadow:
+      0 4px 0 var(--mcc-green-edge),
+      0 7px 12px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 
   :global(.save-btn:hover) {
-    filter: brightness(1.1);
+    filter: brightness(1.05);
+  }
+
+  :global(.save-btn:active) {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 var(--mcc-green-edge),
+      0 2px 6px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
   }
 
   :global(.reset-btn) {
-    background: #dc2626;
+    color: #fff;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.04) 46%, rgba(255, 255, 255, 0)),
+      linear-gradient(180deg, var(--mcc-red-top), var(--mcc-red-bot));
+    box-shadow:
+      0 4px 0 var(--mcc-red-edge),
+      0 7px 12px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
   }
 
   :global(.reset-btn:hover) {
-    filter: brightness(1.1);
+    filter: brightness(1.05);
+  }
+
+  :global(.reset-btn:active) {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 var(--mcc-red-edge),
+      0 2px 6px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 
   /**
@@ -507,10 +569,12 @@
     flex-direction: column;
     gap: 16px;
     transform: translate(-50%, -50%);
-    border: 1px solid #475569;
-    border-radius: 12px;
-    background: #1e293b;
-    color: #f3f4f6;
+    border: 1px solid var(--mcc-border);
+    border-radius: 14px;
+    background: var(--mcc-panel-solid);
+    backdrop-filter: blur(16px);
+    color: var(--mcc-text-main);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
   }
 
   :global(.modal-title) {

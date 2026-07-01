@@ -10,7 +10,9 @@
   import { navigation } from './logic/app/navigationStore.svelte';
 
   import { getScreenSize } from './lib/sizes';
+  import { applyTheme, watchSystemTheme } from './lib/applyTheme';
   import { debouncedSave } from './logic/save/save.svelte';
+  import { engineeringStore } from './logic/engineering/engineeringStore.svelte';
 
   import Splash from './components/Splash.svelte';
   import { toastState } from './components/GameTooltip.svelte';
@@ -49,6 +51,7 @@
       gameState.current.settings.soundEnabled,
       gameState.current.settings.notificationsEnabled,
       gameState.current.settings.theme,
+      gameState.current.settings.userColor,
       gameState.current.settings.worldSeed,
     ].join('|');
   }
@@ -95,6 +98,11 @@
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
 
+    const stopWatchingSystemTheme = watchSystemTheme(
+      () => gameState.current.settings.theme,
+      () => gameState.current.settings.userColor,
+    );
+
     const splashTimer = window.setTimeout(() => {
       appContext.setIsLoading(false);
       appContext.setSplashVisible(false);
@@ -106,6 +114,7 @@
     return () => {
       window.clearTimeout(splashTimer);
       window.removeEventListener('resize', updateScreenSize);
+      stopWatchingSystemTheme();
     };
   });
 
@@ -119,32 +128,25 @@
     void gameState.current.settings.soundEnabled;
     void gameState.current.settings.notificationsEnabled;
     void gameState.current.settings.theme;
+    void gameState.current.settings.userColor;
     void gameState.current.settings.worldSeed;
 
     queueAutosave('settings changed');
   });
 
+  // Apply the theme to <body> whenever the setting or user colour changes.
+  $effect(() => {
+    applyTheme(gameState.current.settings.theme, gameState.current.settings.userColor);
+  });
+
   const currency = $derived(gameState.current.money ?? 0);
+  const engineeringIdeas = $derived(engineeringStore.current.engineeringIdeas);
 
   function formatCurrency(amount: number): string {
-    return `$${amount}`;
+    if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K`;
+    return `${amount}`;
   }
 </script>
-
-{#snippet EngineeringView()}
-  <div>
-    <h2>Engineering Laboratory</h2>
-    <p>Spend your ideas on upgrades.</p>
-  </div>
-{/snippet}
-
-{#snippet appHeaderContents(title = 'Mines & Choo-Choo', goldAmount = 0)}
-  <h1 class="app-title">{title}</h1>
-  <div class="currency-display">
-    <span class="currency-icon">🪙</span>
-    <span class="currency-value">{formatCurrency(goldAmount)}</span>
-  </div>
-{/snippet}
 
 {#if toastState.activeText}
   <div class="global-toast-notification">
@@ -160,7 +162,16 @@
 
   <div class="app-main" role="application" aria-label="Web Game: Mines and Choo Choos">
     <header class="top-bar">
-      {@render appHeaderContents('Mines & Choo-Choo', currency)}
+      <div class="currency-pills">
+        <div class="currency-pill">
+          <span>🪙</span>
+          <span>{formatCurrency(currency)}</span>
+        </div>
+        <div class="currency-pill">
+          <span>💡</span>
+          <span>{engineeringIdeas}</span>
+        </div>
+      </div>
     </header>
 
     <Tabs.Root value={currentTab} onValueChange={(value) => handleTabChange(value as TabId)} class="tabs-root nav-pos-{effectiveNavbarPosition}">
@@ -169,11 +180,10 @@
           {#each navigation.current.tabs as tab (tab)}
             {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
             {@const isCompact = appContext.current.screenSize === 'xs' || appContext.current.screenSize === 'sm'}
-            {@const isVisible = !isCompact || currentTab === tab}
-
+            {@const showLabel = !isCompact || currentTab === tab}
             <Tabs.Trigger value={tab} title={config.label}>
               <span class="tab-icon">{config.icon}</span>
-              {#if isVisible}
+              {#if showLabel}
                 <span class="tab-label">{config.label}</span>
               {/if}
             </Tabs.Trigger>
@@ -185,7 +195,12 @@
         <Tabs.Content value="world" class="tab-panel"><WorldView /></Tabs.Content>
         <Tabs.Content value="mine" class="tab-panel"><MineView /></Tabs.Content>
         <Tabs.Content value="station" class="tab-panel"><StationView /></Tabs.Content>
-        <Tabs.Content value="engineering" class="tab-panel">{@render EngineeringView()}</Tabs.Content>
+        <Tabs.Content value="engineering" class="tab-panel">
+          <div class="engineering-placeholder">
+            <h2>Engineering Laboratory</h2>
+            <p>Spend your ideas on upgrades.</p>
+          </div>
+        </Tabs.Content>
         <Tabs.Content value="settings" class="tab-panel"><SettingsView /></Tabs.Content>
       </div>
 
@@ -194,11 +209,10 @@
           {#each navigation.current.tabs as tab (tab)}
             {@const config = tabConfig[tab] ?? { label: tab, icon: '🚂' }}
             {@const isCompact = appContext.current.screenSize === 'xs' || appContext.current.screenSize === 'sm'}
-            {@const isVisible = !isCompact || currentTab === tab}
-
+            {@const showLabel = !isCompact || currentTab === tab}
             <Tabs.Trigger value={tab} title={config.label}>
               <span class="tab-icon">{config.icon}</span>
-              {#if isVisible}
+              {#if showLabel}
                 <span class="tab-label">{config.label}</span>
               {/if}
             </Tabs.Trigger>
@@ -213,9 +227,7 @@
   /* --- 1. Global Layout Structure --- */
   .app-container {
     height: 100dvh;
-    background: var(--mcc-bg-primary);
     color: var(--mcc-text-main);
-    font-family: inherit;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -229,32 +241,46 @@
     overflow: hidden;
   }
 
-  /* --- 2. Top Header Layout --- */
+  /* --- 2. Top bar — translucent glass, pills only --- */
   .top-bar {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--mcc-bg-surface);
-    border-bottom: 1px solid var(--outline-variant, #49454f);
+    padding: 6px var(--spacing-md);
+    background: var(--mcc-top-veil);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     flex: 0 0 auto;
   }
 
-  .app-title {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+  .currency-pills {
+    display: flex;
+    gap: var(--spacing-sm);
   }
 
-  .currency-display {
+  .currency-pill {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs, 4px);
-    background-color: var(--mcc-bg-primary);
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--mcc-border, rgba(255, 255, 255, 0.06));
+    gap: 5px;
+    padding: 4px 10px;
+    background: var(--mcc-panel);
+    background-image: var(--mcc-glass-sheen);
+    border: 1px solid var(--mcc-border);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--mcc-text-main);
+  }
+
+  .engineering-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 8px;
+    color: var(--mcc-text-muted);
   }
 
   /* --- 3. Navigation Shell --- */
@@ -275,15 +301,17 @@
     overflow: hidden;
   }
 
-  /* --- 4. Navtab Bar --- */
+  /* --- 4. Navtab Bar — frosted glass --- */
   :global(.navtab-list) {
     display: flex;
     flex: 0 0 auto;
     flex-direction: row;
     width: 100%;
-    gap: 6px;
+    gap: 4px;
     padding: 6px 8px;
-    background: var(--mcc-bg-surface);
+    background: var(--mcc-top-veil);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -298,13 +326,14 @@
   }
 
   :global(.navtab-top) {
-    border-bottom: 1px solid var(--outline, #938f99);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   }
 
   :global(.navtab-bottom) {
-    border-top: 1px solid var(--outline, #938f99);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding-bottom: max(6px, env(safe-area-inset-bottom));
-    box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.25);
   }
 
   :global([role='tab']) {
@@ -317,37 +346,36 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    padding: 10px 10px 9px;
+    padding: 8px 8px 7px;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: 10px;
     background: transparent;
     color: var(--mcc-text-muted);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     letter-spacing: 0.01em;
     cursor: pointer;
     transition:
       background-color 0.18s ease,
       border-color 0.18s ease,
-      color 0.18s ease,
-      transform 0.12s ease;
+      color 0.18s ease;
   }
 
   :global([role='tab']:hover) {
-    background: rgba(255, 255, 255, 0.035);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--mcc-text-main);
   }
 
   :global([role='tab']:focus-visible) {
     outline: none;
-    border-color: color-mix(in srgb, gold 45%, rgba(255, 255, 255, 0.16));
-    box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.14);
+    border-color: color-mix(in srgb, var(--mcc-gold) 50%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--mcc-gold) 18%, transparent);
   }
 
   :global([role='tab'][data-state='active']) {
-    background: color-mix(in srgb, var(--mcc-accent, #3b00db) 10%, transparent);
-    color: var(--mcc-text-main);
-    border-color: color-mix(in srgb, gold 50%, rgba(255, 255, 255, 0.12));
+    background: color-mix(in srgb, var(--mcc-gold) 10%, transparent);
+    color: var(--mcc-gold);
+    border-color: color-mix(in srgb, var(--mcc-gold) 30%, transparent);
   }
 
   :global(.navtab-top [role='tab'][data-state='active']::after) {
@@ -358,8 +386,7 @@
     bottom: 3px;
     height: 2px;
     border-radius: 999px;
-    background: gold;
-    opacity: 0.95;
+    background: var(--mcc-gold);
   }
 
   :global(.navtab-bottom [role='tab'][data-state='active']::before) {
@@ -370,8 +397,7 @@
     top: 3px;
     height: 2px;
     border-radius: 999px;
-    background: gold;
-    opacity: 0.95;
+    background: var(--mcc-gold);
   }
 
   :global([role='tab'][data-disabled]) {
@@ -419,21 +445,22 @@
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    background: #0f172a;
-    border: 1px solid #38bdf8;
+    background: var(--mcc-panel-solid);
+    border: 1px solid var(--mcc-border);
     padding: 12px 20px;
-    border-radius: 8px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 12px;
     z-index: 9999;
     max-width: 90vw;
+    backdrop-filter: blur(8px);
   }
 
   @media (max-width: 640px) {
     :global(.navtab-list) {
-      gap: 4px;
-      padding: 6px;
+      gap: 2px;
+      padding: 4px 6px;
     }
 
     :global(.navtab-bottom) {
@@ -442,8 +469,8 @@
 
     :global([role='tab']) {
       min-height: 42px;
-      padding: 9px 8px 8px;
-      font-size: 0.7rem;
+      padding: 7px 6px 6px;
+      font-size: 0.68rem;
     }
   }
 </style>

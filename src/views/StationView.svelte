@@ -265,17 +265,30 @@
 
   .trainyard-btn {
     flex-shrink: 0;
-    background: var(--mcc-button-bg);
+    background: var(--mcc-panel);
+    background-image: var(--mcc-glass-sheen);
     color: var(--mcc-text-main);
     border: 1px solid var(--mcc-border);
-    border-radius: 6px;
-    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition:
+      filter 0.15s ease,
+      transform 0.1s ease;
   }
 
   .trainyard-btn:hover:not(:disabled) {
-    background: var(--mcc-button-hover);
+    filter: brightness(1.15);
+  }
+
+  .trainyard-btn:active:not(:disabled) {
+    transform: translateY(1px);
   }
 
   .trainyard-btn:disabled {

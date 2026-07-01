@@ -8,10 +8,6 @@ import type { TrainData } from './worldPathing';
 
 describe('worldPathing', () => {
   describe('getTileTraversalCost', () => {
-    it('should return Infinity for fog', () => {
-      expect(getTileTraversalCost('fog')).toBe(Infinity);
-    });
-
     it('should return Infinity for blocker', () => {
       expect(getTileTraversalCost('blocker')).toBe(Infinity);
     });
@@ -34,10 +30,6 @@ describe('worldPathing', () => {
   });
 
   describe('isTilePassable', () => {
-    it('should not pass fog', () => {
-      expect(isTilePassable('fog')).toBe(false);
-    });
-
     it('should not pass blocker', () => {
       expect(isTilePassable('blocker')).toBe(false);
     });
@@ -93,8 +85,9 @@ describe('worldPathing', () => {
         { id: '0,1', name: 'Atlantis', type: 'city', q: 0, r: 1, ring: 1, discovered: true },
         { id: '-1,1', name: '', type: 'blocker', q: -1, r: 1, ring: 1, discovered: true },
       ],
-      plots: [{ plotId: 'p1', cellId: '0,0', plotName: 'Prague', discovered: true }],
-      activePlotIndex: 0,
+      plots: {},
+      activePlotCellId: null,
+      inspectedCellId: null,
     };
 
     it('should find route to same position', () => {
@@ -113,6 +106,20 @@ describe('worldPathing', () => {
       const route = findRoute({ q: 0, r: 0 }, { q: -1, r: 1 }, testWorld);
       expect(route).toBe(null);
     });
+
+    it('should not route through undiscovered tiles', () => {
+      const world: WorldState = {
+        cells: [
+          { id: '0,0', name: 'Prague', type: 'plot', q: 0, r: 0, ring: 0, discovered: true },
+          { id: '1,0', name: '', type: 'empty', q: 1, r: 0, ring: 1, discovered: false },
+        ],
+        plots: {},
+        activePlotCellId: null,
+        inspectedCellId: null,
+      };
+      const route = findRoute({ q: 0, r: 0 }, { q: 1, r: 0 }, world);
+      expect(route).toBe(null);
+    });
   });
 
   describe('getRouteTravelTime', () => {
@@ -121,8 +128,9 @@ describe('worldPathing', () => {
         { id: '0,0', name: 'Prague', type: 'plot', q: 0, r: 0, ring: 0, discovered: true },
         { id: '1,0', name: '', type: 'empty', q: 1, r: 0, ring: 1, discovered: true },
       ],
-      plots: [{ plotId: 'p1', cellId: '0,0', plotName: 'Prague', discovered: true }],
-      activePlotIndex: 0,
+      plots: {},
+      activePlotCellId: null,
+      inspectedCellId: null,
     };
 
     it('should calculate travel time', () => {

@@ -45,8 +45,6 @@ import type { WorldCell, WorldCellType, WorldState } from './worldTypes';
  */
 export function getTileTraversalCost(tileKind: WorldCellType): number {
   switch (tileKind) {
-    case 'fog':
-      return Infinity; // Impassable
     case 'blocker':
       return Infinity; // Impassable
     case 'empty':
@@ -57,8 +55,6 @@ export function getTileTraversalCost(tileKind: WorldCellType): number {
       return -1; // Penalty
     case 'factory':
       return -1; // Penalty
-    default:
-      return 0; // Fallback to no penalty
   }
 }
 
@@ -192,13 +188,15 @@ export function findRoute(start: HexCoord, end: HexCoord, world: WorldState, all
         continue; // Neighbor doesn't exist in world
       }
 
+      // Block undiscovered tiles unless exploring
+      if (!allowFog && !neighborCell.discovered) {
+        continue;
+      }
+
       // Check passability
       const traversalCost = getTileTraversalCost(neighborCell.type);
       if (traversalCost === Infinity) {
         continue; // Impassable
-      }
-      if (!allowFog && neighborCell.type === 'fog') {
-        continue; // Fog not allowed (unless exploring)
       }
 
       // Accumulate cost

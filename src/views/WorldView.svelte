@@ -68,11 +68,9 @@
 </script>
 
 <div class="world-view">
-  <header class="topbar">
-    <div>
-      <h2>World Map</h2>
-      <p>Choose a plot, city, or factory.</p>
-    </div>
+  <header class="world-header">
+    <h2 class="world-title">World Map</h2>
+    <p class="world-sub">Choose a plot, city, or factory.</p>
   </header>
 
   <WorldGrid
@@ -84,51 +82,52 @@
     onOpenMine={openMine}
   />
 
-  <section class="details">
-    <div>
-      {#if inspectedCell?.discovered || gameState.current.settings.devMode}
-        <h3>{inspectedCell ? inspectedCell.name : 'Selection'}</h3>
-      {/if}
-
-      {#if inspectedCell}
-        {#if inspectedCell.discovered || gameState.current.settings.devMode}
-          <p>Type: {inspectedCell.type}</p>
-        {:else}
-          <p>Type: ???</p>
-        {/if}
-
-        <p>Ring: {inspectedCell.ring}</p>
-        {#if gameState.current.settings.devMode}
-          <p>Coords: {inspectedCell.q}, {inspectedCell.r}</p>
-        {/if}
-        <p>Status: {inspectedCell.discovered ? 'Discovered' : 'Hidden'}</p>
-        {#if inspectedCell.discovered}
-          {#if inspectedCell.type === 'city'}
-            <p>Passenger destination.</p>
-          {:else if inspectedCell.type === 'factory'}
-            <p>Cargo destination.</p>
-          {:else if inspectedCell.type === 'plot'}
-            {#if inspectedPlotBuilt}
-              <p>Plot tile selected. Mine and station views will use this tile.</p>
-            {:else}
-              <p>Under construction. Gather coal and money to build this plot.</p>
-            {/if}
+  <section class="inspect-card">
+    {#if inspectedCell}
+      <div class="inspect-top">
+        <div class="inspect-identity">
+          {#if inspectedCell.discovered || gameState.current.settings.devMode}
+            <h3 class="cell-name">{inspectedCell.name}</h3>
+            <p class="cell-sub">
+              {inspectedCell.type === 'plot' ? 'Plot' : inspectedCell.type === 'city' ? 'City' : inspectedCell.type === 'factory' ? 'Factory' : inspectedCell.type}
+              · Ring {inspectedCell.ring}
+              · {inspectedCell.discovered ? 'Discovered' : 'Hidden'}
+              {#if gameState.current.settings.devMode}&nbsp;({inspectedCell.q}, {inspectedCell.r}){/if}
+            </p>
+          {:else}
+            <h3 class="cell-name">???</h3>
+            <p class="cell-sub">Ring {inspectedCell.ring} · Hidden</p>
           {/if}
+        </div>
+        {#if inspectedCell.type === 'plot' && inspectedPlotBuilt}
+          <span class="state-pill">Active</span>
         {/if}
-      {:else}
-        <p>Click a tile to inspect it.</p>
-      {/if}
-    </div>
+      </div>
 
-    <div class="actions">
-      {#if inspectedCell?.type === 'plot' && inspectedCell.discovered}
-        {#if !inspectedPlotBuilt}
-          <Button.Root class="mini-btn" onclick={() => buildPlotAction(inspectedCell!)}>Build plot</Button.Root>
+      <p class="inspect-context">
+        {#if !inspectedCell.discovered && !gameState.current.settings.devMode}
+          This tile hasn't been discovered yet.
+        {:else if inspectedCell.type === 'city'}
+          Passenger destination.
+        {:else if inspectedCell.type === 'factory'}
+          Cargo destination.
+        {:else if inspectedCell.type === 'plot'}
+          {inspectedPlotBuilt ? 'Mine and station views will use this tile.' : 'Under construction. Gather coal and money to build this plot.'}
         {/if}
-        <Button.Root class="mini-btn" onclick={goToMine} disabled={!inspectedPlotBuilt}>Go to mine</Button.Root>
-        <Button.Root class="mini-btn" onclick={goToStation} disabled={!inspectedPlotBuilt}>Go to station</Button.Root>
+      </p>
+
+      {#if inspectedCell.type === 'plot' && inspectedCell.discovered}
+        <div class="inspect-actions">
+          {#if !inspectedPlotBuilt}
+            <Button.Root class="glass-btn" onclick={() => buildPlotAction(inspectedCell!)}>Build plot</Button.Root>
+          {/if}
+          <Button.Root class="glass-btn" onclick={goToMine} disabled={!inspectedPlotBuilt}>Go to mine</Button.Root>
+          <Button.Root class="glass-btn" onclick={goToStation} disabled={!inspectedPlotBuilt}>Go to station</Button.Root>
+        </div>
       {/if}
-    </div>
+    {:else}
+      <p class="inspect-empty">Click a tile to inspect it.</p>
+    {/if}
   </section>
 </div>
 
@@ -136,41 +135,135 @@
   .world-view {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 2px var(--spacing-md);
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
   }
 
-  .topbar {
+  .world-header {
+    flex: 0 0 auto;
+  }
+
+  .world-title {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--mcc-text-main);
+    margin: 0;
+  }
+
+  .world-sub {
+    font-size: 0.85rem;
+    color: var(--mcc-text-muted);
+    margin: 2px 0 0;
+  }
+
+  /* Glass inspect card */
+  .inspect-card {
+    flex: 0 0 auto;
+    border: 1px solid var(--mcc-border);
+    border-radius: 14px;
+    background: var(--mcc-panel);
+    background-image: var(--mcc-glass-sheen);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    padding: var(--spacing-md);
     display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .inspect-top {
+    display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--spacing-sm);
+  }
+
+  .inspect-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .cell-name {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: var(--mcc-text-main);
+    margin: 0;
+  }
+
+  .cell-sub {
+    font-size: 0.78rem;
+    color: var(--mcc-text-muted);
+    margin: 0;
+  }
+
+  .state-pill {
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border: 1px solid var(--mcc-border);
+    border-radius: 999px;
+    background: var(--mcc-surface-2);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--mcc-text-main);
+  }
+
+  .inspect-context {
+    font-size: 0.82rem;
+    color: var(--mcc-text-muted);
+    margin: 0;
+  }
+
+  .inspect-empty {
+    font-size: 0.85rem;
+    color: var(--mcc-text-muted);
+    text-align: center;
+    padding: var(--spacing-sm) 0;
+    margin: 0;
+    border: 1px dashed var(--mcc-border);
+    border-radius: 10px;
+  }
+
+  .inspect-actions {
+    display: flex;
+    gap: var(--spacing-sm);
     flex-wrap: wrap;
   }
 
-  .details {
-    display: flex;
-    justify-content: space-between;
-    gap: 6px;
+  /* Glass action buttons */
+  :global(.glass-btn) {
+    padding: 8px 14px;
     border: 1px solid var(--mcc-border);
     border-radius: 12px;
-    background: var(--mcc-bg-surface);
-    padding: 2px var(--spacing-md);
+    background-color: var(--mcc-surface-2);
+    background-image: var(--mcc-btn-sheen);
+    color: var(--mcc-text-main);
+    font-weight: 700;
+    font-size: 0.85rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    cursor: pointer;
+    transition:
+      filter 0.15s ease,
+      transform 0.1s ease;
   }
 
-  .actions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: end;
+  :global(.glass-btn:hover:not(:disabled)) {
+    filter: brightness(1.12);
   }
 
-  @media (max-width: 800px) {
-    .details {
-      flex-direction: column;
-    }
+  :global(.glass-btn:active:not(:disabled)) {
+    transform: translateY(1px);
+  }
 
-    .actions {
-      align-items: stretch;
-    }
+  :global(.glass-btn:disabled),
+  :global(.glass-btn[data-disabled]) {
+    opacity: 0.42;
+    cursor: not-allowed;
   }
 </style>

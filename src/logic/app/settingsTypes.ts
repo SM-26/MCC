@@ -12,6 +12,7 @@ export interface SettingsState {
   soundEnabled: boolean;
   notificationsEnabled: boolean;
   theme: ThemeMode;
+  userColor: string; // hex, drives the theme colour in 'user' mode
   worldSeed: string;
 }
 export function createDefaultSettingsState(): SettingsState {
@@ -22,6 +23,7 @@ export function createDefaultSettingsState(): SettingsState {
     soundEnabled: false,
     notificationsEnabled: false,
     theme: 'system',
+    userColor: '#14213d',
     worldSeed: '123456',
   };
 }

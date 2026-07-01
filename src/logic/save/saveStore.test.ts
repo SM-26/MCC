@@ -76,6 +76,7 @@ function createMockGameState(): GameState {
       soundEnabled: false,
       notificationsEnabled: true,
       theme: 'dark',
+      userColor: '#14213d',
       worldSeed: '123456',
     },
   };

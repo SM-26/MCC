@@ -74,6 +74,7 @@ describe('stateFactory', () => {
         soundEnabled: false,
         notificationsEnabled: false,
         theme: 'system',
+        userColor: '#14213d',
         worldSeed: '123456',
       });
     });
