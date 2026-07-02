@@ -1,5 +1,6 @@
 <!-- /src/views/StationView.svelte -->
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { Button, Select } from 'bits-ui';
 
   import { debouncedSave } from '../logic/save/save.svelte';
@@ -7,18 +8,33 @@
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { worldStore } from '../logic/world/worldStore.svelte';
   import { getExpansionLabel, toRoman } from '../logic/mine/mineLabels';
-  import { getPlatformDisplayName } from '../logic/station/stationTypes';
+  import { getHexDistance } from '../logic/world/hex';
+  import { parseWorldCellId } from '../logic/world/worldTypes';
+  import { getPlatformDisplayName, getTotalCartCount, getTripRemainingMs } from '../logic/station/stationTypes';
   import {
     STATION_COST,
     buildPlatform,
     buildStation,
     canBuildStation,
     getEligiblePlatformPositions,
+    buyEngine,
+    buyCart,
+    placeEngine,
+    removeTrain,
+    addCart,
+    removeCart,
+    assignRoute,
+    dispatch,
+    dispatchExplore,
     type EligiblePosition,
   } from '../logic/station/stationActions';
-  import { getPlatformCost } from '../logic/station/stationBalance';
+  import { AGE_ORDER, ENGINE_STATS, CART_STATS, isAgeAtLeast, getPlatformCost } from '../logic/station/stationBalance';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
-  import type { Platform } from '../logic/station/stationTypes';
+  import type { Platform, Train, CartType } from '../logic/station/stationTypes';
+  import type { Ages, AgeResources } from '../logic/mine/mineTypes';
+  import type { Destination } from '../logic/world/worldTypes';
+
+  const CART_TYPES = Object.keys(CART_STATS) as CartType[];
 
   // --- source of truth: the active plot's embedded station ---
   const activePlotCellId = $derived(worldStore.current.activePlotCellId);
@@ -40,8 +56,31 @@
   const stationCheck = $derived(activePlotState ? canBuildStation(activePlotState, money) : { ok: false, message: 'No active plot' });
   const canAffordStation = $derived(money >= STATION_COST);
 
-  // --- train yard placeholder toggle ---
+  // --- train yard panel toggle ---
   let showTrainyard = $state(false);
+
+  // --- local clock, drives countdown display ---
+  let now = $state(Date.now());
+  onMount(() => {
+    const timer = window.setInterval(() => (now = Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  });
+
+  function lacksResources(required: Partial<AgeResources>, available: AgeResources): boolean {
+    return (Object.entries(required) as [keyof AgeResources, number][]).some(([resource, amount]) => available[resource] < amount);
+  }
+
+  // --- fog cells eligible for exploration, nearest first ---
+  const exploreOptions = $derived.by(() => {
+    if (!activePlotCellId) return [];
+    const origin = parseWorldCellId(activePlotCellId);
+    if (!origin) return [];
+    return worldStore.current.cells
+      .filter((c) => !c.discovered)
+      .map((c) => ({ id: c.id, distance: getHexDistance(origin, { q: c.q, r: c.r }) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 12);
+  });
 
   // --- platform selector options (keyed by platform id) ---
   const platformOptions = $derived(
@@ -88,9 +127,101 @@
     debouncedSave();
   }
 
+  function handleBuyEngine(age: Ages) {
+    if (!station || !activePlotState) return;
+    const result = buyEngine(station, activePlotState, age, gameState.current.money);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    gameState.current.money = result.nextMoney ?? gameState.current.money;
+    debouncedSave();
+  }
+
+  function handleBuyCart(cartType: CartType) {
+    if (!station) return;
+    const result = buyCart(station, cartType, gameState.current.money);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    gameState.current.money = result.nextMoney ?? gameState.current.money;
+    debouncedSave();
+  }
+
+  function handlePlaceEngine(age: Ages) {
+    if (!station || !activePlatform) return;
+    const result = placeEngine(station, activePlatform, age);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
+  function handleRemoveTrain() {
+    if (!station || !activePlatform) return;
+    const result = removeTrain(station, activePlatform);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
+  function handleAddCart(train: Train, cartType: CartType) {
+    if (!station) return;
+    const result = addCart(station, train, cartType);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
+  function handleRemoveCart(train: Train, cartType: CartType) {
+    if (!station) return;
+    const result = removeCart(station, train, cartType);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
+  function handleAssignRoute(train: Train, destination: Destination) {
+    const result = assignRoute(train, destination);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
+  function handleDispatch(train: Train) {
+    if (!activePlotState || !activePlotCellId) return;
+    const result = dispatch(train, activePlotState, worldStore.current, activePlotCellId, Date.now());
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
+  function handleDispatchExplore(train: Train, targetCellId: string) {
+    if (!activePlotCellId) return;
+    const result = dispatchExplore(train, worldStore.current, targetCellId, activePlotCellId, Date.now());
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    debouncedSave();
+  }
+
   // Total trains sitting on platforms (train management is deferred, so this is
   // a forward-compatible stat — it will start counting once the train yard lands).
   const assignedTrainCount = $derived(station?.platforms.filter((p) => p.train !== null).length ?? 0);
+  const enRouteCount = $derived(station?.platforms.filter((p) => p.train?.trip).length ?? 0);
 </script>
 
 <section class="station-view">
@@ -114,8 +245,43 @@
     {#if showTrainyard}
       <div class="trainyard-placeholder">
         <h3>Train Yard</h3>
-        <p>Train assignment, carts, and routes are coming soon.</p>
-        <p class="muted">For now, build platforms here — each platform will host one train.</p>
+        {#if station && activePlotState}
+          <div class="build-list">
+            <h4 class="build-title">Engines</h4>
+            {#each AGE_ORDER as age (age)}
+              {@const cost = ENGINE_STATS[age].cost}
+              {@const locked = !isAgeAtLeast(activePlotState.currentAge, age)}
+              {@const unaffordable = money < cost.money || lacksResources(cost.resources, activePlotState.ageResources)}
+              <Button.Root class="build-btn" onclick={() => handleBuyEngine(age)} disabled={locked || unaffordable}>
+                <span>{age} engine</span>
+                <span class="build-cost">
+                  {cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
+                </span>
+              </Button.Root>
+            {/each}
+          </div>
+          <div class="build-list">
+            <h4 class="build-title">Carts</h4>
+            {#each CART_TYPES as cartType (cartType)}
+              {@const cost = CART_STATS[cartType].cost}
+              <Button.Root class="build-btn" onclick={() => handleBuyCart(cartType)} disabled={money < cost.money}>
+                <span>{cartType} cart</span>
+                <span class="build-cost">{cost.money}</span>
+              </Button.Root>
+            {/each}
+          </div>
+          <p class="muted">
+            Pool:
+            {#each Object.entries(station.trainyardInventory.engines).filter(([, count]) => (count ?? 0) > 0) as [age, count] (age)}
+              {count} {age}&nbsp;
+            {/each}
+            {#each Object.entries(station.trainyardInventory.carts).filter(([, count]) => (count ?? 0) > 0) as [cartType, count] (cartType)}
+              {count} {cartType}&nbsp;
+            {/each}
+          </p>
+        {:else}
+          <p class="muted">Build a station first.</p>
+        {/if}
       </div>
     {:else if !station}
       <!-- No station: build CTA -->
@@ -181,6 +347,106 @@
                 <dd>{activePlatform.train ? 'Assigned' : 'None'}</dd>
               </div>
             </dl>
+
+            {#if activePlatform.train}
+              {@const train = activePlatform.train}
+              {#if train.trip}
+                {@const trip = train.trip}
+                <p class="muted">
+                  Traveling · {Math.ceil(getTripRemainingMs(trip, now) / 1000)}s{trip.kind === 'explore' ? ' (exploring)' : ''}
+                </p>
+              {:else}
+                <div class="build-list">
+                  {#each CART_TYPES as cartType (cartType)}
+                    {@const slot = train.carts.find((s) => s.cartType === cartType)}
+                    <div class="cart-row">
+                      <span>{cartType}</span>
+                      <span class="cart-row-controls">
+                        <button type="button" class="qty-btn" onclick={() => handleRemoveCart(train, cartType)} disabled={!slot}>−</button>
+                        <span>{slot?.count ?? 0}</span>
+                        <button
+                          type="button"
+                          class="qty-btn"
+                          onclick={() => handleAddCart(train, cartType)}
+                          disabled={(station?.trainyardInventory.carts[cartType] ?? 0) <= 0 || getTotalCartCount(train) >= ENGINE_STATS[train.engineAge].maxCarts}
+                        >
+                          +
+                        </button>
+                      </span>
+                    </div>
+                  {/each}
+                  <p class="muted">{getTotalCartCount(train)}/{ENGINE_STATS[train.engineAge].maxCarts} carts</p>
+                </div>
+
+                <div class="platform-selector">
+                  <label for="route-select" class="selector-label">Route</label>
+                  <Select.Root
+                    type="single"
+                    value={train.route?.destinationId ?? undefined}
+                    onValueChange={(value) => {
+                      if (typeof value !== 'string') return;
+                      const destination = worldStore.destinations.find((d) => d.id === value);
+                      if (destination) handleAssignRoute(train, destination);
+                    }}
+                  >
+                    <Select.Trigger class="select-trigger" id="route-select">
+                      <span>{worldStore.destinations.find((d) => d.id === train.route?.destinationId)?.name ?? 'No route'}</span>
+                      <span class="select-arrow">▼</span>
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Content class="select-content">
+                        {#each worldStore.destinations as dest (dest.id)}
+                          <Select.Item class="select-item" value={dest.id} label={`${dest.name} · ${dest.type}`}>
+                            {dest.name} · {dest.type}
+                          </Select.Item>
+                        {/each}
+                      </Select.Content>
+                    </Select.Portal>
+                  </Select.Root>
+                </div>
+
+                <div class="platform-selector">
+                  <label for="explore-select" class="selector-label">Explore</label>
+                  <Select.Root
+                    type="single"
+                    value={undefined}
+                    onValueChange={(value) => {
+                      if (typeof value === 'string') handleDispatchExplore(train, value);
+                    }}
+                  >
+                    <Select.Trigger class="select-trigger" id="explore-select">
+                      <span>Send to fog</span>
+                      <span class="select-arrow">▼</span>
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Content class="select-content">
+                        {#each exploreOptions as opt (opt.id)}
+                          <Select.Item class="select-item" value={opt.id} label={`? · distance ${opt.distance}`}>
+                            ? · distance {opt.distance}
+                          </Select.Item>
+                        {/each}
+                      </Select.Content>
+                    </Select.Portal>
+                  </Select.Root>
+                </div>
+
+                <div class="cart-row">
+                  <Button.Root class="build-btn" onclick={() => handleDispatch(train)} disabled={!train.route}>Dispatch</Button.Root>
+                  <Button.Root class="build-btn" onclick={handleRemoveTrain}>Remove train</Button.Root>
+                </div>
+              {/if}
+            {:else}
+              <div class="build-list">
+                {#each AGE_ORDER.filter((age) => (station?.trainyardInventory.engines[age] ?? 0) > 0) as age (age)}
+                  <Button.Root class="build-btn" onclick={() => handlePlaceEngine(age)}>
+                    <span>Place {age} engine</span>
+                    <span class="build-cost">{station?.trainyardInventory.engines[age] ?? 0} in yard</span>
+                  </Button.Root>
+                {:else}
+                  <p class="muted">No engines in the yard. Buy one from the Train Yard.</p>
+                {/each}
+              </div>
+            {/if}
           </article>
         {/if}
 
@@ -191,7 +457,8 @@
             <div class="build-list">
               {#each eligiblePositions as pos (`${pos.northExpansionIndex}-${pos.depth}`)}
                 {@const cost = getPlatformCost(pos.depth, activePlotState?.currentAge ?? 'Mechanical')}
-                <Button.Root class="build-btn" onclick={() => handleBuildPlatform(pos)} disabled={money < cost.money}>
+                {@const missingResources = activePlotState ? lacksResources(cost.resources, activePlotState.ageResources) : false}
+                <Button.Root class="build-btn" onclick={() => handleBuildPlatform(pos)} disabled={money < cost.money || missingResources}>
                   <span>Expansion {toRoman(pos.northExpansionIndex)} · Depth {pos.depth}</span>
                   <span class="build-cost">
                     {cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
@@ -216,7 +483,7 @@
       <span class="footer-stat-label">Trains assigned</span>
     </div>
     <div class="footer-stat">
-      <span class="footer-stat-value">0</span>
+      <span class="footer-stat-value">{enRouteCount}</span>
       <span class="footer-stat-label">En route</span>
     </div>
   </footer>
@@ -485,6 +752,39 @@
   .build-cost {
     font-weight: 700;
     color: var(--mcc-accent);
+  }
+
+  /* cart rows / dispatch controls — reuses build-btn colors at a smaller footprint */
+  .cart-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+
+  .cart-row-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .qty-btn {
+    background: var(--mcc-button-bg);
+    color: var(--mcc-text-main);
+    border: 1px solid var(--mcc-border);
+    border-radius: 6px;
+    width: 1.8rem;
+    height: 1.8rem;
+    cursor: pointer;
+  }
+
+  .qty-btn:hover:not(:disabled) {
+    background: var(--mcc-button-hover);
+  }
+
+  .qty-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   /* FOOTER */
