@@ -139,6 +139,9 @@ const worldStore = {
 
 const plotsStore = {
   _state: structuredClone(initialState.world.plots),
+  get current() {
+    return plotsStore._state;
+  },
   snapshot: vi.fn(() => structuredClone(plotsStore._state)),
   replaceAll: vi.fn((next: Record<WorldCellId, PlotState>) => {
     plotsStore._state = structuredClone(next);

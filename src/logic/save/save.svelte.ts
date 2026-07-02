@@ -10,6 +10,7 @@ import { getInitialState } from '../stateFactory';
 import { isPlotBuilt } from '../mine/mineTypes';
 import { plotsStore } from '../mine/plotsStore.svelte';
 import { worldStore } from '../world/worldStore.svelte';
+import { runTrainCompletion } from '../trainRuntime';
 import { saveStore } from './saveStore.svelte';
 import type { GameState, PersistedGameState } from './saveTypes';
 
@@ -138,6 +139,13 @@ export function loadGame(): void {
     }
 
     applyLoadedState(loaded);
+
+    // Offline catch-up: trips carry absolute timestamps, so one completion
+    // pass over "now" resolves everything that finished while the app was closed.
+    if (runTrainCompletion()) {
+      debouncedSave();
+      log.info('load', 'Completed train trips that finished while offline.');
+    }
 
     if (loaded.settings.defaultView === 'world') {
       navigation.setActiveTab('world');

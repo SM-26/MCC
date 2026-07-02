@@ -13,6 +13,7 @@
   import { applyTheme, watchSystemTheme } from './lib/applyTheme';
   import { debouncedSave } from './logic/save/save.svelte';
   import { engineeringStore } from './logic/engineering/engineeringStore.svelte';
+  import { runTrainCompletion } from './logic/trainRuntime';
 
   import Splash from './components/Splash.svelte';
   import { toastState } from './components/GameTooltip.svelte';
@@ -98,6 +99,12 @@
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
 
+    const trainTimer = window.setInterval(() => {
+      if (runTrainCompletion()) {
+        debouncedSave();
+      }
+    }, 1000);
+
     const stopWatchingSystemTheme = watchSystemTheme(
       () => gameState.current.settings.theme,
       () => gameState.current.settings.userColor,
@@ -113,6 +120,7 @@
 
     return () => {
       window.clearTimeout(splashTimer);
+      window.clearInterval(trainTimer);
       window.removeEventListener('resize', updateScreenSize);
       stopWatchingSystemTheme();
     };
