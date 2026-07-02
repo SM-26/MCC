@@ -103,7 +103,9 @@ export function planCargoLoad(capacity: number, available: AgeResources): Partia
   const byValueDesc = (Object.keys(RESOURCE_VALUE) as (keyof AgeResources)[]).sort((a, b) => RESOURCE_VALUE[b] - RESOURCE_VALUE[a]);
 
   for (const resource of byValueDesc) {
-    if (remaining <= 0) break;
+    if (remaining <= 0) {
+      break;
+    }
     const take = Math.min(remaining, available[resource]);
     if (take > 0) {
       load[resource] = take;

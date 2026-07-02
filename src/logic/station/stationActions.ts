@@ -8,8 +8,11 @@
 
 import { getClearStatus } from '../mine/mineGen';
 import type { AgeResources, Ages, PlotState } from '../mine/mineTypes';
-import { CART_STATS, ENGINE_STATS, getPlatformCost, isAgeAtLeast } from './stationBalance';
-import { createEmptyStation, createPlatform, createTrain, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
+import { getHexDistance } from '../world/hex';
+import { getCellById, parseWorldCellId } from '../world/worldTypes';
+import type { Destination, WorldCellId, WorldState } from '../world/worldTypes';
+import { CART_STATS, ENGINE_STATS, getPlatformCost, getTripDuration, isAgeAtLeast, planCargoLoad } from './stationBalance';
+import { createEmptyStation, createPlatform, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
 import type { CartType, PlatformId, Platform, Station, Train } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
@@ -299,6 +302,97 @@ export function removeCart(station: Station, train: Train, cartType: CartType): 
     train.carts.splice(index, 1);
   }
   station.trainyardInventory.carts[cartType] = (station.trainyardInventory.carts[cartType] ?? 0) + 1;
+
+  return { ok: true };
+}
+
+/** Assign a standing route. The destination must already be discovered. */
+export function assignRoute(train: Train, destination: Destination): ActionResult {
+  if (isTraveling(train)) {
+    return { ok: false, message: 'Train is traveling' };
+  }
+  if (!destination.discovered) {
+    return { ok: false, message: 'Destination not discovered yet' };
+  }
+
+  train.route = { destinationId: destination.id, destinationType: destination.type };
+
+  return { ok: true };
+}
+
+function getCellDistance(fromCellId: WorldCellId, toCellId: WorldCellId): number | null {
+  const from = parseWorldCellId(fromCellId);
+  const to = parseWorldCellId(toCellId);
+  if (!from || !to) {
+    return null;
+  }
+  return getHexDistance(from, to);
+}
+
+/** Manually dispatch the train on its standing route. Cargo is deducted now. */
+export function dispatch(train: Train, plot: PlotState, world: WorldState, plotCellId: WorldCellId, now: number): ActionResult {
+  if (isTraveling(train)) {
+    return { ok: false, message: 'Train is traveling' };
+  }
+  if (!train.route) {
+    return { ok: false, message: 'Assign a route first' };
+  }
+
+  // Destination ids ARE cell ids (see getDestinationFromCell).
+  const targetCellId = train.route.destinationId;
+  const cell = getCellById(world, targetCellId);
+  if (!cell || !cell.discovered) {
+    return { ok: false, message: 'Destination not reachable' };
+  }
+
+  const distance = getCellDistance(plotCellId, targetCellId);
+  if (distance === null || distance === 0) {
+    return { ok: false, message: 'Invalid destination' };
+  }
+
+  const wantsCargo = train.route.destinationType === 'factory' || train.route.destinationType === 'plot';
+  const cargo = wantsCargo ? planCargoLoad(getCartCapacity(train, 'cargo'), plot.ageResources) : {};
+  for (const [resource, amount] of Object.entries(cargo) as [keyof AgeResources, number][]) {
+    plot.ageResources[resource] -= amount;
+  }
+
+  train.trip = {
+    kind: 'route',
+    targetCellId,
+    departedAt: now,
+    durationMs: getTripDuration(distance, train.engineAge, train.engineLevel),
+    cargo,
+  };
+
+  return { ok: true };
+}
+
+/** One-off trip to reveal a fog cell. The standing route is untouched. */
+export function dispatchExplore(train: Train, world: WorldState, targetCellId: WorldCellId, plotCellId: WorldCellId, now: number): ActionResult {
+  if (isTraveling(train)) {
+    return { ok: false, message: 'Train is traveling' };
+  }
+
+  const cell = getCellById(world, targetCellId);
+  if (!cell) {
+    return { ok: false, message: 'No such cell' };
+  }
+  if (cell.discovered) {
+    return { ok: false, message: 'Cell already discovered' };
+  }
+
+  const distance = getCellDistance(plotCellId, targetCellId);
+  if (distance === null || distance === 0) {
+    return { ok: false, message: 'Invalid target' };
+  }
+
+  train.trip = {
+    kind: 'explore',
+    targetCellId,
+    departedAt: now,
+    durationMs: getTripDuration(distance, train.engineAge, train.engineLevel),
+    cargo: {},
+  };
 
   return { ok: true };
 }
