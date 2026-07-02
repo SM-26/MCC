@@ -7,10 +7,10 @@
 // free of store imports.
 
 import { getClearStatus } from '../mine/mineGen';
-import type { AgeResources, PlotState } from '../mine/mineTypes';
-import { getPlatformCost } from './stationBalance';
+import type { AgeResources, Ages, PlotState } from '../mine/mineTypes';
+import { CART_STATS, ENGINE_STATS, getPlatformCost, isAgeAtLeast } from './stationBalance';
 import { createEmptyStation, createPlatform, hasPlatformAtDepth } from './stationTypes';
-import type { PlatformId, Station } from './stationTypes';
+import type { CartType, PlatformId, Station } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
 // requirements can be layered into the signatures later without breaking callers.
@@ -189,5 +189,39 @@ export function buildPlatform(station: Station, plot: PlotState, northExpansionI
   for (const [resource, amount] of Object.entries(cost.resources) as [keyof AgeResources, number][]) {
     plot.ageResources[resource] -= amount;
   }
+  return { ok: true, nextMoney: money - cost.money };
+}
+
+/** Buy an engine into the train yard pool. Gated by the plot's current age. */
+export function buyEngine(station: Station, plot: PlotState, age: Ages, money: number): BuildResult {
+  if (!isAgeAtLeast(plot.currentAge, age)) {
+    return { ok: false, message: `Requires the ${age} age` };
+  }
+
+  const cost = ENGINE_STATS[age].cost;
+  if (money < cost.money) {
+    return { ok: false, message: 'Not enough money for an engine!' };
+  }
+  if (getMissingResources(cost.resources, plot.ageResources).length > 0) {
+    return { ok: false, message: 'Not enough resources for an engine!' };
+  }
+
+  for (const [resource, amount] of Object.entries(cost.resources) as [keyof AgeResources, number][]) {
+    plot.ageResources[resource] -= amount;
+  }
+  station.trainyardInventory.engines[age] = (station.trainyardInventory.engines[age] ?? 0) + 1;
+
+  return { ok: true, nextMoney: money - cost.money };
+}
+
+/** Buy a cart into the train yard pool. */
+export function buyCart(station: Station, cartType: CartType, money: number): BuildResult {
+  const cost = CART_STATS[cartType].cost;
+  if (money < cost.money) {
+    return { ok: false, message: 'Not enough money for a cart!' };
+  }
+
+  station.trainyardInventory.carts[cartType] = (station.trainyardInventory.carts[cartType] ?? 0) + 1;
+
   return { ok: true, nextMoney: money - cost.money };
 }

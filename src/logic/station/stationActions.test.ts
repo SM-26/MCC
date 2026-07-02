@@ -2,8 +2,9 @@
 import { describe, it, expect } from 'vitest';
 import { createEmptyAgeResources, createMineTile } from '../mine/mineTypes';
 import type { MineDepthState, PlotState } from '../mine/mineTypes';
-import { buildPlatform, buildStation, isPlatformDepth } from './stationActions';
-import { getPlatformCost } from './stationBalance';
+import { buildPlatform, buildStation, buyCart, buyEngine, isPlatformDepth } from './stationActions';
+import { createEmptyStation } from './stationTypes';
+import { CART_STATS, ENGINE_STATS, getPlatformCost } from './stationBalance';
 
 export function makeClearedDepth(depth: number): MineDepthState {
   // A 1×1 grid holding a hard-cleared (empty) tile — getClearStatus() === 'hard'.
@@ -59,5 +60,49 @@ describe('buildPlatform cost', () => {
     buildStation(plot, 1000, '0,0');
     const result = buildPlatform(plot.station!, plot, 0, 1, 1000);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('buyEngine', () => {
+  it('buys an engine into the pool, deducting money and resources', () => {
+    const plot = makeTestPlot();
+    const station = createEmptyStation('s1');
+    const result = buyEngine(station, plot, 'Steam', 1000);
+
+    expect(result.ok).toBe(true);
+    expect(result.nextMoney).toBe(1000 - ENGINE_STATS.Steam.cost.money);
+    expect(plot.ageResources.coal).toBe(50 - (ENGINE_STATS.Steam.cost.resources.coal ?? 0));
+    expect(station.trainyardInventory.engines.Steam).toBe(1);
+  });
+
+  it('gates by plot currentAge', () => {
+    const plot = makeTestPlot();
+    plot.currentAge = 'Mechanical';
+    const station = createEmptyStation('s1');
+    expect(buyEngine(station, plot, 'Steam', 99_999).ok).toBe(false);
+  });
+
+  it('rejects on insufficient money or resources', () => {
+    const plot = makeTestPlot();
+    const station = createEmptyStation('s1');
+    expect(buyEngine(station, plot, 'Steam', 10).ok).toBe(false);
+    plot.ageResources.coal = 0;
+    expect(buyEngine(station, plot, 'Steam', 1000).ok).toBe(false);
+    expect(station.trainyardInventory.engines.Steam ?? 0).toBe(0);
+  });
+});
+
+describe('buyCart', () => {
+  it('buys a cart into the pool', () => {
+    const station = createEmptyStation('s1');
+    const result = buyCart(station, 'simple', 1000);
+    expect(result.ok).toBe(true);
+    expect(result.nextMoney).toBe(1000 - CART_STATS.simple.cost.money);
+    expect(station.trainyardInventory.carts.simple).toBe(1);
+  });
+
+  it('rejects on insufficient money', () => {
+    const station = createEmptyStation('s1');
+    expect(buyCart(station, 'simple', 5).ok).toBe(false);
   });
 });
