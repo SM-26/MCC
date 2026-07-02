@@ -5,22 +5,19 @@
 // a result object. Money changes are returned as `nextMoney` for the caller to
 // commit (matching buyMiner / handleNextShaftAction), keeping the action layer
 // free of store imports.
-//
-// Source of truth for station data is the embedded `PlotState.station` — the
-// module-level `stationStore` singleton is intentionally unused.
 
 import { getClearStatus } from '../mine/mineGen';
-import type { PlotState } from '../mine/mineTypes';
+import type { AgeResources, PlotState } from '../mine/mineTypes';
+import { getPlatformCost } from './stationBalance';
 import { createEmptyStation, createPlatform, hasPlatformAtDepth } from './stationTypes';
 import type { PlatformId, Station } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
 // requirements can be layered into the signatures later without breaking callers.
 export const STATION_COST = 200;
-export const PLATFORM_COST = 100;
 
 // Platforms sit 5 depths apart. The foundation is depth 0 (expansion 0 only);
-// every other platform goes at depths 1, 6, 11, 16, ... (depth % 5 === 1).
+// every other platform goes at depths 6, 11, 16, ... (depth % 5 === 1, depth > 5).
 export const PLATFORM_DEPTH_GAP = 5;
 
 export interface ActionResult {
@@ -37,9 +34,13 @@ export interface EligiblePosition {
   depth: number;
 }
 
-/** True for the foundation depth (0) and every 5th depth thereafter (1, 6, 11, ...). */
+/** True for the foundation depth (0) and every 5th depth after 5 (6, 11, 16, ...). */
 export function isPlatformDepth(depth: number): boolean {
-  return depth === 0 || (depth > 0 && depth % PLATFORM_DEPTH_GAP === 1);
+  return depth === 0 || (depth > PLATFORM_DEPTH_GAP && depth % PLATFORM_DEPTH_GAP === 1);
+}
+
+function getMissingResources(required: Partial<AgeResources>, available: AgeResources): (keyof AgeResources)[] {
+  return (Object.entries(required) as [keyof AgeResources, number][]).filter(([resource, amount]) => available[resource] < amount).map(([resource]) => resource);
 }
 
 function platformIdFor(northExpansionIndex: number, depth: number): PlatformId {
@@ -151,8 +152,12 @@ export function canBuildPlatform(station: Station, plot: PlotState, northExpansi
     return { ok: false, message: 'Clear the level first' };
   }
 
-  if (money < PLATFORM_COST) {
+  const cost = getPlatformCost(depth, plot.currentAge);
+  if (money < cost.money) {
     return { ok: false, message: 'Not enough money for a platform!' };
+  }
+  if (getMissingResources(cost.resources, plot.ageResources).length > 0) {
+    return { ok: false, message: 'Not enough resources for a platform!' };
   }
 
   return { ok: true };
@@ -180,5 +185,9 @@ export function buildPlatform(station: Station, plot: PlotState, northExpansionI
 
   station.activePlatformId = platform.id;
 
-  return { ok: true, nextMoney: money - PLATFORM_COST };
+  const cost = getPlatformCost(depth, plot.currentAge);
+  for (const [resource, amount] of Object.entries(cost.resources) as [keyof AgeResources, number][]) {
+    plot.ageResources[resource] -= amount;
+  }
+  return { ok: true, nextMoney: money - cost.money };
 }

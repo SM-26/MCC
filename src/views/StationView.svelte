@@ -9,7 +9,6 @@
   import { getExpansionLabel, toRoman } from '../logic/mine/mineLabels';
   import { getPlatformDisplayName } from '../logic/station/stationTypes';
   import {
-    PLATFORM_COST,
     STATION_COST,
     buildPlatform,
     buildStation,
@@ -17,6 +16,7 @@
     getEligiblePlatformPositions,
     type EligiblePosition,
   } from '../logic/station/stationActions';
+  import { getPlatformCost } from '../logic/station/stationBalance';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import type { Platform } from '../logic/station/stationTypes';
 
@@ -39,7 +39,6 @@
   // --- build affordances ---
   const stationCheck = $derived(activePlotState ? canBuildStation(activePlotState, money) : { ok: false, message: 'No active plot' });
   const canAffordStation = $derived(money >= STATION_COST);
-  const canAffordPlatform = $derived(money >= PLATFORM_COST);
 
   // --- train yard placeholder toggle ---
   let showTrainyard = $state(false);
@@ -188,12 +187,15 @@
         {#if eligiblePositions.length > 0}
           <div class="build-platforms">
             <h4 class="build-title">Build a platform</h4>
-            <p class="muted">Available on hard-cleared levels on the platform grid (depth 0, 1, 6, 11, …).</p>
+            <p class="muted">Available on hard-cleared levels on the platform grid (depth 0, 6, 11, 16, …).</p>
             <div class="build-list">
               {#each eligiblePositions as pos (`${pos.northExpansionIndex}-${pos.depth}`)}
-                <Button.Root class="build-btn" onclick={() => handleBuildPlatform(pos)} disabled={!canAffordPlatform}>
+                {@const cost = getPlatformCost(pos.depth, activePlotState?.currentAge ?? 'Mechanical')}
+                <Button.Root class="build-btn" onclick={() => handleBuildPlatform(pos)} disabled={money < cost.money}>
                   <span>Expansion {toRoman(pos.northExpansionIndex)} · Depth {pos.depth}</span>
-                  <span class="build-cost">{PLATFORM_COST}</span>
+                  <span class="build-cost">
+                    {cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
+                  </span>
                 </Button.Root>
               {/each}
             </div>
