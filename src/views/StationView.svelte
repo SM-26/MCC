@@ -218,8 +218,7 @@
     debouncedSave();
   }
 
-  // Total trains sitting on platforms (train management is deferred, so this is
-  // a forward-compatible stat — it will start counting once the train yard lands).
+  // Trains currently assigned to platforms.
   const assignedTrainCount = $derived(station?.platforms.filter((p) => p.train !== null).length ?? 0);
   const enRouteCount = $derived(station?.platforms.filter((p) => p.train?.trip).length ?? 0);
 </script>

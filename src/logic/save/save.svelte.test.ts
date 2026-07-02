@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TabId } from '../app/navigationTypes';
 import type { PlotState } from '../mine/mineTypes';
 import type { WorldCellId } from '../world/worldTypes';
+import { createEmptyStation, createPlatform, createTrain } from '../station/stationTypes';
+import { getCityPayout } from '../station/stationBalance';
 
 // ── Shared fixture helpers ────────────────────────────────────────────────────
 
@@ -541,6 +543,77 @@ describe('save.svelte.ts', async () => {
     loadGame();
 
     expect(log.error).toHaveBeenCalledWith('load', 'Failed to load game state: Error: boom');
+  });
+
+  it('loadGame resolves an overdue in-flight trip via the real trainRuntime → processTrains path', () => {
+    const cityCell = {
+      id: '2,0',
+      name: 'Big City',
+      type: 'city' as const,
+      q: 2,
+      r: 0,
+      ring: 2,
+      discovered: true,
+    };
+
+    const train = createTrain('train-1', 'Mechanical');
+    train.carts = [{ type: 'passenger', cartType: 'simple', count: 1 }];
+    train.trip = {
+      kind: 'route',
+      targetCellId: '2,0' as WorldCellId,
+      departedAt: 1000, // long overdue vs. any real "now"
+      durationMs: 1000,
+      cargo: {},
+    };
+
+    const stationPlot: PlotState = {
+      ...makeHomePlot(),
+      station: (() => {
+        const station = createEmptyStation('station-0,0');
+        const platform = createPlatform('platform-0', 0, 0);
+        platform.train = train;
+        station.platforms = [platform];
+        return station;
+      })(),
+    };
+
+    const loaded = {
+      money: 100,
+      world: {
+        cells: [makeHomeCell(), cityCell],
+        plots: { '0,0': stationPlot } as Record<WorldCellId, PlotState>,
+        activePlotCellId: '0,0' as WorldCellId | null,
+        inspectedCellId: null as WorldCellId | null,
+      },
+      engineering: { engineeringIdeas: 0, resetCount: 0, maxNorthExpansions: 1, maxUndergroundLevels: 0 },
+      settings: {
+        navbarPosition: 'top' as const,
+        defaultView: 'world' as const,
+        devMode: false,
+        soundEnabled: true,
+        notificationsEnabled: true,
+        theme: 'dark' as const,
+        worldSeed: 'seed',
+      },
+      navigation: {
+        activeTab: 'world' as TabId,
+        tabs: ['world', 'mine', 'station', 'engineering', 'settings'] as TabId[],
+        showLabels: true,
+        showEmojis: true,
+        showActiveLabel: true,
+      },
+    };
+
+    saveStore.current.lastSaveMetadata = { saveVersion: '1.0.0' };
+    saveStore.loadFromLocalStorage.mockReturnValueOnce(loaded);
+
+    loadGame();
+
+    const restoredTrain = plotsStore.current['0,0'].station!.platforms[0].train!;
+    expect(restoredTrain.trip).toBeNull();
+
+    const expectedPayout = getCityPayout(2, train.carts);
+    expect(gameState.current.money).toBe(loaded.money + expectedPayout);
   });
 
   // ── manualSave error ──────────────────────────────────────────────────────
