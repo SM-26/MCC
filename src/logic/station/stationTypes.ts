@@ -1,13 +1,12 @@
 // src/logic/station/stationTypes.ts
 
-import type { Ages } from '../mine/mineTypes';
-import type { Route } from '../world/worldTypes';
+import type { Ages, AgeResources } from '../mine/mineTypes';
+import type { Route, WorldCellId } from '../world/worldTypes';
+import { CART_STATS } from './stationBalance';
 
 export type StationId = string;
 export type PlatformId = string;
 export type TrainId = string;
-
-export type TrainState = 'idle' | 'traveling' | 'arrived';
 
 export type CartRole = 'passenger' | 'cargo';
 
@@ -32,15 +31,22 @@ export interface TrainyardInventory {
   carts: Partial<Record<CartType, number>>; // default: {}
 }
 
+/** An in-flight round trip. Everything resolves at completion (return). */
+export interface Trip {
+  kind: 'route' | 'explore';
+  targetCellId: WorldCellId;
+  departedAt: number; // epoch ms
+  durationMs: number; // full round trip
+  cargo: Partial<AgeResources>; // deducted from the plot at dispatch, resolved at completion
+}
+
 export interface Train {
   id: TrainId;
   engineAge: Ages;
-  engineLevel: number; // default: 1
+  engineLevel: number; // default: 1 — upgrade action deferred
   carts: CartSlot[]; // default: []
-  state: TrainState; // default: 'idle'
-  route: Route | null; // default: null
-  remainingTime: number; // default: 0
-  totalTripTime: number; // default: 0
+  route: Route | null; // standing assignment, survives between trips
+  trip: Trip | null; // default: null — null means idle at platform
 }
 
 export interface CartSlot {
@@ -80,10 +86,48 @@ export function createTrain(id: TrainId, engineAge: Ages): Train {
     engineAge,
     engineLevel: 1,
     carts: [],
-    state: 'idle',
     route: null,
-    remainingTime: 0,
-    totalTripTime: 0,
+    trip: null,
+  };
+}
+
+export function isTraveling(train: Train): boolean {
+  return train.trip !== null;
+}
+
+export function getTotalCartCount(train: Train): number {
+  return train.carts.reduce((sum, slot) => sum + slot.count, 0);
+}
+
+export function getCartCapacity(train: Train, role: CartRole): number {
+  return train.carts.filter((slot) => CART_STATS[slot.cartType].role === role).reduce((sum, slot) => sum + CART_STATS[slot.cartType].capacity * slot.count, 0);
+}
+
+export function getTripRemainingMs(trip: Trip, now: number): number {
+  return Math.max(0, trip.departedAt + trip.durationMs - now);
+}
+
+export function cloneTrain(train: Train): Train {
+  return {
+    ...train,
+    carts: train.carts.map((slot) => ({ ...slot })),
+    route: train.route ? { ...train.route } : null,
+    trip: train.trip ? { ...train.trip, cargo: { ...train.trip.cargo } } : null,
+  };
+}
+
+export function cloneStation(station: Station): Station {
+  return {
+    id: station.id,
+    activePlatformId: station.activePlatformId,
+    platforms: station.platforms.map((platform) => ({
+      ...platform,
+      train: platform.train ? cloneTrain(platform.train) : null,
+    })),
+    trainyardInventory: {
+      engines: { ...station.trainyardInventory.engines },
+      carts: { ...station.trainyardInventory.carts },
+    },
   };
 }
 

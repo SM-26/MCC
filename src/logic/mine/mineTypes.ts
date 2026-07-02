@@ -1,6 +1,7 @@
 // src/logic/mine/mineTypes.ts
 
 import type { Station } from '../station/stationTypes';
+import { cloneStation } from '../station/stationTypes';
 
 export type Ages = 'Mechanical' | 'Steam' | 'Diesel' | 'Electric' | 'Maglev';
 
@@ -116,7 +117,7 @@ export function clonePlotState(plot: PlotState): PlotState {
     ageResources: { ...plot.ageResources },
     mineshafts: plot.mineshafts.map(cloneMineshaft),
     activeMineshaftIndex: plot.activeMineshaftIndex,
-    station: plot.station ? { ...plot.station } : null,
+    station: plot.station ? cloneStation(plot.station) : null,
   };
 }
 
