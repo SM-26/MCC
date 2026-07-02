@@ -9,8 +9,8 @@
 import { getClearStatus } from '../mine/mineGen';
 import type { AgeResources, Ages, PlotState } from '../mine/mineTypes';
 import { CART_STATS, ENGINE_STATS, getPlatformCost, isAgeAtLeast } from './stationBalance';
-import { createEmptyStation, createPlatform, hasPlatformAtDepth } from './stationTypes';
-import type { CartType, PlatformId, Station } from './stationTypes';
+import { createEmptyStation, createPlatform, createTrain, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
+import type { CartType, PlatformId, Platform, Station, Train } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
 // requirements can be layered into the signatures later without breaking callers.
@@ -224,4 +224,81 @@ export function buyCart(station: Station, cartType: CartType, money: number): Bu
   station.trainyardInventory.carts[cartType] = (station.trainyardInventory.carts[cartType] ?? 0) + 1;
 
   return { ok: true, nextMoney: money - cost.money };
+}
+
+/** Take an engine from the pool and create this platform's train. */
+export function placeEngine(station: Station, platform: Platform, age: Ages): ActionResult {
+  if (platform.train) {
+    return { ok: false, message: 'Platform already has a train' };
+  }
+  if ((station.trainyardInventory.engines[age] ?? 0) <= 0) {
+    return { ok: false, message: 'No such engine in the yard' };
+  }
+
+  station.trainyardInventory.engines[age] = (station.trainyardInventory.engines[age] ?? 0) - 1;
+  platform.train = createTrain(`train-${platform.id}`, age);
+
+  return { ok: true };
+}
+
+/** Disassemble the platform's train; engine and carts return to the pool. */
+export function removeTrain(station: Station, platform: Platform): ActionResult {
+  const train = platform.train;
+  if (!train) {
+    return { ok: false, message: 'No train on this platform' };
+  }
+  if (isTraveling(train)) {
+    return { ok: false, message: 'Train is traveling' };
+  }
+
+  station.trainyardInventory.engines[train.engineAge] = (station.trainyardInventory.engines[train.engineAge] ?? 0) + 1;
+  for (const slot of train.carts) {
+    station.trainyardInventory.carts[slot.cartType] = (station.trainyardInventory.carts[slot.cartType] ?? 0) + slot.count;
+  }
+  platform.train = null;
+
+  return { ok: true };
+}
+
+/** Attach one cart from the pool, merging into an existing slot of the same type. */
+export function addCart(station: Station, train: Train, cartType: CartType): ActionResult {
+  if (isTraveling(train)) {
+    return { ok: false, message: 'Train is traveling' };
+  }
+  if ((station.trainyardInventory.carts[cartType] ?? 0) <= 0) {
+    return { ok: false, message: 'No such cart in the yard' };
+  }
+  if (getTotalCartCount(train) >= ENGINE_STATS[train.engineAge].maxCarts) {
+    return { ok: false, message: 'Engine is at max carts' };
+  }
+
+  station.trainyardInventory.carts[cartType] = (station.trainyardInventory.carts[cartType] ?? 0) - 1;
+  const slot = train.carts.find((candidate) => candidate.cartType === cartType);
+  if (slot) {
+    slot.count += 1;
+  } else {
+    train.carts.push({ type: CART_STATS[cartType].role, cartType, count: 1 });
+  }
+
+  return { ok: true };
+}
+
+/** Detach one cart back to the pool. */
+export function removeCart(station: Station, train: Train, cartType: CartType): ActionResult {
+  if (isTraveling(train)) {
+    return { ok: false, message: 'Train is traveling' };
+  }
+  const index = train.carts.findIndex((candidate) => candidate.cartType === cartType);
+  if (index === -1) {
+    return { ok: false, message: 'No such cart on this train' };
+  }
+
+  const slot = train.carts[index];
+  slot.count -= 1;
+  if (slot.count <= 0) {
+    train.carts.splice(index, 1);
+  }
+  station.trainyardInventory.carts[cartType] = (station.trainyardInventory.carts[cartType] ?? 0) + 1;
+
+  return { ok: true };
 }

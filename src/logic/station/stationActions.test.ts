@@ -2,8 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { createEmptyAgeResources, createMineTile } from '../mine/mineTypes';
 import type { MineDepthState, PlotState } from '../mine/mineTypes';
-import { buildPlatform, buildStation, buyCart, buyEngine, isPlatformDepth } from './stationActions';
-import { createEmptyStation } from './stationTypes';
+import { addCart, buildPlatform, buildStation, buyCart, buyEngine, isPlatformDepth, placeEngine, removeCart, removeTrain } from './stationActions';
+import { createEmptyStation, createPlatform } from './stationTypes';
 import { CART_STATS, ENGINE_STATS, getPlatformCost } from './stationBalance';
 
 export function makeClearedDepth(depth: number): MineDepthState {
@@ -104,5 +104,63 @@ describe('buyCart', () => {
   it('rejects on insufficient money', () => {
     const station = createEmptyStation('s1');
     expect(buyCart(station, 'simple', 5).ok).toBe(false);
+  });
+});
+
+function makeYard() {
+  const station = createEmptyStation('s1');
+  const platform = createPlatform('p1', 0, 0);
+  station.platforms.push(platform);
+  station.trainyardInventory.engines.Mechanical = 1;
+  station.trainyardInventory.carts.simple = 3;
+  return { station, platform };
+}
+
+describe('placeEngine / removeTrain', () => {
+  it('moves an engine from pool to platform and back', () => {
+    const { station, platform } = makeYard();
+
+    expect(placeEngine(station, platform, 'Mechanical').ok).toBe(true);
+    expect(platform.train?.engineAge).toBe('Mechanical');
+    expect(station.trainyardInventory.engines.Mechanical).toBe(0);
+    expect(placeEngine(station, platform, 'Mechanical').ok).toBe(false); // occupied + empty pool
+
+    expect(addCart(station, platform.train!, 'simple').ok).toBe(true);
+    expect(removeTrain(station, platform).ok).toBe(true);
+    expect(platform.train).toBeNull();
+    expect(station.trainyardInventory.engines.Mechanical).toBe(1);
+    expect(station.trainyardInventory.carts.simple).toBe(3); // cart returned too
+  });
+
+  it('blocks removal while traveling', () => {
+    const { station, platform } = makeYard();
+    placeEngine(station, platform, 'Mechanical');
+    platform.train!.trip = { kind: 'route', targetCellId: '1,0', departedAt: 0, durationMs: 9_999, cargo: {} };
+    expect(removeTrain(station, platform).ok).toBe(false);
+  });
+});
+
+describe('addCart / removeCart', () => {
+  it('respects the engine maxCarts and pool stock', () => {
+    const { station, platform } = makeYard();
+    placeEngine(station, platform, 'Mechanical'); // maxCarts: 2
+    const train = platform.train!;
+
+    expect(addCart(station, train, 'simple').ok).toBe(true);
+    expect(addCart(station, train, 'simple').ok).toBe(true);
+    expect(addCart(station, train, 'simple').ok).toBe(false); // maxCarts hit
+    expect(train.carts).toEqual([{ type: 'passenger', cartType: 'simple', count: 2 }]);
+    expect(station.trainyardInventory.carts.simple).toBe(1);
+
+    expect(removeCart(station, train, 'simple').ok).toBe(true);
+    expect(train.carts[0].count).toBe(1);
+    expect(station.trainyardInventory.carts.simple).toBe(2);
+    expect(removeCart(station, train, 'cargo').ok).toBe(false); // none attached
+  });
+
+  it('rejects when the pool has no such cart', () => {
+    const { station, platform } = makeYard();
+    placeEngine(station, platform, 'Mechanical');
+    expect(addCart(station, platform.train!, 'luxury').ok).toBe(false);
   });
 });
