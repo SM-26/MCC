@@ -13,6 +13,7 @@
     "noEmit": true,
     "allowJs": true,
     "checkJs": true,
+    "resolveJsonModule": true,
     "moduleDetection": "force"
   },
   "include": [

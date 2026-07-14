@@ -1,6 +1,6 @@
 // src/logic/save/save.svelte.ts
 
-import appVersion from '../../assets/version.txt?raw';
+import { version as appVersion } from '../../../package.json';
 import gitInfo from '../../assets/git-info.txt?raw';
 import { log } from '../../lib/logger';
 import { gameState } from '../app/gameState.svelte';

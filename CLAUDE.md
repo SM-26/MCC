@@ -56,7 +56,7 @@ Use `$state.snapshot(store.current)` when you need a plain-object copy (e.g. bef
 - Key: `mcc_save` in `localStorage`
 - Entry point: `src/logic/save/save.svelte.ts` (`loadGame`, `debouncedSave`, `manualSave`, `resetProgress`)
 - Autosave is debounced 500 ms and only fires after the splash screen clears
-- Save version is read from `src/assets/version.txt` at build time via Vite's `?raw` import
+- Save version is read from `package.json`'s `version`; the commit hash/message come from `src/assets/git-info.txt`, generated at dev/build start by `gitInfoPlugin` in `vite.config.ts` (git-ignored, not committed)
 
 ## Mine state hierarchy
 

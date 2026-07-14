@@ -31,3 +31,6 @@ Thumbs.db
 .agents/
 docs/superpowers/
 .superpowers
+
+# Generated at build time by gitInfoPlugin (vite.config.ts)
+src/assets/git-info.txt

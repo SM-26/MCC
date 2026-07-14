@@ -16,7 +16,7 @@
   import type { NavPosition } from '../logic/app/navigationTypes';
   import type { ThemeMode } from '../logic/app/settingsTypes';
 
-  import appVersion from '../assets/version.txt?raw';
+  import { version as appVersion } from '../../package.json';
   import gitInfo from '../assets/git-info.txt?raw';
 
   const [commitHash, commitMessage] = gitInfo.trim().split('\n');

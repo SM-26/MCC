@@ -15,6 +15,11 @@ updates:
       all-dependencies:
         patterns:
           - "*"
+    # TS7 is the native (Go) port with no JS compiler API; svelte-check needs
+    # that API, so major bumps past 6.x break `pnpm check`. Stay on the 6.x line.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "pnpm"
