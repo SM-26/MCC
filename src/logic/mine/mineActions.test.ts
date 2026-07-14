@@ -2,7 +2,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { plotsStore } from './plotsStore.svelte';
 import { isPlotBuilt } from './mineTypes';
-import { BUILD_COAL_COST, BUILD_MONEY_COST, ensurePlotScaffold, tryBuildPlot } from './mineActions';
+import type { Miner, Mineshaft } from './mineTypes';
+import { generatePlot } from './mineGen';
+import { BUILD_COAL_COST, BUILD_MONEY_COST, digDeeper, ensurePlotScaffold, tryBuildPlot } from './mineActions';
 
 const TEST_CELL = 'test-cell-1';
 const SEED = 'test-seed';
@@ -93,5 +95,48 @@ describe('tryBuildPlot', () => {
     plotsStore.get(TEST_CELL)!.ageResources.coal = BUILD_COAL_COST;
     const result = tryBuildPlot(TEST_CELL, SEED, RESET_COUNT, BUILD_MONEY_COST);
     expect(result).toEqual({ ok: true, nextMoney: 0 });
+  });
+});
+
+describe('digDeeper', () => {
+  function makeClearedShaft(minerCount: number): Mineshaft {
+    const mineDepth = generatePlot(SEED, RESET_COUNT, 0, 0);
+    // Fully clear the depth so getClearStatus reports 'hard'.
+    mineDepth.tiles = mineDepth.tiles.map((row) =>
+      row.map((tile) => ({ ...tile, type: 'empty' as const, hp: 0 })),
+    );
+    const miners: Miner[] = Array.from({ length: minerCount }, (_, i) => ({
+      level: 1,
+      tileIndex: i,
+      facing: 0,
+      progress: 0,
+    }));
+    mineDepth.miners = miners;
+
+    return {
+      mineDepths: [mineDepth],
+      selectedMiner: null,
+      draggedMiner: null,
+      lastTick: 0,
+      activeDepthIndex: 0,
+    };
+  }
+
+  it('refuses to dig deeper when miners outnumber the next depth\'s empty tiles', () => {
+    const shaft = makeClearedShaft(6); // next depth only has 5 empty (bottom-row) tiles
+    const result = digDeeper(SEED, RESET_COUNT, 0, shaft);
+    expect(result.ok).toBe(false);
+    expect(shaft.mineDepths).toHaveLength(1);
+  });
+
+  it('digs deeper and gives every miner a unique tile when miners fit', () => {
+    const shaft = makeClearedShaft(5);
+    const result = digDeeper(SEED, RESET_COUNT, 0, shaft);
+    expect(result.ok).toBe(true);
+    expect(shaft.mineDepths).toHaveLength(2);
+
+    const nextMine = shaft.mineDepths[1];
+    const tileIndices = nextMine.miners.map((m) => m.tileIndex);
+    expect(new Set(tileIndices).size).toBe(tileIndices.length);
   });
 });

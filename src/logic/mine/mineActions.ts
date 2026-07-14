@@ -194,9 +194,17 @@ export function digDeeper(worldSeed: string, resetCount: number, activeShaftInde
       .filter((index) => index !== -1),
   );
 
-  nextMine.miners = activeMine.miners.map((miner, minerIndex) => ({
+  if (activeMine.miners.length > validMinerTiles.size) {
+    return { ok: false, message: 'Not enough room below—sell or merge miners before digging deeper!' };
+  }
+
+  const freeTiles = [...validMinerTiles].filter(
+    (index) => !activeMine.miners.some((miner) => validMinerTiles.has(miner.tileIndex) && miner.tileIndex === index),
+  );
+
+  nextMine.miners = activeMine.miners.map((miner) => ({
     ...miner,
-    tileIndex: validMinerTiles.has(miner.tileIndex) ? miner.tileIndex : ([...validMinerTiles][minerIndex] ?? 0),
+    tileIndex: validMinerTiles.has(miner.tileIndex) ? miner.tileIndex : (freeTiles.shift() ?? 0),
   }));
 
   activeMineshaft.mineDepths.push(nextMine);
