@@ -207,7 +207,7 @@ describe('dispatch', () => {
       kind: 'route',
       targetCellId: '3,0',
       departedAt: 5_000,
-      durationMs: getTripDuration(3, 'Mechanical', 1),
+      durationMs: getTripDuration(3, 'Mechanical', 1, 2), // 2 carts (simple + cargo) add weight
       cargo: { coal: 10 }, // cargo capacity 10, greedy from 50 coal
     });
     expect(plot.ageResources.coal).toBe(40); // deducted at dispatch
@@ -250,5 +250,13 @@ describe('dispatchExplore', () => {
     const world = makeWorld([makeCell('0,0', 'plot'), makeCell('1,0', 'city', true)]);
     expect(dispatchExplore(train, world, '1,0', '0,0', 0).ok).toBe(false);
     expect(dispatchExplore(train, world, '9,9', '0,0', 0).ok).toBe(false);
+  });
+
+  it('rejects a tile already being explored by another train', () => {
+    const train = makeReadyTrain();
+    const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', false)]);
+    const occupied = new Set(['0,4']);
+    expect(dispatchExplore(train, world, '0,4', '0,0', 1_000, occupied).ok).toBe(false);
+    expect(train.trip).toBeNull();
   });
 });

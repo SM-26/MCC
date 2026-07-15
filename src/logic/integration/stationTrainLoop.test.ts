@@ -57,7 +57,7 @@ describe('station train loop', () => {
     // Route + dispatch at t=0.
     expect(assignRoute(platform.train!, { id: '2,0', name: 'City', type: 'city', distance: 0, basePayout: 0, discovered: true }).ok).toBe(true);
     expect(dispatch(platform.train!, plot, world, '0,0', 0).ok).toBe(true);
-    const duration = getTripDuration(2, 'Mechanical', 1);
+    const duration = getTripDuration(2, 'Mechanical', 1, 1); // 1 simple cart adds weight
 
     // Mid-trip: nothing completes.
     const mid = processTrains({ '0,0': plot }, world, money, duration - 1);

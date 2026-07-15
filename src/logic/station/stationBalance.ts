@@ -71,13 +71,22 @@ export function getPlatformCost(depth: number, currentAge: Ages): { money: numbe
   return { money, resources: { [resource]: Math.ceil(depth / 2) } };
 }
 
+// ── Travel-time tuning (adjust these for balancing) ────────────────────────
 /** Base one-way travel time per hex cell at speed 1; a trip is out + back. */
 const BASE_MS_PER_CELL = 30_000;
+/** Each engine level above 1 adds this fraction to speed. */
 const LEVEL_SPEED_BONUS = 0.1;
+/** Each cart adds this fraction to travel time (weight). 0 = carts are free. */
+export const CART_WEIGHT_PENALTY = 0.2;
 
-export function getTripDuration(distanceInCells: number, engineAge: Ages, engineLevel: number): number {
+/**
+ * Round-trip duration in ms. Faster with engine speed/level, slower with cart
+ * weight. Baseline: ring 1, Mechanical, level 1, no carts → 60s.
+ */
+export function getTripDuration(distanceInCells: number, engineAge: Ages, engineLevel: number, cartCount = 0): number {
   const speed = ENGINE_STATS[engineAge].speed * (1 + LEVEL_SPEED_BONUS * (engineLevel - 1));
-  return (2 * distanceInCells * BASE_MS_PER_CELL) / speed;
+  const weight = 1 + CART_WEIGHT_PENALTY * cartCount;
+  return (2 * distanceInCells * BASE_MS_PER_CELL * weight) / speed;
 }
 
 const CITY_BASE_PAYOUT = 10;

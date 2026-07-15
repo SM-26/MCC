@@ -360,17 +360,64 @@ export function dispatch(train: Train, plot: PlotState, world: WorldState, plotC
     kind: 'route',
     targetCellId,
     departedAt: now,
-    durationMs: getTripDuration(distance, train.engineAge, train.engineLevel),
+    durationMs: getTripDuration(distance, train.engineAge, train.engineLevel, getTotalCartCount(train)),
     cargo,
   };
 
   return { ok: true };
 }
 
-/** One-off trip to reveal a fog cell. The standing route is untouched. */
-export function dispatchExplore(train: Train, world: WorldState, targetCellId: WorldCellId, plotCellId: WorldCellId, now: number): ActionResult {
+/** First idle (not traveling) train across the plot's station, or null. */
+export function findIdleTrain(plot: PlotState | null): Train | null {
+  for (const platform of plot?.station?.platforms ?? []) {
+    if (platform.train && !isTraveling(platform.train)) {
+      return platform.train;
+    }
+  }
+  return null;
+}
+
+/** Predicted round-trip ms for `train` from the plot to `targetCellId`, or null if unreachable. */
+export function getTravelEta(train: Train, plotCellId: WorldCellId, targetCellId: WorldCellId): number | null {
+  const distance = getCellDistance(plotCellId, targetCellId);
+  if (distance === null || distance === 0) {
+    return null;
+  }
+  return getTripDuration(distance, train.engineAge, train.engineLevel, getTotalCartCount(train));
+}
+
+/** Cell ids currently targeted by an in-flight explore trip across all plots. */
+export function getActiveExploreTargets(plots: Record<WorldCellId, PlotState>): Set<WorldCellId> {
+  const targets = new Set<WorldCellId>();
+  for (const plot of Object.values(plots)) {
+    for (const platform of plot.station?.platforms ?? []) {
+      const trip = platform.train?.trip;
+      if (trip?.kind === 'explore') {
+        targets.add(trip.targetCellId);
+      }
+    }
+  }
+  return targets;
+}
+
+/**
+ * One-off trip to reveal a fog cell. The standing route is untouched.
+ * `occupiedTargets` blocks sending a second train to a tile already being explored.
+ */
+export function dispatchExplore(
+  train: Train,
+  world: WorldState,
+  targetCellId: WorldCellId,
+  plotCellId: WorldCellId,
+  now: number,
+  occupiedTargets: Set<WorldCellId> = new Set(),
+): ActionResult {
   if (isTraveling(train)) {
     return { ok: false, message: 'Train is traveling' };
+  }
+
+  if (occupiedTargets.has(targetCellId)) {
+    return { ok: false, message: 'A train is already exploring that tile' };
   }
 
   const cell = getCellById(world, targetCellId);
@@ -390,7 +437,7 @@ export function dispatchExplore(train: Train, world: WorldState, targetCellId: W
     kind: 'explore',
     targetCellId,
     departedAt: now,
-    durationMs: getTripDuration(distance, train.engineAge, train.engineLevel),
+    durationMs: getTripDuration(distance, train.engineAge, train.engineLevel, getTotalCartCount(train)),
     cargo: {},
   };
 

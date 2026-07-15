@@ -8,9 +8,8 @@
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { worldStore } from '../logic/world/worldStore.svelte';
   import { getExpansionLabel, toRoman } from '../logic/mine/mineLabels';
-  import { getHexDistance } from '../logic/world/hex';
-  import { parseWorldCellId } from '../logic/world/worldTypes';
-  import { getPlatformDisplayName, getTotalCartCount, getTripRemainingMs } from '../logic/station/stationTypes';
+  import { getCartCapacity, getPlatformDisplayName, getTotalCartCount, getTripRemainingMs } from '../logic/station/stationTypes';
+  import { getCellById } from '../logic/world/worldTypes';
   import {
     STATION_COST,
     buildPlatform,
@@ -25,10 +24,10 @@
     removeCart,
     assignRoute,
     dispatch,
-    dispatchExplore,
+    getTravelEta,
     type EligiblePosition,
   } from '../logic/station/stationActions';
-  import { AGE_ORDER, ENGINE_STATS, CART_STATS, isAgeAtLeast, getPlatformCost } from '../logic/station/stationBalance';
+  import { AGE_ORDER, ENGINE_STATS, CART_STATS, isAgeAtLeast, getPlatformCost, getCityPayout, getCargoSaleValue, planCargoLoad } from '../logic/station/stationBalance';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import type { Platform, Train, CartType } from '../logic/station/stationTypes';
   import type { Ages, AgeResources } from '../logic/mine/mineTypes';
@@ -70,17 +69,17 @@
     return (Object.entries(required) as [keyof AgeResources, number][]).some(([resource, amount]) => available[resource] < amount);
   }
 
-  // --- fog cells eligible for exploration, nearest first ---
-  const exploreOptions = $derived.by(() => {
-    if (!activePlotCellId) return [];
-    const origin = parseWorldCellId(activePlotCellId);
-    if (!origin) return [];
-    return worldStore.current.cells
-      .filter((c) => !c.discovered)
-      .map((c) => ({ id: c.id, distance: getHexDistance(origin, { q: c.q, r: c.r }) }))
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 12);
-  });
+  /** "need $150, 15 coal" for the shortfall on a cost, or '' when affordable. */
+  function missingLabel(cost: { money: number; resources: Partial<AgeResources> }, available: AgeResources | undefined): string {
+    const parts: string[] = [];
+    if (money < cost.money) parts.push(`$${cost.money - money}`);
+    if (available) {
+      for (const [resource, amount] of Object.entries(cost.resources) as [keyof AgeResources, number][]) {
+        if (available[resource] < amount) parts.push(`${amount - available[resource]} ${resource}`);
+      }
+    }
+    return parts.length ? `need ${parts.join(', ')}` : '';
+  }
 
   // --- platform selector options (keyed by platform id) ---
   const platformOptions = $derived(
@@ -89,6 +88,9 @@
       label: platformLabel(p),
     })),
   );
+
+  // Route destinations exclude this plot itself — you can't send a train home.
+  const routeDestinations = $derived(worldStore.destinations.filter((d) => d.id !== activePlotCellId));
 
   function platformLabel(p: Platform): string {
     // Cross-expansion label: expansion as Roman numeral + depth, plus the
@@ -208,14 +210,30 @@
     debouncedSave();
   }
 
-  function handleDispatchExplore(train: Train, targetCellId: string) {
-    if (!activePlotCellId) return;
-    const result = dispatchExplore(train, worldStore.current, targetCellId, activePlotCellId, Date.now());
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
+  interface TripPreview {
+    etaSec: number | null;
+    reward: string;
+  }
+
+  /** Live "what dispatch will do" for the current route — recomputes as carts/resources change, locks in on dispatch. */
+  function tripPreview(train: Train): TripPreview | null {
+    const destId = train.route?.destinationId;
+    if (!destId || !activePlotCellId) return null;
+    const cell = getCellById(worldStore.current, destId);
+    if (!cell) return null;
+
+    const etaMs = getTravelEta(train, activePlotCellId, destId);
+    const etaSec = etaMs !== null ? Math.ceil(etaMs / 1000) : null;
+
+    if (cell.type === 'city') {
+      return { etaSec, reward: `$${getCityPayout(cell.ring, train.carts)}` };
     }
-    debouncedSave();
+    const cargo = activePlotState ? planCargoLoad(getCartCapacity(train, 'cargo'), activePlotState.ageResources) : {};
+    const units = Object.values(cargo).reduce((sum, n) => sum + (n ?? 0), 0);
+    if (cell.type === 'factory') {
+      return { etaSec, reward: `$${getCargoSaleValue(cargo)} (${units} cargo)` };
+    }
+    return { etaSec, reward: `delivers ${units} cargo` };
   }
 
   // Trains currently assigned to platforms.
@@ -250,9 +268,9 @@
             {#each AGE_ORDER as age (age)}
               {@const cost = ENGINE_STATS[age].cost}
               {@const locked = !isAgeAtLeast(activePlotState.currentAge, age)}
-              {@const unaffordable = money < cost.money || lacksResources(cost.resources, activePlotState.ageResources)}
-              <Button.Root class="build-btn" onclick={() => handleBuyEngine(age)} disabled={locked || unaffordable}>
-                <span>{age} engine</span>
+              {@const missing = missingLabel(cost, activePlotState.ageResources)}
+              <Button.Root class="build-btn" onclick={() => handleBuyEngine(age)} disabled={locked || missing !== ''}>
+                <span>{age} engine{#if locked}&nbsp;<span class="build-missing">(locked)</span>{:else if missing}&nbsp;<span class="build-missing">({missing})</span>{/if}</span>
                 <span class="build-cost">
                   {cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
                 </span>
@@ -394,7 +412,7 @@
                     </Select.Trigger>
                     <Select.Portal>
                       <Select.Content class="select-content">
-                        {#each worldStore.destinations as dest (dest.id)}
+                        {#each routeDestinations as dest (dest.id)}
                           <Select.Item class="select-item" value={dest.id} label={`${dest.name} · ${dest.type}`}>
                             {dest.name} · {dest.type}
                           </Select.Item>
@@ -404,30 +422,17 @@
                   </Select.Root>
                 </div>
 
-                <div class="platform-selector">
-                  <label for="explore-select" class="selector-label">Explore</label>
-                  <Select.Root
-                    type="single"
-                    value={undefined}
-                    onValueChange={(value) => {
-                      if (typeof value === 'string') handleDispatchExplore(train, value);
-                    }}
-                  >
-                    <Select.Trigger class="select-trigger" id="explore-select">
-                      <span>Send to fog</span>
-                      <span class="select-arrow">▼</span>
-                    </Select.Trigger>
-                    <Select.Portal>
-                      <Select.Content class="select-content">
-                        {#each exploreOptions as opt (opt.id)}
-                          <Select.Item class="select-item" value={opt.id} label={`? · distance ${opt.distance}`}>
-                            ? · distance {opt.distance}
-                          </Select.Item>
-                        {/each}
-                      </Select.Content>
-                    </Select.Portal>
-                  </Select.Root>
-                </div>
+                <p class="muted">Explore fog from the World map — pick a hidden tile there to send an idle train.</p>
+
+                {#if train.route}
+                  {@const preview = tripPreview(train)}
+                  {#if preview}
+                    <div class="trip-preview">
+                      <span class="trip-stat">ETA <b>{preview.etaSec !== null ? `~${preview.etaSec}s` : '—'}</b></span>
+                      <span class="trip-stat">Trip pays <b>{preview.reward}</b></span>
+                    </div>
+                  {/if}
+                {/if}
 
                 <div class="cart-row">
                   <Button.Root class="build-btn" onclick={() => handleDispatch(train)} disabled={!train.route}>Dispatch</Button.Root>
@@ -751,6 +756,30 @@
   .build-cost {
     font-weight: 700;
     color: var(--mcc-accent);
+  }
+
+  .build-missing {
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--mcc-text-muted);
+  }
+
+  .trip-preview {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--spacing-xs);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--mcc-tile-empty, #262626);
+    border: 1px solid var(--mcc-border);
+    font-size: 0.85rem;
+    color: var(--mcc-text-muted);
+  }
+
+  .trip-stat b {
+    color: var(--mcc-accent);
+    font-variant-numeric: tabular-nums;
   }
 
   /* cart rows / dispatch controls — reuses build-btn colors at a smaller footprint */

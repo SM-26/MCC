@@ -49,6 +49,14 @@ describe('getTripDuration', () => {
   it('gets faster with engine level', () => {
     expect(getTripDuration(4, 'Mechanical', 2)).toBeLessThan(getTripDuration(4, 'Mechanical', 1));
   });
+
+  it('baseline: ring 1, Mechanical, level 1, no carts is 60s', () => {
+    expect(getTripDuration(1, 'Mechanical', 1, 0)).toBe(60_000);
+  });
+
+  it('gets slower with more carts (weight)', () => {
+    expect(getTripDuration(1, 'Mechanical', 1, 2)).toBeGreaterThan(getTripDuration(1, 'Mechanical', 1, 0));
+  });
 });
 
 describe('getCityPayout', () => {

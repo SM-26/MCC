@@ -10,6 +10,8 @@
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { isPlotBuilt } from '../logic/mine/mineTypes';
   import { ensurePlotScaffold, tryBuildPlot } from '../logic/mine/mineActions';
+  import { dispatchExplore, findIdleTrain, getActiveExploreTargets, getTravelEta } from '../logic/station/stationActions';
+  import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import { engineeringStore } from '../logic/engineering/engineeringStore.svelte';
   import { log } from '../lib/logger';
 
@@ -53,6 +55,27 @@
   }
 
   const inspectedPlotBuilt = $derived(inspectedCell?.type === 'plot' && !!plotsStore.get(inspectedCell.id) && isPlotBuilt(plotsStore.get(inspectedCell.id)!));
+
+  // --- fog exploration: send an idle train from the active plot to reveal a cell ---
+  const activePlotCellId = $derived(worldStore.current.activePlotCellId);
+  const activePlotState = $derived(activePlotCellId ? plotsStore.get(activePlotCellId) : null);
+  const idleTrain = $derived(findIdleTrain(activePlotState ?? null));
+  const exploreTargets = $derived(getActiveExploreTargets(plotsStore.current));
+  const alreadyExploring = $derived(inspectedCell ? exploreTargets.has(inspectedCell.id) : false);
+  const exploreEtaMs = $derived(
+    inspectedCell && !inspectedCell.discovered && idleTrain && activePlotCellId ? getTravelEta(idleTrain, activePlotCellId, inspectedCell.id) : null,
+  );
+
+  function exploreInspected() {
+    if (!inspectedCell || !activePlotCellId || !idleTrain) return;
+    const result = dispatchExplore(idleTrain, worldStore.current, inspectedCell.id, activePlotCellId, Date.now(), exploreTargets);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    log.info('WorldView', `explore dispatched to ${inspectedCell.id}`);
+    debouncedSave();
+  }
 
   function buildPlotAction(cell: WorldCell) {
     ensurePlotScaffold(cell.id);
@@ -129,6 +152,20 @@
           {/if}
           <Button.Root class="glass-btn" onclick={goToMine} disabled={!inspectedPlotBuilt}>Go to mine</Button.Root>
           <Button.Root class="glass-btn" onclick={goToStation} disabled={!inspectedPlotBuilt}>Go to station</Button.Root>
+        </div>
+      {:else if !inspectedCell.discovered}
+        <div class="inspect-actions">
+          {#if alreadyExploring}
+            <p class="cell-sub">A train is already on its way here.</p>
+          {:else if !activePlotState}
+            <p class="cell-sub">Build a plot with a station to send explorers.</p>
+          {:else if !idleTrain}
+            <p class="cell-sub">No idle train available — free one up in your station.</p>
+          {:else}
+            <Button.Root class="glass-btn" onclick={exploreInspected}>
+              Send train to explore{exploreEtaMs !== null ? ` (~${Math.ceil(exploreEtaMs / 1000)}s)` : ''}
+            </Button.Root>
+          {/if}
         </div>
       {/if}
     {:else}
