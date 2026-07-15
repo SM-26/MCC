@@ -26,7 +26,9 @@
 
   let isReadyToSave = false;
   let lastAutosaveSignature = '';
-  let currentTab = $state<TabId>(navigation.current.activeTab);
+  // Single source of truth: the view follows the navigation store, so any
+  // caller of navigation.setActiveTab (navbar, WorldView, …) switches the tab.
+  const currentTab = $derived(navigation.current.activeTab);
 
   const tabConfig: Record<TabId, { label: string; icon: string }> = {
     world: { label: 'World', icon: '🌍' },
@@ -75,7 +77,6 @@
   function handleTabChange(tab: TabId) {
     if (tab === currentTab) return;
 
-    currentTab = tab;
     navigation.setActiveTab(tab);
 
     if (!isReadyToSave) return;
@@ -88,11 +89,9 @@
     log.debug('app', `onMount start: defaultView=${gameState.current.settings.defaultView}, activeTab=${navigation.current.activeTab}`);
 
     if (gameState.current.settings.defaultView === 'world') {
-      currentTab = 'world';
       navigation.setActiveTab('world');
       log.debug('app', 'forced activeTab=world because defaultView=world');
     } else {
-      currentTab = navigation.current.activeTab;
       log.debug('app', `keeping loaded activeTab=${navigation.current.activeTab} because defaultView=last-active`);
     }
 
