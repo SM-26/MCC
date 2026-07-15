@@ -60,6 +60,7 @@ describe('runMiningTick', () => {
       didClearTile: false,
       didEarnMoney: false,
       moneyEarned: 0,
+      resourcesEarned: {},
       nextMoney: 123,
     });
   });
@@ -75,6 +76,7 @@ describe('runMiningTick', () => {
       didClearTile: false,
       didEarnMoney: false,
       moneyEarned: 0,
+      resourcesEarned: {},
       nextMoney: 50,
     });
   });
@@ -113,14 +115,15 @@ describe('runMiningTick', () => {
       didClearTile: false,
       didEarnMoney: false,
       moneyEarned: 0,
+      resourcesEarned: {},
       nextMoney: 0,
     });
   });
 
   it('clears a tile and awards money when damage reduces hp to zero', () => {
     const targetTile = makeTile({
-      type: 'oil',
-      resourceType: 'oil',
+      type: 'rubble',
+      resourceType: 'money',
       hp: 2,
       maxHp: 2,
       value: 25,
@@ -143,6 +146,7 @@ describe('runMiningTick', () => {
       didClearTile: true,
       didEarnMoney: true,
       moneyEarned: 25,
+      resourcesEarned: {},
       nextMoney: 125,
     });
   });
@@ -173,6 +177,7 @@ describe('runMiningTick', () => {
       didClearTile: true,
       didEarnMoney: false,
       moneyEarned: 0,
+      resourcesEarned: {},
       nextMoney: 7,
     });
   });
@@ -218,6 +223,7 @@ describe('runMiningTick', () => {
       didClearTile: false,
       didEarnMoney: false,
       moneyEarned: 0,
+      resourcesEarned: {},
       nextMoney: 0,
     });
   });
@@ -246,22 +252,23 @@ describe('runMiningTick', () => {
       didClearTile: false,
       didEarnMoney: false,
       moneyEarned: 0,
+      resourcesEarned: {},
       nextMoney: 20,
     });
   });
 
   it('combines money earned from multiple miners in one tick', () => {
     const leftTarget = makeTile({
-      type: 'coal',
-      resourceType: 'coal',
+      type: 'rubble',
+      resourceType: 'money',
       hp: 1,
       maxHp: 1,
       value: 4,
     });
 
     const rightTarget = makeTile({
-      type: 'oil',
-      resourceType: 'oil',
+      type: 'rubble',
+      resourceType: 'money',
       hp: 2,
       maxHp: 2,
       value: 7,
@@ -290,7 +297,30 @@ describe('runMiningTick', () => {
       didClearTile: true,
       didEarnMoney: true,
       moneyEarned: 11,
+      resourcesEarned: {},
       nextMoney: 21,
+    });
+  });
+
+  it('routes ore tiles to resourcesEarned instead of money', () => {
+    const coalTile = makeTile({ type: 'coal', resourceType: 'coal', hp: 1, maxHp: 1, value: 3 });
+    const tiles = makeEmptyTiles(3, 3);
+    tiles[0][1] = coalTile;
+
+    const mine = makeMine({
+      miners: [makeMiner({ tileIndex: 4, level: 1 })],
+      tiles,
+    });
+
+    const result = runMiningTick(mine, 100);
+
+    expect(coalTile.type).toBe('empty');
+    expect(result).toEqual({
+      didClearTile: true,
+      didEarnMoney: false,
+      moneyEarned: 0,
+      resourcesEarned: { coal: 3 },
+      nextMoney: 100, // ore does not pay cash
     });
   });
 });

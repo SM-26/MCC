@@ -195,7 +195,7 @@ export function digDeeper(worldSeed: string, resetCount: number, activeShaftInde
   );
 
   if (activeMine.miners.length > validMinerTiles.size) {
-    return { ok: false, message: 'Not enough room below—sell or merge miners before digging deeper!' };
+    return { ok: false, message: 'Not enough room below - merge miners before digging deeper!' };
   }
 
   const freeTiles = [...validMinerTiles].filter(

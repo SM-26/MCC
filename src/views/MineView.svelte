@@ -20,6 +20,8 @@
   import MineHeader from '../components/mine/MineHeader.svelte';
   import MineGrid from '../components/mine/MineGrid.svelte';
   import MyMeter from '../components/MyMeter.svelte';
+  import { RESOURCE_KEYS, RESOURCE_META, type ResourceKey } from '../logic/mine/mineLabels';
+  import { getActiveResourcesForDepth } from '../logic/mine/mineGen';
   import { log } from '../lib/logger';
 
   import { appContext } from '../logic/app/appContext.svelte';
@@ -58,6 +60,16 @@
   );
   const canBuyStation = $derived(false);
 
+  // --- age-resource pill: collapsed shows what this depth yields, unfolds to all ---
+  let resExpanded = $state(false);
+  const currentOres = $derived(
+    activeMine ? (getActiveResourcesForDepth(activeMine.depth).filter((t) => (RESOURCE_KEYS as string[]).includes(t)) as ResourceKey[]) : [],
+  );
+  const hasAnyResource = $derived(!!activePlotState && RESOURCE_KEYS.some((k) => activePlotState!.ageResources[k] > 0));
+  // Hide the pill entirely when you have nothing and this depth yields nothing.
+  const showResourcePill = $derived(hasAnyResource || currentOres.length > 0);
+  const shownOres = $derived(resExpanded || currentOres.length === 0 ? RESOURCE_KEYS : currentOres);
+
   let interval: ReturnType<typeof setInterval>;
   let draggedMiner = $state<Miner | null>(null);
   let draggedPointerId = $state<number | null>(null);
@@ -68,7 +80,16 @@
     if (!activeMine) return;
     const result = runMiningTick(activeMine, gameState.current.money);
     gameState.current.money = result.nextMoney;
-    if (result.didClearTile || result.didEarnMoney) debouncedSave();
+
+    let didEarnResource = false;
+    if (activePlotState) {
+      for (const [res, amount] of Object.entries(result.resourcesEarned) as [ResourceKey, number][]) {
+        activePlotState.ageResources[res] += amount;
+        didEarnResource = true;
+      }
+    }
+
+    if (result.didClearTile || result.didEarnMoney || didEarnResource) debouncedSave();
   }
 
   function resetDragState() {
@@ -286,6 +307,24 @@
     <div class="soil-card">
       <div class="soil-top">
         <span class="plot-name">{currentShaftLabel}</span>
+        {#if showResourcePill}
+          <button
+            type="button"
+            class="resource-strip"
+            aria-label="Mined resources"
+            aria-expanded={resExpanded}
+            onclick={() => (resExpanded = !resExpanded)}
+          >
+            {#each shownOres as key (key)}
+              {@const meta = RESOURCE_META[key]}
+              <span class="resource-chip" class:empty={activePlotState.ageResources[key] === 0} title={meta?.label}>
+                <img class="resource-img" src={meta?.img} alt="" />
+                <span class="resource-count">{activePlotState.ageResources[key]}</span>
+              </span>
+            {/each}
+            <span class="resource-chevron" class:open={resExpanded} aria-hidden="true">›</span>
+          </button>
+        {/if}
       </div>
       <MyMeter value={clearPercent} max={100} status={clearStatus} />
       <div class="soil-meta">
@@ -405,6 +444,58 @@
     justify-content: space-between;
     font-size: 0.75rem;
     color: var(--mcc-text-muted);
+  }
+
+  .resource-strip {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 2px;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 999px;
+  }
+
+  .resource-chevron {
+    color: var(--mcc-text-muted);
+    font-weight: 700;
+    transition: transform 0.15s ease;
+  }
+
+  .resource-chevron.open {
+    transform: rotate(90deg);
+  }
+
+  .resource-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    background: var(--mcc-tile-empty, #262626);
+    border: 1px solid var(--mcc-border);
+  }
+
+  .resource-chip.empty {
+    opacity: 0.45;
+  }
+
+  .resource-img {
+    width: 1.2em;
+    height: 1.2em;
+    object-fit: contain;
+    display: block;
+  }
+
+  .resource-count {
+    font-weight: 700;
+    color: var(--mcc-text-main);
+    font-variant-numeric: tabular-nums;
   }
 
   .mine-actions {

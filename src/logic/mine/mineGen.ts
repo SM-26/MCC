@@ -68,7 +68,7 @@ function shuffleInPlace<T>(items: T[], rng: seedrandom.PRNG): void {
   }
 }
 
-function getActiveResourcesForDepth(depth: number): MineTileType[] {
+export function getActiveResourcesForDepth(depth: number): MineTileType[] {
   const bracketIndex = Math.floor(depth / DEPTHS_PER_BRACKET);
   const resources = MineGenConfig.resourceOrder;
 

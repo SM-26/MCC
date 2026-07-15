@@ -1,5 +1,5 @@
 // src/logic/mine/mineTick.ts
-import type { MineDepthState as MineDepth, MineTile } from './mineTypes';
+import type { AgeResources, MineDepthState as MineDepth, MineTile } from './mineTypes';
 
 type MineTarget = { tile: MineTile };
 
@@ -14,6 +14,7 @@ export interface MineTickResult {
   didClearTile: boolean;
   didEarnMoney: boolean;
   moneyEarned: number;
+  resourcesEarned: Partial<Record<keyof AgeResources, number>>;
 }
 
 function getMineTargetsForMiner(activeMine: MineDepth, tileIndex: number): MineTarget[] {
@@ -43,21 +44,36 @@ function getMineTargetsForMiner(activeMine: MineDepth, tileIndex: number): MineT
   return targets;
 }
 
-function applyMinerDamageToTarget(miner: { level: number }, target: MineTarget): { earned: number; cleared: boolean } {
+interface DamageResult {
+  earned: number; // money
+  resource: keyof AgeResources | null;
+  resourceEarned: number;
+  cleared: boolean;
+}
+
+function applyMinerDamageToTarget(miner: { level: number }, target: MineTarget): DamageResult {
   target.tile.hp -= miner.level;
 
   if (target.tile.hp > 0) {
-    return { earned: 0, cleared: false };
+    return { earned: 0, resource: null, resourceEarned: 0, cleared: false };
   }
 
   target.tile.hp = 0;
 
-  const earned = target.tile.value > 0 ? target.tile.value : 0;
+  const value = target.tile.value > 0 ? target.tile.value : 0;
+  // resourceType routes the payout: 'money'/'none' → cash; an ore type → that bucket.
+  const rt = target.tile.resourceType;
+  const isOre = rt === 'coal' || rt === 'oil' || rt === 'copper' || rt === 'superalloy';
 
   target.tile.type = 'empty';
   target.tile.resourceType = 'none';
 
-  return { earned, cleared: true };
+  return {
+    earned: isOre ? 0 : value,
+    resource: isOre ? rt : null,
+    resourceEarned: isOre ? value : 0,
+    cleared: true,
+  };
 }
 
 export function runMiningTick(activeMine: MineDepth | null, currentMoney: number): MineTickResult & { nextMoney: number } {
@@ -66,6 +82,7 @@ export function runMiningTick(activeMine: MineDepth | null, currentMoney: number
       didClearTile: false,
       didEarnMoney: false,
       moneyEarned: 0,
+      resourcesEarned: {},
       nextMoney: currentMoney,
     };
   }
@@ -73,6 +90,7 @@ export function runMiningTick(activeMine: MineDepth | null, currentMoney: number
   let didClearTile = false;
   let didEarnMoney = false;
   let moneyEarned = 0;
+  const resourcesEarned: Partial<Record<keyof AgeResources, number>> = {};
 
   activeMine.miners.forEach((miner) => {
     const targets = getMineTargetsForMiner(activeMine, miner.tileIndex);
@@ -89,6 +107,10 @@ export function runMiningTick(activeMine: MineDepth | null, currentMoney: number
       didEarnMoney = true;
     }
 
+    if (result.resource) {
+      resourcesEarned[result.resource] = (resourcesEarned[result.resource] ?? 0) + result.resourceEarned;
+    }
+
     if (result.cleared) {
       didClearTile = true;
     }
@@ -98,6 +120,7 @@ export function runMiningTick(activeMine: MineDepth | null, currentMoney: number
     didClearTile,
     didEarnMoney,
     moneyEarned,
+    resourcesEarned,
     nextMoney: currentMoney + moneyEarned,
   };
 }

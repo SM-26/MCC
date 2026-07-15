@@ -3,6 +3,8 @@
   import rubbleSvg from '../../assets/rubble-pile.svg?raw';
   import pillarSvg from '../../assets/support-pillar.svg?raw';
   // import type { MineDepth, Miner } from '../../types';
+  import { gameState } from '../../logic/app/gameState.svelte';
+  import { RESOURCE_META } from '../../logic/mine/mineLabels';
   import type { MineDepthState as MineDepth, Miner } from '../../logic/mine/mineTypes';
 
   const {
@@ -58,6 +60,16 @@
               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
               {@html pillarSvg}
             </div>
+          {/if}
+
+          {#if RESOURCE_META[tile.type]}
+            <div class="icon resource-icon" aria-hidden="true">
+              <img src={RESOURCE_META[tile.type]?.img} alt="" />
+            </div>
+          {/if}
+
+          {#if gameState.current.settings.devMode && tile.type !== 'empty' && tile.type !== 'blocker'}
+            <span class="tile-lvl" aria-hidden="true">L{tile.level}</span>
           {/if}
 
           {#if tile.hp < tile.maxHp && tile.hp > 0}
@@ -129,9 +141,32 @@
   }
 
   .tile.dirt,
-  .tile.rubble {
+  .tile.rubble,
+  .tile.coal,
+  .tile.oil,
+  .tile.copper,
+  .tile.superalloy {
     background: var(--mcc-tile-dirt, #6b5d4f);
     border: 1px solid var(--mcc-tile-dirt-border, #4a3f35);
+  }
+
+  .resource-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .tile-lvl {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    z-index: 3;
+    font-size: var(--mine-miner-label-size);
+    font-weight: 700;
+    color: var(--mcc-text-main);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+    pointer-events: none;
   }
 
   .tile.blocker {
