@@ -28,14 +28,14 @@
 
   function selectPlot(cell: WorldCell) {
     worldStore.setInspectedCellId(cell.id);
-    if (cell.type === 'plot') {
+    if (cell.type === 'plot' && (cell.discovered || gameState.current.settings.devMode)) {
       worldStore.setActivePlotCellId(cell.id);
       debouncedSave();
     }
   }
 
   function openMine(cell: WorldCell) {
-    if (cell.type !== 'plot') return;
+    if (cell.type !== 'plot' || !(cell.discovered || gameState.current.settings.devMode)) return;
     worldStore.setActivePlotCellId(cell.id);
     worldStore.setInspectedCellId(cell.id);
     debouncedSave();
