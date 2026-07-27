@@ -34,6 +34,23 @@ for things that would otherwise be forgotten.
   - Gated buttons render disabled with a visible reason, never hidden behind `{#if}`. Hiding the
     buy-shaft button made a real bug undiagnosable from the UI.
 
+## Code health (`pnpm fallow`)
+
+`includeEntryExports` is now on, so dead-export detection actually works — before, the Svelte/vitest
+plugins marked ~85 files as entry points and nothing could ever be reported unreachable. That was
+hiding a fully dead `src/logic/shared/` folder.
+
+- **42 unused exports + 5 unused types** are now visible and untriaged. Both rules are set to `warn`
+  so they don't gate CI. Some are genuinely dead (`worldPathing.ts`'s `getTileCost`,
+  `isTilePassableByCell`, `getExplorationTime`; `appTypes.ts`'s `AppContext`, `PWAInstallState`),
+  others may be intentional API surface. `fallow fix --dry-run` lists them; triage before deleting.
+- **`pnpm fallow` still exits 1** on `health` (29 complexity findings). The two named refactoring
+  targets are `WorldView.svelte` (cognitive 53, 313 LOC, medium effort) and `StationView.svelte`
+  (cognitive 149, 869 LOC) — the latter should wait for the Station redesign above rather than be
+  refactored twice.
+- `svelte` is reported as a dev dependency used in production. For a bundled Vite app this is
+  cosmetic — dependencies vs devDependencies doesn't change the output. Ignore or suppress.
+
 ## Balance / provisional
 
 - Build economy constants are provisional: `BUILD_COAL_COST = 10`, `BUILD_MONEY_COST = 100`

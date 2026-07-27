@@ -26,6 +26,7 @@
     dispatch,
     getTravelEta,
     upgradeEngine,
+    type BuildResult,
     type EligiblePosition,
   } from '../logic/station/stationActions';
   import { AGE_ORDER, isAgeAtLeast } from '../logic/mine/ageProgression';
@@ -112,26 +113,31 @@
     return `${name}${expansionPart} · Depth ${p.depth}`;
   }
 
-  function handleBuildStation() {
-    if (!activePlotState || !activePlotCellId) return;
-    const result = buildStation(activePlotState, gameState.current.money, activePlotCellId);
+  /**
+   * Commit an action result: toast the reason on failure, otherwise apply any
+   * money change and save. Centralising `nextMoney` matters — a caller that
+   * forgets to apply it is exactly how buying a shaft became a money sink.
+   */
+  function commit(result: BuildResult): boolean {
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
-      return;
+      return false;
     }
-    gameState.current.money = result.nextMoney ?? gameState.current.money;
+    if (typeof result.nextMoney === 'number') {
+      gameState.current.money = result.nextMoney;
+    }
     debouncedSave();
+    return true;
+  }
+
+  function handleBuildStation() {
+    if (!activePlotState || !activePlotCellId) return;
+    commit(buildStation(activePlotState, gameState.current.money, activePlotCellId));
   }
 
   function handleBuildPlatform(position: EligiblePosition) {
     if (!station || !activePlotState) return;
-    const result = buildPlatform(station, activePlotState, position.northExpansionIndex, position.depth, gameState.current.money);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    gameState.current.money = result.nextMoney ?? gameState.current.money;
-    debouncedSave();
+    commit(buildPlatform(station, activePlotState, position.northExpansionIndex, position.depth, gameState.current.money));
   }
 
   function handleSelectPlatform(platformId: string) {
@@ -142,94 +148,46 @@
 
   function handleBuyEngine(age: Ages) {
     if (!station || !activePlotState) return;
-    const result = buyEngine(station, activePlotState, age, gameState.current.money);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    gameState.current.money = result.nextMoney ?? gameState.current.money;
-    debouncedSave();
+    commit(buyEngine(station, activePlotState, age, gameState.current.money));
   }
 
   function handleBuyCart(cartType: CartType) {
     if (!station) return;
-    const result = buyCart(station, cartType, gameState.current.money);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    gameState.current.money = result.nextMoney ?? gameState.current.money;
-    debouncedSave();
+    commit(buyCart(station, cartType, gameState.current.money));
   }
 
   function handlePlaceEngine(age: Ages) {
     if (!station || !activePlatform) return;
-    const result = placeEngine(station, activePlatform, age);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    debouncedSave();
+    commit(placeEngine(station, activePlatform, age));
   }
 
   function handleRemoveTrain() {
     if (!station || !activePlatform) return;
-    const result = removeTrain(station, activePlatform);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    debouncedSave();
+    commit(removeTrain(station, activePlatform));
   }
 
   function handleAddCart(train: Train, cartType: CartType) {
     if (!station) return;
-    const result = addCart(station, train, cartType);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    debouncedSave();
+    commit(addCart(station, train, cartType));
   }
 
   function handleRemoveCart(train: Train, cartType: CartType) {
     if (!station) return;
-    const result = removeCart(station, train, cartType);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    debouncedSave();
+    commit(removeCart(station, train, cartType));
   }
 
   function handleUpgradeEngine(train: Train) {
     if (!activePlotState) return;
-    const result = upgradeEngine(train, activePlotState, gameState.current.money);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    gameState.current.money = result.nextMoney ?? gameState.current.money;
-    debouncedSave();
+    commit(upgradeEngine(train, activePlotState, gameState.current.money));
   }
 
   function handleAssignRoute(train: Train, destination: Destination) {
-    const result = assignRoute(train, destination);
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    debouncedSave();
+    commit(assignRoute(train, destination));
   }
 
   function handleDispatch(train: Train) {
     if (!activePlotState || !activePlotCellId) return;
-    const result = dispatch(train, activePlotState, worldStore.current, activePlotCellId, Date.now());
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-    debouncedSave();
+    commit(dispatch(train, activePlotState, worldStore.current, activePlotCellId, Date.now()));
   }
 
   interface TripPreview {

@@ -37,7 +37,6 @@ Reactive state is split by feature.
 - `src/logic/engineering/` — Engineering Ideas progression and reset-related progression state
 - `src/logic/app/` — app-shell state and contracts (`gameState`, `navigationStore`, `appContext`, `pwaInstallStore`, settings types)
 - `src/logic/save/` — persisted root-state shapes and save/load helpers
-- `src/logic/shared/` — small types and helpers shared across features
 - `src/logic/integration/` — cross-feature integration tests
 
 ### Root composition
