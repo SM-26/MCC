@@ -60,6 +60,30 @@ describe('worldCamera', () => {
       expect(result.x).toBe(20);
       expect(result.y).toBeCloseTo(-34.5);
     });
+
+    it('centers on the padded bounds centroid when locked, even at a non-default scale', () => {
+      // width 40, height 20; at scale 2 that's contentW=80/contentH=40, both <= the 100x100
+      // viewport, so both axes hit the locked-centered branch (previously only exercised at scale 1).
+      const lockedBounds = { minX: -10, maxX: 30, minY: -15, maxY: 5 };
+      const result = clampCamera({ x: 999, y: -999, scale: 2 }, lockedBounds, 100, 100);
+      // centerX = ((minX+maxX)/2)*scale = ((-10+30)/2)*2 = 20 -> x = -20
+      // centerY = ((minY+maxY)/2)*scale = ((-15+5)/2)*2 = -10 -> y = 10
+      expect(result.scale).toBe(2);
+      expect(result.x).toBe(-20);
+      expect(result.y).toBe(10);
+    });
+
+    it('refuses to return an unreachable origin-default camera when bounds are asymmetric', () => {
+      // Bounds sit entirely to the +x side of the origin, so the "default" (0,0) camera
+      // falls outside the legal x range and must be clamped away from 0.
+      const asymmetricBounds = { minX: 100, maxX: 400, minY: -20, maxY: 20 };
+      const result = clampCamera({ x: 0, y: 0, scale: 1 }, asymmetricBounds, 100, 100);
+      // centerX = (100+400)/2 = 250; contentW = 300 > viewportW(100), so panning branch:
+      // maxX = -viewportW/2 - centerX + contentW/2 = -50 - 250 + 150 = -150
+      // camera.x=0 is above maxX(-150), so it clamps down to -150.
+      expect(result.x).toBe(-150);
+      expect(result.y).toBeCloseTo(0);
+    });
   });
 
   describe('zoomAtPoint', () => {

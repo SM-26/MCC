@@ -39,19 +39,31 @@
   const KEY_PAN_STEP = 40;
   const KEY_ZOOM_FACTOR = 1.15;
 
-  const isAtDefault = $derived(
-    Math.abs(camera.x - DEFAULT_CAMERA.x) < 0.5 && Math.abs(camera.y - DEFAULT_CAMERA.y) < 0.5 && Math.abs(camera.scale - DEFAULT_CAMERA.scale) < 0.01,
-  );
+  // Whether the camera is at "default" is tracked as explicit user intent, not
+  // numeric equality against DEFAULT_CAMERA — clampCamera centers on the bounds
+  // centroid of generated cells, which drifts from (0,0) as the world grows
+  // asymmetrically, so (0,0) is not always a reachable/legal position.
+  let atDefault = $state(true);
+  let initialized = false;
 
   function recenter() {
-    camera = { ...DEFAULT_CAMERA };
+    applyCamera({ ...DEFAULT_CAMERA });
+    atDefault = true;
   }
 
   function applyCamera(next: CameraState) {
     const bounds = getCellBounds(cells, BOUNDS_PADDING);
     const rect = gridEl.getBoundingClientRect();
     camera = clampCamera(next, bounds, rect.width, rect.height);
+    atDefault = false;
   }
+
+  $effect(() => {
+    if (initialized || !gridEl) return;
+    initialized = true;
+    applyCamera(camera);
+    atDefault = true;
+  });
 
   function toLocal(clientX: number, clientY: number) {
     const rect = gridEl.getBoundingClientRect();
@@ -233,7 +245,7 @@
       </button>
     {/each}
   </div>
-  {#if !isAtDefault}
+  {#if !atDefault}
     <button class="glass-btn recenter-btn" onclick={recenter} type="button" aria-label="Recenter map">⌖</button>
   {/if}
 </div>
