@@ -48,19 +48,15 @@
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
   const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
-  // Mirrors handleNextShaftAction's navigation branches: surfacing from a deeper
-  // level always works; moving to the next shaft needs the rubble gone (soft or
-  // hard) and the shaft already bought. Buying is the button's job, not the arrow's.
+  // Moving to the next shaft needs the current depth's rubble gone (soft or hard)
+  // and the shaft already bought. Works at any depth. Buying is the button's job.
   const canGoNext = $derived(
-    activeMine && activePlotState
-      ? activeMine.depth > 0 || (clearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length)
-      : false,
+    activeMine && activePlotState ? clearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false,
   );
   const canDigDeeper = $derived(clearStatus === 'hard');
   /** '' when buyable, otherwise the reason shown on the disabled button. */
   const nextShaftBlocker = $derived.by(() => {
     if (!activeMine || !activePlotState) return 'unavailable';
-    if (activeMine.depth > 0) return 'go up to the surface';
     if (clearStatus === 'none') return 'clear the rubble first';
     if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxNorthExpansions) return 'shaft limit reached';
     if (gameState.current.money < BASE_SHAFT_COST) return `need $${BASE_SHAFT_COST - gameState.current.money}`;
@@ -202,8 +198,8 @@
   }
 
   function handlePreviousShaft() {
-    if (!activePlotState) return;
-    const result = handlePreviousShaftAction(activePlotState.activeMineshaftIndex);
+    if (!activePlotState || !activePlotCellId) return;
+    const result = handlePreviousShaftAction(activePlotCellId, activePlotState.activeMineshaftIndex);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;

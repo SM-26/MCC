@@ -5,7 +5,16 @@ import { plotsStore } from './plotsStore.svelte';
 import { isPlotBuilt } from './mineTypes';
 import type { Miner, Mineshaft } from './mineTypes';
 import { generatePlot } from './mineGen';
-import { BASE_SHAFT_COST, BUILD_COAL_COST, BUILD_MONEY_COST, digDeeper, ensurePlotScaffold, handleNextShaftAction, tryBuildPlot } from './mineActions';
+import {
+  BASE_SHAFT_COST,
+  BUILD_COAL_COST,
+  BUILD_MONEY_COST,
+  digDeeper,
+  ensurePlotScaffold,
+  handleNextShaftAction,
+  handlePreviousShaftAction,
+  tryBuildPlot,
+} from './mineActions';
 
 const TEST_CELL = 'test-cell-1';
 const SEED = 'test-seed';
@@ -165,6 +174,43 @@ describe('handleNextShaftAction', () => {
 
     expect(result.ok).toBe(true);
     expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(2);
+  });
+
+  it('buys a shaft from below the surface instead of just surfacing', () => {
+    const plot = seedSoftClearedPlot();
+    // A cleared depth 3, selected. This used to return { ok: true } having only
+    // reset activeDepthIndex to 0 — the button was a "go up" in disguise.
+    const deep = generatePlot(SEED, RESET_COUNT, 3, 0);
+    deep.depth = 3;
+    deep.tiles = deep.tiles.map((row) => row.map((tile) => (tile.type === 'empty' ? tile : { ...tile, type: 'dirt' as const })));
+    plot.mineshafts[0].mineDepths.push(deep);
+    plot.mineshafts[0].activeDepthIndex = 1;
+
+    const result = nextShaft(500);
+
+    expect(result.ok).toBe(true);
+    expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(2);
+    expect(gameState.current.money).toBe(500 - BASE_SHAFT_COST);
+  });
+
+  it('handlePreviousShaftAction actually moves back a shaft', () => {
+    seedSoftClearedPlot();
+    nextShaft(500); // buy shaft 1, which leaves us on it
+    expect(plotsStore.get(TEST_CELL)!.activeMineshaftIndex).toBe(1);
+
+    const result = handlePreviousShaftAction(TEST_CELL, 1);
+
+    expect(result.ok).toBe(true);
+    expect(plotsStore.get(TEST_CELL)!.activeMineshaftIndex).toBe(0);
+  });
+
+  it('handlePreviousShaftAction refuses on the first shaft', () => {
+    seedSoftClearedPlot();
+
+    const result = handlePreviousShaftAction(TEST_CELL, 0);
+
+    expect(result.ok).toBe(false);
+    expect(plotsStore.get(TEST_CELL)!.activeMineshaftIndex).toBe(0);
   });
 
   it('refuses past the shaft limit without charging', () => {

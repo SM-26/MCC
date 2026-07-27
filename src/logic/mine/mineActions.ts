@@ -215,11 +215,6 @@ export function digDeeper(worldSeed: string, resetCount: number, activeShaftInde
   return { ok: true };
 }
 
-function resetMineshaftSelection(mineshaft: Mineshaft) {
-  mineshaft.selectedMiner = null;
-  mineshaft.draggedMiner = null;
-}
-
 export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigationResult {
   const { activeMineshaft, activeMine, activeShaftIndex, cellId, maxShafts, worldSeed, resetCount } = ctx;
   const plot = plotsStore.get(cellId);
@@ -228,12 +223,10 @@ export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigat
     return { ok: false, message: 'No active shaft context' };
   }
 
-  if (activeMine.depth > 0) {
-    activeMineshaft.activeDepthIndex = 0;
-    resetMineshaftSelection(activeMineshaft);
-    return { ok: true };
-  }
-
+  // Works at any depth — this used to hijack the button into a "return to surface"
+  // when deep, so you had to surface before you could reach or buy the next shaft.
+  // Clearing applies to wherever you currently are.
+  //
   // Soft OR hard — hard-cleared means the dirt is gone too, which is strictly
   // more cleared. Gating on 'soft' alone soft-locked a fully mined-out surface.
   if (getClearStatus(activeMine) === 'none') {
@@ -263,12 +256,17 @@ export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigat
   return { ok: true, nextActiveShaftIndex: nextIndex };
 }
 
-export function handlePreviousShaftAction(activeShaftIndex: number): ActionResult {
+/** Owns the move, like handleNextShaftAction — returning an index the caller had
+ *  to apply is what left this button doing nothing at all. */
+export function handlePreviousShaftAction(cellId: string, activeShaftIndex: number): ShaftNavigationResult {
   if (activeShaftIndex === 0) {
     return { ok: false, message: 'Already at the first shaft' };
   }
 
-  return { ok: true };
+  const previousIndex = activeShaftIndex - 1;
+  plotsStore.setActiveMineshaftIndex(cellId, previousIndex);
+
+  return { ok: true, nextActiveShaftIndex: previousIndex };
 }
 
 // PROVISIONAL build economy (tune later)
