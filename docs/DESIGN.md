@@ -21,7 +21,7 @@ A portrait-first idle railway tycoon. The player manages a layered transport emp
 * **Train Yard:** The management hub where players assign engines (Age-tier dependent) and cart configurations to platforms.
 * **Cart Types:** Differentiated by capacity and value multipliers (e.g., Simple/Double-floor/Luxury for passengers, or Generic for cargo).
 * **Age Progression:** City-specific technology tiers unlocked by mining:
-    * **Basic:** Starting tier (clearing Rubble).
+    * **Mechanical:** Starting tier (clearing Rubble).
     * **Steam Age:** Unlocked by Coal.
     * **Diesel Age:** Unlocked by Oil.
     * **Electric Age:** Unlocked by Copper.

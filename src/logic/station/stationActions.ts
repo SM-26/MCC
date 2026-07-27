@@ -6,21 +6,13 @@
 // commit (matching buyMiner / handleNextShaftAction), keeping the action layer
 // free of store imports.
 
+import { isAgeAtLeast } from '../mine/ageProgression';
 import { getClearStatus } from '../mine/mineGen';
 import type { AgeResources, Ages, PlotState } from '../mine/mineTypes';
 import { getHexDistance } from '../world/hex';
 import { getCellById, parseWorldCellId } from '../world/worldTypes';
 import type { Destination, WorldCellId, WorldState } from '../world/worldTypes';
-import {
-  CART_STATS,
-  ENGINE_STATS,
-  MAX_ENGINE_LEVEL,
-  getEngineUpgradeCost,
-  getPlatformCost,
-  getTripDuration,
-  isAgeAtLeast,
-  planCargoLoad,
-} from './stationBalance';
+import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration, planCargoLoad } from './stationBalance';
 import { createEmptyStation, createPlatform, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
 import type { CartType, PlatformId, Platform, Station, Train } from './stationTypes';
 

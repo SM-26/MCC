@@ -28,11 +28,10 @@
     upgradeEngine,
     type EligiblePosition,
   } from '../logic/station/stationActions';
+  import { AGE_ORDER, isAgeAtLeast } from '../logic/mine/ageProgression';
   import {
-    AGE_ORDER,
     ENGINE_STATS,
     CART_STATS,
-    isAgeAtLeast,
     MAX_ENGINE_LEVEL,
     getEngineUpgradeCost,
     getPlatformCost,

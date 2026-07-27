@@ -2,8 +2,9 @@
 import { log } from '../../lib/logger';
 import { gameState } from '../app/gameState.svelte';
 import { buildPlot, generatePlot, getClearStatus } from '../mine/mineGen';
+import { getMaxDepthForAge, getNextAge } from './ageProgression';
 import { createScaffoldPlot, getMineDepthByDepth, isPlotBuilt } from './mineTypes';
-import type { MineDepthState as MineDepth, Miner, Mineshaft, PlotState } from './mineTypes';
+import type { Ages, MineDepthState as MineDepth, Miner, Mineshaft, PlotState } from './mineTypes';
 import { plotsStore } from './plotsStore.svelte';
 
 export const BASE_MINER_COST = 50;
@@ -170,7 +171,7 @@ export function moveOrMergeMiner(activeMine: MineDepth | null, draggedMiner: Min
   return { ok: false, reason: 'blocked-target', message: 'Target tile must be empty' };
 }
 
-export function digDeeper(worldSeed: string, resetCount: number, activeShaftIndex: number, activeMineshaft: Mineshaft | null): ActionResult {
+export function digDeeper(worldSeed: string, resetCount: number, activeShaftIndex: number, activeMineshaft: Mineshaft | null, currentAge: Ages): ActionResult {
   if (!activeMineshaft) {
     return { ok: false, message: 'No active shaft expansion' };
   }
@@ -185,6 +186,12 @@ export function digDeeper(worldSeed: string, resetCount: number, activeShaftInde
   }
 
   const nextDepth = activeMine.depth + 1;
+  // The age caps how deep you may go. It is a ceiling only — advancing never
+  // requires reaching it, since ore pools across shafts.
+  if (nextDepth > getMaxDepthForAge(currentAge)) {
+    return { ok: false, message: `Advance to ${getNextAge(currentAge)} to dig deeper` };
+  }
+
   const nextMine = generatePlot(worldSeed, resetCount, nextDepth, activeShaftIndex);
 
   const validMinerTiles = new Set(
