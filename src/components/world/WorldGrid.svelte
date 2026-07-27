@@ -61,7 +61,8 @@
       const [a, b] = [...activePointers.values()];
       const distance = Math.hypot(a.x - b.x, a.y - b.y);
       const mid = toLocal((a.x + b.x) / 2, (a.y + b.y) / 2);
-      pinchAnchor = { camX: camera.x, camY: camera.y, camScale: camera.scale, distance, midX: mid.x, midY: mid.y };
+      // ponytail: floor to avoid divide-by-zero if both pointers start coincident
+      pinchAnchor = { camX: camera.x, camY: camera.y, camScale: camera.scale, distance: Math.max(distance, 1), midX: mid.x, midY: mid.y };
     }
   }
 
