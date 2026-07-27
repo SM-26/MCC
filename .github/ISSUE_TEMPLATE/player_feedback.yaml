@@ -1,0 +1,73 @@
+name: "Player Feedback"
+description: Feedback on gameplay from players of MCC.
+title: "[FEEDBACK] - <Brief, descriptive title>"
+labels: ["feedback", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a feedback!
+
+  - type: checkboxes
+    id: device
+    attributes:
+      label: Device used
+      options:
+        - label: Desktop
+          required: false
+        - label: Tablet
+          required: false
+        - label: Mobile
+          required: false
+        - label: Landscape
+          required: false
+        - label: Vertical
+          required: false
+
+  - type: textarea
+    attributes:
+      label: Playtime Duration?
+      description: How long have you been playing to get to this point
+      placeholder: "1 Hour.."
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: What was fun?
+      description: "What's to good stuff? what to keep?"
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: What felt broken?
+      description: ""
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: What would you change?
+      description: ""
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: free text/notes
+      description: ""
+      placeholder: ""
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: version
+      description: "Please look at the settings tab and note done the commit version you are using"
+      placeholder: "420sm26"
+    validations:
+      required: false
