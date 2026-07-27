@@ -36,31 +36,28 @@ body:
     attributes:
       label: What was fun?
       description: "What's to good stuff? what to keep?"
-      placeholder: ""
     validations:
       required: false
 
   - type: textarea
     attributes:
       label: What felt broken?
-      description: ""
-      placeholder: ""
+      description: "Things that are not fun, what made you quit/leave?"
     validations:
       required: false
 
   - type: textarea
     attributes:
       label: What would you change?
-      description: ""
-      placeholder: ""
+      description: "what to fix and where? balancing?"
+      placeholder: "change the price of the station to X..."
     validations:
       required: false
 
   - type: textarea
     attributes:
       label: free text/notes
-      description: ""
-      placeholder: ""
+      description: "free text, what ever else you need to vent"
     validations:
       required: false
 
@@ -70,4 +67,4 @@ body:
       description: "Please look at the settings tab and note done the commit version you are using"
       placeholder: "420sm26"
     validations:
-      required: false
+      required: true
