@@ -36,6 +36,8 @@
   let totalMovement = 0;
 
   const WHEEL_ZOOM_FACTOR = 1.1;
+  const KEY_PAN_STEP = 40;
+  const KEY_ZOOM_FACTOR = 1.15;
 
   function applyCamera(next: CameraState) {
     const bounds = getCellBounds(cells, BOUNDS_PADDING);
@@ -137,6 +139,43 @@
       onOpenMine?.(cell);
     }
   }
+
+  function handleKeydown(event: KeyboardEvent) {
+    switch (event.key) {
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        onClearSelection?.();
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        applyCamera({ ...camera, x: camera.x + KEY_PAN_STEP });
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        applyCamera({ ...camera, x: camera.x - KEY_PAN_STEP });
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        applyCamera({ ...camera, y: camera.y + KEY_PAN_STEP });
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        applyCamera({ ...camera, y: camera.y - KEY_PAN_STEP });
+        break;
+      case '+':
+      case '=':
+        event.preventDefault();
+        applyCamera(zoomAtPoint(camera, 0, 0, camera.scale * KEY_ZOOM_FACTOR));
+        break;
+      case '-':
+        event.preventDefault();
+        applyCamera(zoomAtPoint(camera, 0, 0, camera.scale / KEY_ZOOM_FACTOR));
+        break;
+      default:
+        break;
+    }
+  }
 </script>
 
 <div class="world-grid" bind:this={gridEl}>
@@ -152,7 +191,7 @@
     onpointerup={handlePointerUp}
     onpointercancel={handlePointerUp}
     onwheel={handleWheel}
-    onkeydown={(e) => (e.key === 'Enter' || e.key === ' ' ? (e.preventDefault(), onClearSelection?.()) : undefined)}
+    onkeydown={handleKeydown}
   >
     {#each cells as cell (cell.id)}
       {@const pos = axialToPixel(cell)}
