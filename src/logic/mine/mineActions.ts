@@ -2,7 +2,7 @@
 import { log } from '../../lib/logger';
 import { gameState } from '../app/gameState.svelte';
 import { buildPlot, generatePlot, getClearStatus } from '../mine/mineGen';
-import { createScaffoldPlot, isPlotBuilt } from './mineTypes';
+import { createScaffoldPlot, getMineDepthByDepth, isPlotBuilt } from './mineTypes';
 import type { MineDepthState as MineDepth, Miner, Mineshaft, PlotState } from './mineTypes';
 import { plotsStore } from './plotsStore.svelte';
 
@@ -223,13 +223,14 @@ export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigat
     return { ok: false, message: 'No active shaft context' };
   }
 
-  // Works at any depth — this used to hijack the button into a "return to surface"
-  // when deep, so you had to surface before you could reach or buy the next shaft.
-  // Clearing applies to wherever you currently are.
+  // Gate on this shaft's surface, not the depth you happen to be standing on.
+  // Digging down requires a hard-clear, so past depth 0 this is always satisfied —
+  // otherwise arriving at a fresh depth would block you on rubble you just created.
   //
   // Soft OR hard — hard-cleared means the dirt is gone too, which is strictly
   // more cleared. Gating on 'soft' alone soft-locked a fully mined-out surface.
-  if (getClearStatus(activeMine) === 'none') {
+  const surface = getMineDepthByDepth(activeMineshaft, 0) ?? activeMine;
+  if (getClearStatus(surface) === 'none') {
     return { ok: false, message: 'Clear all of the rubble first!' };
   }
 

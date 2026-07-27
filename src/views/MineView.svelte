@@ -30,7 +30,7 @@
   import { gameState } from '../logic/app/gameState.svelte';
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { worldStore } from '../logic/world/worldStore.svelte';
-  import { isPlotBuilt } from '../logic/mine/mineTypes';
+  import { getMineDepthByDepth, isPlotBuilt } from '../logic/mine/mineTypes';
 
   import type { ScreenSize } from '../lib/sizes';
   import type { Miner, Mineshaft } from '../logic/mine/mineTypes';
@@ -48,16 +48,22 @@
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
   const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
-  // Moving to the next shaft needs the current depth's rubble gone (soft or hard)
-  // and the shaft already bought. Works at any depth. Buying is the button's job.
+  // The shaft gate is about its surface, not the depth you're standing on — digging
+  // down needs a hard-clear, so below depth 0 this is already satisfied.
+  const surfaceClearStatus = $derived.by(() => {
+    const surface = activeMineshaft ? getMineDepthByDepth(activeMineshaft, 0) : null;
+    return surface ? getClearStatus(surface) : 'none';
+  });
+  // Moving to the next shaft needs this shaft's surface cleared (soft or hard) and
+  // the shaft already bought. Works at any depth. Buying is the button's job.
   const canGoNext = $derived(
-    activeMine && activePlotState ? clearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false,
+    activeMine && activePlotState ? surfaceClearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false,
   );
   const canDigDeeper = $derived(clearStatus === 'hard');
   /** '' when buyable, otherwise the reason shown on the disabled button. */
   const nextShaftBlocker = $derived.by(() => {
     if (!activeMine || !activePlotState) return 'unavailable';
-    if (clearStatus === 'none') return 'clear the rubble first';
+    if (surfaceClearStatus === 'none') return 'clear the rubble first';
     if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxNorthExpansions) return 'shaft limit reached';
     if (gameState.current.money < BASE_SHAFT_COST) return `need $${BASE_SHAFT_COST - gameState.current.money}`;
     return '';

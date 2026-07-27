@@ -4,7 +4,7 @@ import { gameState } from '../app/gameState.svelte';
 import { plotsStore } from './plotsStore.svelte';
 import { isPlotBuilt } from './mineTypes';
 import type { Miner, Mineshaft } from './mineTypes';
-import { generatePlot } from './mineGen';
+import { generatePlot, getClearStatus } from './mineGen';
 import {
   BASE_SHAFT_COST,
   BUILD_COAL_COST,
@@ -176,21 +176,38 @@ describe('handleNextShaftAction', () => {
     expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(2);
   });
 
-  it('buys a shaft from below the surface instead of just surfacing', () => {
+  it('buys a shaft from a freshly dug depth, gating on the surface not the current level', () => {
     const plot = seedSoftClearedPlot();
-    // A cleared depth 3, selected. This used to return { ok: true } having only
-    // reset activeDepthIndex to 0 — the button was a "go up" in disguise.
+    // Exactly what digDeeper leaves behind: an untouched, full-of-rubble depth 3
+    // selected, above a cleared surface. Gating on the current depth blocks here.
     const deep = generatePlot(SEED, RESET_COUNT, 3, 0);
     deep.depth = 3;
-    deep.tiles = deep.tiles.map((row) => row.map((tile) => (tile.type === 'empty' ? tile : { ...tile, type: 'dirt' as const })));
     plot.mineshafts[0].mineDepths.push(deep);
     plot.mineshafts[0].activeDepthIndex = 1;
+    expect(getClearStatus(deep)).toBe('none');
 
     const result = nextShaft(500);
 
     expect(result.ok).toBe(true);
     expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(2);
     expect(gameState.current.money).toBe(500 - BASE_SHAFT_COST);
+  });
+
+  it('still refuses when the surface itself is uncleared', () => {
+    const surface = generatePlot(SEED, RESET_COUNT, 0, 0);
+    plotsStore.set(TEST_CELL, {
+      currentAge: 'Mechanical',
+      ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
+      mineshafts: [{ mineDepths: [surface], selectedMiner: null, draggedMiner: null, lastTick: 0, activeDepthIndex: 0 }],
+      activeMineshaftIndex: 0,
+      station: null,
+    });
+
+    const result = nextShaft(500);
+
+    expect(result.ok).toBe(false);
+    expect(gameState.current.money).toBe(500);
+    expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(1);
   });
 
   it('handlePreviousShaftAction actually moves back a shaft', () => {
