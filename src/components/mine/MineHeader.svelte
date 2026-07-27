@@ -75,11 +75,11 @@
       opacity 0.15s ease;
   }
 
-  :global(.nav-btn:hover:not(:disabled):not([data-disabled])) {
+  :global(.nav-btn:hover:not(:disabled):not([data-disabled]):not([aria-disabled='true'])) {
     filter: brightness(1.12);
   }
 
-  :global(.nav-btn:active:not(:disabled):not([data-disabled])) {
+  :global(.nav-btn:active:not(:disabled):not([data-disabled]):not([aria-disabled='true'])) {
     transform: translateY(1px);
   }
 
@@ -96,6 +96,16 @@
     opacity: 0.42;
     cursor: not-allowed;
     pointer-events: none;
+    filter: saturate(0.6);
+  }
+
+  /* Looks and reads disabled, but stays clickable and focusable so the button
+     can explain *why* via a toast. Deliberately no pointer-events: none — a
+     truly disabled button leaves the tab order, and then keyboard users could
+     never get that explanation. */
+  :global(.nav-btn[aria-disabled='true']) {
+    opacity: 0.42;
+    cursor: not-allowed;
     filter: saturate(0.6);
   }
 </style>

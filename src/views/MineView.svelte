@@ -343,8 +343,8 @@
         <span>Depth {activeMine.depth}</span>
         <span>{clearStatusLabel} · {clearPercent}%</span>
       </div>
-      <Button.Root class="nav-btn" onclick={handleNextShaft}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
-      <Button.Root class="nav-btn" onclick={handleAdvanceAge}>
+      <Button.Root class="nav-btn" onclick={handleNextShaft} aria-disabled={nextShaftBlocker !== ''}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
+      <Button.Root class="nav-btn" onclick={handleAdvanceAge} aria-disabled={advanceBlocker !== ''}>
         {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}
       </Button.Root>
     </div>
@@ -352,7 +352,7 @@
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
 
     <div class="mine-actions">
-      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction}>Dig deeper ↓</Button.Root>
+      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction} aria-disabled={digBlocker !== ''}>Dig deeper ↓</Button.Root>
       <Button.Root class="buy-btn" onclick={handleBuyMiner} disabled={!playerCanBuyMiner}>
         Buy Miner (${minerCost})
       </Button.Root>
