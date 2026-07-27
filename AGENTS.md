@@ -24,108 +24,27 @@ After completing the code, ask the user if they want a playground link. Only cal
 
 ---
 
-// THIS NEXT PART OF THE FILE IS NOT UP TO DATE! USE WITH CAUTION!
-# MCC V2 - Mines & Choo-Choos v2
+# MCC — Mines & Choo-Choos
 
-A mobile-first idle railway tycoon game built with Svelte 5 and Bits-UI.
+A mobile-first, portrait-first idle railway tycoon built with Svelte 5 (runes) and bits-ui.
 
-## Project Status: 🚧 In Development
+**Architecture, conventions and commands live in `CLAUDE.md`. Domain vocabulary lives in `CONTEXT.md`.** This file covers only project status and agent-facing tooling — don't duplicate the other two here.
 
-### Current Phase: Foundation + Settings Tab Complete
+## Project status
 
-#### ✅ Completed Components
-- **Settings Tab** (`src/views/SettingsView.svelte`)
-  - Theme selection (dark/light/system/user)
-  - Navbar position toggle (top/bottom)
-  - Dev mode, sound, notifications toggles
-  - Global save and reset management
-  
-- **App Shell** (`src/App.svelte`)
-  - Responsive layout with adaptive navbar
-  - Splash screen with loading state
-  - Tab navigation infrastructure
-  - Screen size detection (xs/xl breakpoints)
+Five tabs are routed in `src/App.svelte`; four have real views in `src/views/`.
 
-#### 📁 Project Structure
-```
-src/
-├── lib/
-│   ├── components/
-│   │   └── GameTooltip.svelte       # ✅ Tooltip UI
-│   ├── logic/
-│   │   └── save.svelte.ts           # ✅ Persistence logic
-│   ├── sizes.ts                     # ✅ Breakpoint constants
-│   └── theme.ts                     # ✅ Theme tokens
-├── stores/
-│   └── index.svelte.ts              # ✅ Svelte 5 state stores
-├── views/
-│   └── SettingsView.svelte          # ✅ Settings Implementation
-├── types.ts                         # ✅ TypeScript types
-├── App.svelte                       # ✅ Main shell
-└── styles/
-    └── theme.css                    # ✅ CSS variables
-```
+| Tab | State |
+|---|---|
+| World | Built — hex map, fog of war, pan/zoom, train-driven exploration |
+| Mine | Built — tile clearing, miner drag-to-merge, dig deeper, multiple mineshafts, age advancement |
+| Station | Built — platforms, train yard, engines/carts, routes, dispatch. A redesign is on the backlog |
+| Settings | Built — theme, navbar position, dev toggles, save management, dev cheat panel |
+| Engineering | **Placeholder only** — an inline block in `App.svelte`, no view file. `EngineeringState` (`engineeringIdeas`, `maxNorthExpansions`, `maxUndergroundLevels`) exists and is persisted, but nothing in the UI can spend ideas or raise a cap |
 
----
+Consequences of that last row worth knowing before planning work: `maxNorthExpansions` defaults to 1, so a plot is limited to two mineshafts and no in-game action can change that. `maxUndergroundLevels` is unused entirely — the dig-depth ceiling comes from the plot's age (`getMaxDepthForAge`), not from engineering.
 
-## Development Order (Next Phases)
-
-### Phase 2: Core Tabs (in order)
-1. **Mine Tab** - Grid view, miner drag-drop, age progression
-2. **Station Tab** - Train yard, platform management  
-3. **World Tab** - Hex map, fog of war, destinations
-4. **Engineering Ideas** - Tech tree UI
-
-### Phase 3: Polish
-5. **PWA Install Prompt** - Manifest setup
-6. **Dev Tools** - Debug panel integration
-
----
-
-## Architecture Notes
-
-### State Management
-- Uses Svelte stores for reactive state
-- Centralized types in `src/types.ts`
-- Settings persisted via store updates
-
-### Responsive Design
-- Mobile-first approach
-- Breakpoints defined in `src/lib/sizes.ts`
-- Adaptive navbar position based on screen size
-
-### Theme System
-- CSS variables for easy theming
-- Supports 4 theme modes (dark/light/system/user)
-- Smooth transitions between themes
-
----
-
-## Quick Start
-
-```bash
-pnpm dev
-```
-
-Open `http://localhost:8080` to view the app.
-
----
-
-## Tech Stack
-
-- **Svelte 5** - Reactive framework with runes
-- **Bits-UI** - Headless UI primitives
-- **Vite** - Build tool & dev server
-- **TypeScript** - Type safety
-
----
-
-## Notes for Developers
-
-- All measurements use centralized constants from `src/lib/sizes.ts`
-- Theme colors defined in `src/styles/theme.css`
-- Settings state lives in `src/stores/index.ts`
-- Use `appContext.screenSize` for responsive logic
+Remaining work is tracked in `docs/backlog.md` and GitHub Issues, not here.
 
 ---
 

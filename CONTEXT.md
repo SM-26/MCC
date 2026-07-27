@@ -68,9 +68,14 @@ _Avoid_: using "Mine" as a synonym for "Plot" or for a single Mineshaft
 
 **Mineshaft**:
 One vertical shaft within a Plot's Mine; holds an ordered array of Mine Depths. A Plot may have
-several. The current code calls this `northExpansion` — that name is **deprecated** (the game
-has no "north"); the canonical term is Mineshaft.
+several. The canonical term is Mineshaft; `northExpansion` is **deprecated** (the game has no
+"north").
 _Avoid_: north expansion, northExpansion, shaft (use the full word)
+
+**The rename is incomplete.** `PlotState.mineshafts` uses the new name, but the old one is still
+load-bearing in: `Platform.northExpansionIndex`, `EngineeringState.maxNorthExpansions` (which is
+**persisted in saves**), the shaft-index arguments in `mineGen`, and `StationView`. Treat all of
+these as the same concept as Mineshaft. Finishing the rename is tracked in GitHub Issues.
 
 **Mine Depth**:
 One level of a Mineshaft, holding its grid of Tiles and its miners. Depth 0 is the surface.
@@ -82,12 +87,39 @@ to exactly one Plot. It exists as an empty scaffold (no Platform) from discovery
 foundation Platform when the Plot is Built. Surfaced in the Station view.
 
 **Platform**:
-A loading point within a Station, built on a hard-cleared Mine Depth (surface, then depths
-1, 6, 11, …). Trains dock at Platforms.
+A loading point within a Station, built on a Mine Depth. Eligible depths are the surface and
+then every fifth depth from 6 — **0, 6, 11, 16, …** (`isPlatformDepth`). Depth 1 is *not*
+eligible. Trains dock at Platforms.
 
 **Train yard**:
 The management hub within a Station where the player assigns engines and carts to Platforms
 and routes.
+
+### Progression
+
+**Age**:
+A Plot's technology tier: **Mechanical** → Steam → Diesel → Electric → Maglev. Age is **per-Plot**
+— advancing one Plot is a local puzzle and says nothing about any other Plot. Mechanical is the
+starting tier (an older doc called it "Basic"; that name is dead).
+
+Each Age is bought outright with money plus a lump of **its own age resource** (Steam costs coal,
+Diesel oil, Electric copper, Maglev superalloy). Advancing unlocks that tier's engines and raises
+the Plot's **dig ceiling**.
+_Avoid_: Basic (for Mechanical); treating Age as global or per-World
+
+**Age resource**:
+The ore an Age runs on — coal, oil, copper, superalloy. Mined from Tiles and pooled on the Plot
+(`ageResources`), **not on the Mineshaft**: ore from every Mineshaft of a Plot accumulates
+together, and is also what gets railed into an under-construction Plot.
+
+**Dig ceiling**:
+The deepest Mine Depth a Plot's current Age permits (`getMaxDepthForAge`). Each Age reaches
+exactly the ore bracket that funds the next one.
+
+It is a **ceiling, never a prerequisite**: advancing an Age requires only resources and money,
+never having reached a given depth. Because age resources pool across Mineshafts, a second
+Mineshaft's shallow depths can fund an Age without digging any deeper. Do not add a depth
+requirement to advancing.
 
 ### Selection
 
