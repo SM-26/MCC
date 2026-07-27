@@ -12,7 +12,6 @@
     canBuyMiner,
     digDeeper,
     getMinerCost,
-    handleBuyStationAction,
     handleNextShaftAction,
     handlePreviousShaftAction,
     moveOrMergeMiner,
@@ -95,7 +94,6 @@
     if (gameState.current.money < BASE_SHAFT_COST) return `need $${BASE_SHAFT_COST - gameState.current.money}`;
     return '';
   });
-  const canBuyStation = $derived(false);
 
   // --- age-resource pill: collapsed shows what this depth yields, unfolds to all ---
   let resExpanded = $state(false);
@@ -268,15 +266,6 @@
     }
 
     resetDragState();
-    debouncedSave();
-  }
-
-  function handleBuyStation() {
-    const result = handleBuyStationAction({ stationUnlocked: false, money: gameState.current.money, stationCost: 0 });
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
     debouncedSave();
   }
 

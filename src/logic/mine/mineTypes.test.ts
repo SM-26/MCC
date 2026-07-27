@@ -201,7 +201,7 @@ describe('getActiveMineDepth', () => {
 
 describe('createScaffoldPlot', () => {
   it('is Tile-less and not built', () => {
-    const plot = createScaffoldPlot('2,1');
+    const plot = createScaffoldPlot();
     expect(plot.mineshafts).toHaveLength(1);
     expect(plot.mineshafts[0].mineDepths).toHaveLength(0);
     expect(plot.station).toBeNull();

@@ -30,6 +30,11 @@
 
   // Ephemeral drag/click-vs-drag tracking. Plain (non-reactive) state is fine —
   // nothing here needs to trigger a re-render on its own.
+  //
+  // Deliberately NOT a SvelteMap: this is written on every pointermove and read
+  // only inside the pointer handlers below, never in markup or a $derived. Making
+  // it reactive would schedule work on a hot path for nothing.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
   const activePointers = new Map<number, { x: number; y: number }>();
   let dragAnchor: { camX: number; camY: number; pointerX: number; pointerY: number } | null = null;
   let pinchAnchor: { camX: number; camY: number; camScale: number; distance: number; midX: number; midY: number } | null = null;

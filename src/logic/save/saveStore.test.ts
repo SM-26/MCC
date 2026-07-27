@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameState, SaveFile } from './saveTypes';
 import type { TabId } from '../app/navigationTypes';
 import { createSaveStore } from './saveStore.svelte';
-import { createDefaultNavigationState } from '../app/navigationTypes';
 
 const defaultNavigation = {
   activeTab: 'world' as TabId,

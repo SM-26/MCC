@@ -6,13 +6,13 @@ import { createScaffoldPlot } from './mineTypes';
 describe('plotsStore', () => {
   it('stores and reads a plot by cell id', () => {
     const store = createPlotsStore();
-    store.set('0,0', createScaffoldPlot('0,0'));
+    store.set('0,0', createScaffoldPlot());
     expect(store.has('0,0')).toBe(true);
     expect(store.get('1,1')).toBeNull();
   });
 
   it('mutates the active plot in place (no copy-back needed)', () => {
-    const store = createPlotsStore({ '0,0': createScaffoldPlot('0,0') });
+    const store = createPlotsStore({ '0,0': createScaffoldPlot() });
     store.addMineshaft('0,0');
     store.addMineDepth('0,0', 0);
     const ok = store.addMiner('0,0');

@@ -374,7 +374,9 @@ export function hexDistance(a: HexCoord, b: HexCoord): number {
  * @param train - The train making the exploration
  * @returns The exploration route, or null if no path exists
  */
-export function findExplorationRoute(start: HexCoord, fogTile: WorldCell, world: WorldState, train: TrainData): Route | null {
+// `_train` is unused: routing is pure geometry today. Kept so the signature
+// matches getExplorationTime's, which does thread a train through.
+export function findExplorationRoute(start: HexCoord, fogTile: WorldCell, world: WorldState, _train: TrainData): Route | null {
   const fogCoord = { q: fogTile.q, r: fogTile.r };
   return findRoute(start, fogCoord, world, true);
 }

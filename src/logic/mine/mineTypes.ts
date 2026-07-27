@@ -121,7 +121,8 @@ export function clonePlotState(plot: PlotState): PlotState {
   };
 }
 
-export function createScaffoldPlot(cellId: string): PlotState {
+/** A plot carries no id of its own — the cell id is the key it is stored under. */
+export function createScaffoldPlot(): PlotState {
   return {
     currentAge: 'Mechanical',
     ageResources: createEmptyAgeResources(),

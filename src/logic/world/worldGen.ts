@@ -337,10 +337,14 @@ export function revealTouchingFrontier(world: WorldState, worldSeed: string, res
   let maxMissingRing = 0;
 
   for (const cell of world.cells) {
-    if (!cell.discovered) continue;
+    if (!cell.discovered) {
+      continue;
+    }
     for (const neighbor of getHexNeighbors(cell)) {
       const id = hexCoordToId(neighbor);
-      if (existingIds.has(id) || missingIds.has(id)) continue;
+      if (existingIds.has(id) || missingIds.has(id)) {
+        continue;
+      }
       missingIds.add(id);
       maxMissingRing = Math.max(maxMissingRing, getRingIndex(neighbor));
     }

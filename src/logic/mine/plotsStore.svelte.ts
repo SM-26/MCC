@@ -2,7 +2,7 @@
 import { log } from '../../lib/logger';
 import type { WorldCellId } from '../world/worldTypes';
 import type { AgeResources, MineDepthState, MineTile, MineTileType, Miner, Mineshaft, PlotState, ResourceType } from './mineTypes';
-import { cloneMineDepthState, cloneMineshaft, clonePlotState, getMineDepthByDepth } from './mineTypes';
+import { cloneMineDepthState, clonePlotState, getMineDepthByDepth } from './mineTypes';
 
 // ── Local factory helpers (mirrors mineStore.svelte.ts private helpers) ───────
 

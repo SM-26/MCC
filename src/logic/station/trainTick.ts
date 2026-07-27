@@ -54,7 +54,7 @@ function resolveTrip(train: Train, plots: Record<WorldCellId, PlotState>, world:
     }
     case 'plot': {
       // Direct insert, not plotsStore.set — station logic can't import stores; Svelte 5 deep-wraps assigned values, so the inserted plot is reactive.
-      const target = (plots[trip.targetCellId] ??= createScaffoldPlot(trip.targetCellId));
+      const target = (plots[trip.targetCellId] ??= createScaffoldPlot());
       depositCargo(target.ageResources, trip.cargo);
       log.info('trains', `${train.id} delivered cargo to ${cell.name}`);
       return money;

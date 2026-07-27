@@ -4,7 +4,7 @@ import { gameState } from '../app/gameState.svelte';
 import { buildPlot, generatePlot, getClearStatus } from '../mine/mineGen';
 import { getMaxDepthForAge, getNextAge } from './ageProgression';
 import { createScaffoldPlot, getMineDepthByDepth, isPlotBuilt } from './mineTypes';
-import type { Ages, MineDepthState as MineDepth, Miner, Mineshaft, PlotState } from './mineTypes';
+import type { Ages, MineDepthState as MineDepth, Miner, Mineshaft } from './mineTypes';
 import { plotsStore } from './plotsStore.svelte';
 
 export const BASE_MINER_COST = 50;
@@ -32,30 +32,6 @@ export interface ShaftNavigationContext {
 
 export interface ShaftNavigationResult extends ActionResult {
   nextActiveShaftIndex?: number;
-}
-
-export function createDefaultPlotState(worldSeed: string, resetCount: number, shaftIndex = 0, shaftName = 'Shaft I'): PlotState {
-  return {
-    // plotName: shaftName,
-    mineshafts: [
-      {
-        mineDepths: [generatePlot(worldSeed, resetCount, 0, shaftIndex)],
-        selectedMiner: null,
-        draggedMiner: null,
-        lastTick: 0,
-        activeDepthIndex: 0,
-      },
-    ],
-    activeMineshaftIndex: 0,
-    ageResources: {
-      coal: 0,
-      oil: 0,
-      copper: 0,
-      superalloy: 0,
-    },
-    currentAge: 'Mechanical',
-    station: null,
-  };
 }
 
 export function getMinerCost(activeMine: MineDepth | null): number {
@@ -301,7 +277,7 @@ export const BUILD_MONEY_COST = 100;
 /** Idempotent: ensure a discovered plot cell has a scaffold entry in the map. */
 export function ensurePlotScaffold(cellId: string): void {
   if (!plotsStore.has(cellId)) {
-    plotsStore.set(cellId, createScaffoldPlot(cellId));
+    plotsStore.set(cellId, createScaffoldPlot());
   }
 }
 
@@ -316,16 +292,4 @@ export function tryBuildPlot(cellId: string, seed: string, resetCount: number, m
   }
   plotsStore.set(cellId, buildPlot(cellId, seed, resetCount));
   return { ok: true, nextMoney: money - BUILD_MONEY_COST };
-}
-
-export function handleBuyStationAction(args: { stationUnlocked: boolean; money: number; stationCost: number }): ActionResult {
-  if (!args.stationUnlocked) {
-    return { ok: false, message: 'Station is locked' };
-  }
-
-  if (args.money < args.stationCost) {
-    return { ok: false, message: 'Not enough money for a station!' };
-  }
-
-  return { ok: true };
 }
