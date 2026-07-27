@@ -147,7 +147,8 @@ export function loadGame(): void {
 
     // Offline catch-up: trips carry absolute timestamps, so one completion
     // pass over "now" resolves everything that finished while the app was closed.
-    if (runTrainCompletion()) {
+    // No toast here — this runs behind the splash screen, where nobody sees it.
+    if (runTrainCompletion().completed) {
       debouncedSave();
       log.info('load', 'Completed train trips that finished while offline.');
     }

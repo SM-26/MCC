@@ -67,31 +67,30 @@
       ? [`$${advanceCost.money}`, ...(Object.entries(advanceCost.resources) as [ResourceKey, number][]).map(([res, amount]) => `${amount} ${res}`)].join(' + ')
       : '',
   );
-  /** '' when affordable, otherwise the reason shown on the disabled button. */
+  // Blockers read as full sentences: they are toasted on click, not rendered
+  // inline. '' means the action can go ahead.
   const advanceBlocker = $derived.by(() => {
-    if (!activePlotState) return 'unavailable';
-    if (!advanceCost) return 'max age';
+    if (!activePlotState) return 'No active plot';
+    if (!advanceCost) return 'Already at the final age';
     const parts: string[] = [];
     if (gameState.current.money < advanceCost.money) parts.push(`$${advanceCost.money - gameState.current.money}`);
     for (const [res, amount] of Object.entries(advanceCost.resources) as [ResourceKey, number][]) {
       const have = activePlotState.ageResources[res];
       if (have < amount) parts.push(`${amount - have} ${res}`);
     }
-    return parts.length > 0 ? `need ${parts.join(', ')}` : '';
+    return parts.length > 0 ? `Need ${parts.join(', ')} more to advance!` : '';
   });
-  /** '' when diggable, otherwise the reason shown on the disabled button. */
   const digBlocker = $derived.by(() => {
-    if (!activeMine || !activePlotState) return 'unavailable';
-    if (clearStatus !== 'hard') return 'clear this level first';
-    if (activeMine.depth + 1 > getMaxDepthForAge(activePlotState.currentAge)) return `advance to ${nextAge}`;
+    if (!activeMine || !activePlotState) return 'No active mine';
+    if (clearStatus !== 'hard') return 'Clear all rubble and dirt first!';
+    if (activeMine.depth + 1 > getMaxDepthForAge(activePlotState.currentAge)) return `Advance to ${nextAge} to dig deeper`;
     return '';
   });
-  /** '' when buyable, otherwise the reason shown on the disabled button. */
   const nextShaftBlocker = $derived.by(() => {
-    if (!activeMine || !activePlotState) return 'unavailable';
-    if (surfaceClearStatus === 'none') return 'clear the rubble first';
-    if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxNorthExpansions) return 'shaft limit reached';
-    if (gameState.current.money < BASE_SHAFT_COST) return `need $${BASE_SHAFT_COST - gameState.current.money}`;
+    if (!activeMine || !activePlotState) return 'No active mine';
+    if (surfaceClearStatus === 'none') return 'Clear all of the rubble first!';
+    if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxNorthExpansions) return 'You reached the shaft limit!';
+    if (gameState.current.money < BASE_SHAFT_COST) return `Need $${BASE_SHAFT_COST - gameState.current.money} more for a new shaft!`;
     return '';
   });
 
@@ -219,6 +218,10 @@
 
   function handleDigDeeperAction() {
     if (!activePlotState) return;
+    if (digBlocker) {
+      triggerMobileToast(digBlocker);
+      return;
+    }
     const result = digDeeper(gameState.current.settings.worldSeed, 0, activePlotState.activeMineshaftIndex, activeMineshaft, activePlotState.currentAge);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
@@ -230,6 +233,12 @@
 
   function handleAdvanceAge() {
     if (!activePlotState) return;
+    // The blocker names the exact shortfall; the action's own message is the
+    // fallback for anything the blocker doesn't model.
+    if (advanceBlocker) {
+      triggerMobileToast(advanceBlocker);
+      return;
+    }
     const result = advanceAge(activePlotState);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
@@ -250,6 +259,10 @@
 
   function handleNextShaft() {
     if (!activePlotState || !activePlotCellId) return;
+    if (nextShaftBlocker) {
+      triggerMobileToast(nextShaftBlocker);
+      return;
+    }
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
@@ -330,22 +343,16 @@
         <span>Depth {activeMine.depth}</span>
         <span>{clearStatusLabel} · {clearPercent}%</span>
       </div>
-      <Button.Root class="nav-btn" onclick={handleNextShaft} disabled={nextShaftBlocker !== ''}>
-        Buy next shaft · ${BASE_SHAFT_COST}{#if nextShaftBlocker}&nbsp;<span class="buy-reason">({nextShaftBlocker})</span>{/if}
-      </Button.Root>
-      <Button.Root class="nav-btn" onclick={handleAdvanceAge} disabled={advanceBlocker !== ''}>
-        {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}{#if advanceBlocker}&nbsp;<span class="buy-reason"
-            >({advanceBlocker})</span
-          >{/if}
+      <Button.Root class="nav-btn" onclick={handleNextShaft}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
+      <Button.Root class="nav-btn" onclick={handleAdvanceAge}>
+        {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}
       </Button.Root>
     </div>
 
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
 
     <div class="mine-actions">
-      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction} disabled={digBlocker !== ''}>
-        Dig deeper ↓{#if digBlocker}&nbsp;<span class="buy-reason">({digBlocker})</span>{/if}
-      </Button.Root>
+      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction}>Dig deeper ↓</Button.Root>
       <Button.Root class="buy-btn" onclick={handleBuyMiner} disabled={!playerCanBuyMiner}>
         Buy Miner (${minerCost})
       </Button.Root>
@@ -449,13 +456,6 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.75rem;
-    color: var(--mcc-text-muted);
-  }
-
-  /* Why the buy button is disabled — matches StationView's .build-missing. */
-  .buy-reason {
-    font-weight: 600;
-    font-size: 0.85em;
     color: var(--mcc-text-muted);
   }
 

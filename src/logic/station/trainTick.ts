@@ -9,13 +9,21 @@ import { log } from '../../lib/logger';
 import { createScaffoldPlot } from '../mine/mineTypes';
 import type { AgeResources, PlotState } from '../mine/mineTypes';
 import { getCellById } from '../world/worldTypes';
-import type { WorldCellId, WorldState } from '../world/worldTypes';
+import type { WorldCell, WorldCellId, WorldState } from '../world/worldTypes';
 import { getCargoSaleValue, getCityPayout } from './stationBalance';
 import type { Train } from './stationTypes';
+
+/** A fog cell a train just turned into known ground, for the UI to announce. */
+export interface ExploredCell {
+  name: string;
+  type: WorldCell['type'];
+}
 
 export interface TrainCompletionResult {
   nextMoney: number;
   completedTrips: number;
+  /** Only cells discovered by *this* pass; empty when nothing new was found. */
+  explored: ExploredCell[];
 }
 
 function depositCargo(target: AgeResources, cargo: Partial<AgeResources>): void {
@@ -24,13 +32,16 @@ function depositCargo(target: AgeResources, cargo: Partial<AgeResources>): void 
   }
 }
 
-function resolveTrip(train: Train, plots: Record<WorldCellId, PlotState>, world: WorldState, money: number): number {
+function resolveTrip(train: Train, plots: Record<WorldCellId, PlotState>, world: WorldState, money: number, explored: ExploredCell[]): number {
   const trip = train.trip!;
   const cell = getCellById(world, trip.targetCellId);
 
   if (trip.kind === 'explore') {
+    // Guarded on !discovered so a second train sent to the same tile doesn't
+    // announce a discovery that already happened.
     if (cell && !cell.discovered) {
       cell.discovered = true;
+      explored.push({ name: cell.name, type: cell.type });
       log.info('trains', `explored ${trip.targetCellId}: ${cell.type}`);
     }
     return money;
@@ -69,6 +80,7 @@ function resolveTrip(train: Train, plots: Record<WorldCellId, PlotState>, world:
 export function processTrains(plots: Record<WorldCellId, PlotState>, world: WorldState, money: number, now: number): TrainCompletionResult {
   let nextMoney = money;
   let completedTrips = 0;
+  const explored: ExploredCell[] = [];
 
   for (const plot of Object.values(plots)) {
     for (const platform of plot.station?.platforms ?? []) {
@@ -88,11 +100,11 @@ export function processTrains(plots: Record<WorldCellId, PlotState>, world: Worl
         continue;
       }
 
-      nextMoney = resolveTrip(train, plots, world, nextMoney);
+      nextMoney = resolveTrip(train, plots, world, nextMoney, explored);
       train.trip = null;
       completedTrips += 1;
     }
   }
 
-  return { nextMoney, completedTrips };
+  return { nextMoney, completedTrips, explored };
 }

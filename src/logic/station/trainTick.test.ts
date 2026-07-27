@@ -79,8 +79,18 @@ describe('processTrains', () => {
     const { plot } = plotWithTrain(trip({ kind: 'explore', targetCellId: '0,4' }));
     const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', false)]);
 
-    processTrains({ '0,0': plot }, world, 0, 99_999);
+    const result = processTrains({ '0,0': plot }, world, 0, 99_999);
     expect(world.cells.find((c) => c.id === '0,4')?.discovered).toBe(true);
+    // Reported so the UI can toast the discovery.
+    expect(result.explored).toEqual([{ name: world.cells[1].name, type: 'city' }]);
+  });
+
+  it('does not report a cell that was already discovered', () => {
+    const { plot } = plotWithTrain(trip({ kind: 'explore', targetCellId: '0,4' }));
+    const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', true)]);
+
+    const result = processTrains({ '0,0': plot }, world, 0, 99_999);
+    expect(result.explored).toEqual([]);
   });
 
   it('clamps clock-back: a future departedAt is reset to now, trip continues', () => {
@@ -95,6 +105,6 @@ describe('processTrains', () => {
   it('is a no-op for idle trains and empty plots', () => {
     const { plot } = plotWithTrain(null);
     const result = processTrains({ '0,0': plot }, makeWorld([]), 42, 99_999);
-    expect(result).toEqual({ nextMoney: 42, completedTrips: 0 });
+    expect(result).toEqual({ nextMoney: 42, completedTrips: 0, explored: [] });
   });
 });

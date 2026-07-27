@@ -4,6 +4,7 @@
   import { Tabs } from 'bits-ui';
 
   import type { TabId } from './logic/app/navigationTypes';
+  import type { WorldCell } from './logic/world/worldTypes';
 
   import { appContext } from './logic/app/appContext.svelte';
   import { gameState } from './logic/app/gameState.svelte';
@@ -16,7 +17,16 @@
   import { runTrainCompletion } from './logic/trainRuntime';
 
   import Splash from './components/Splash.svelte';
-  import { toastState } from './components/GameTooltip.svelte';
+  import { toastState, triggerMobileToast } from './components/GameTooltip.svelte';
+
+  /** What a freshly explored cell is called in the toast. */
+  const EXPLORED_LABEL: Record<WorldCell['type'], string> = {
+    plot: 'a buildable plot!',
+    city: 'a city!',
+    factory: 'a factory!',
+    blocker: 'impassable terrain',
+    empty: 'empty land',
+  };
 
   import WorldView from './views/WorldView.svelte';
   import MineView from './views/MineView.svelte';
@@ -99,7 +109,14 @@
     updateScreenSize();
 
     const trainTimer = window.setInterval(() => {
-      if (runTrainCompletion()) {
+      const { completed, explored } = runTrainCompletion();
+      // Toasts last 2s and replace each other, so announce only the last of a
+      // batch — several trips can land on the same tick.
+      const latest = explored.at(-1);
+      if (latest) {
+        triggerMobileToast(`Explored ${latest.name} — ${EXPLORED_LABEL[latest.type]}`);
+      }
+      if (completed) {
         debouncedSave();
       }
     }, 1000);
