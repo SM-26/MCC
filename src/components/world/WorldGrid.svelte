@@ -3,7 +3,7 @@
   import type { WorldCell, WorldCellId } from '../../logic/world/worldTypes';
   import { gameState } from '../../logic/app/gameState.svelte';
   import { log } from '../../lib/logger';
-  import { axialToPixel, clampCamera, DEFAULT_CAMERA, getCellBounds, HEX_H, HEX_W } from './worldCamera';
+  import { axialToPixel, clampCamera, DEFAULT_CAMERA, getCellBounds, HEX_H, HEX_W, zoomAtPoint } from './worldCamera';
   import type { CameraState } from './worldCamera';
 
   type Props = {
@@ -26,17 +26,26 @@
 
   let camera = $state<CameraState>({ ...DEFAULT_CAMERA });
   let layerEl: HTMLDivElement;
+  let gridEl: HTMLDivElement;
 
   // Ephemeral drag/click-vs-drag tracking. Plain (non-reactive) state is fine —
   // nothing here needs to trigger a re-render on its own.
   const activePointers = new Map<number, { x: number; y: number }>();
   let dragAnchor: { camX: number; camY: number; pointerX: number; pointerY: number } | null = null;
+  let pinchAnchor: { camX: number; camY: number; camScale: number; distance: number; midX: number; midY: number } | null = null;
   let totalMovement = 0;
+
+  const WHEEL_ZOOM_FACTOR = 1.1;
 
   function applyCamera(next: CameraState) {
     const bounds = getCellBounds(cells, BOUNDS_PADDING);
-    const rect = layerEl.getBoundingClientRect();
+    const rect = gridEl.getBoundingClientRect();
     camera = clampCamera(next, bounds, rect.width, rect.height);
+  }
+
+  function toLocal(clientX: number, clientY: number) {
+    const rect = gridEl.getBoundingClientRect();
+    return { x: clientX - (rect.left + rect.width / 2), y: clientY - (rect.top + rect.height / 2) };
   }
 
   function handlePointerDown(event: PointerEvent) {
@@ -46,12 +55,35 @@
 
     if (activePointers.size === 1) {
       dragAnchor = { camX: camera.x, camY: camera.y, pointerX: event.clientX, pointerY: event.clientY };
+      pinchAnchor = null;
+    } else if (activePointers.size === 2) {
+      dragAnchor = null;
+      const [a, b] = [...activePointers.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      const mid = toLocal((a.x + b.x) / 2, (a.y + b.y) / 2);
+      pinchAnchor = { camX: camera.x, camY: camera.y, camScale: camera.scale, distance, midX: mid.x, midY: mid.y };
     }
   }
 
   function handlePointerMove(event: PointerEvent) {
     if (!activePointers.has(event.pointerId)) return;
     activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (activePointers.size === 2 && pinchAnchor) {
+      const [a, b] = [...activePointers.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      const ratio = distance / pinchAnchor.distance;
+      const newScale = pinchAnchor.camScale * ratio;
+      const worldX = (pinchAnchor.midX - pinchAnchor.camX) / pinchAnchor.camScale;
+      const worldY = (pinchAnchor.midY - pinchAnchor.camY) / pinchAnchor.camScale;
+      totalMovement = Math.abs(distance - pinchAnchor.distance);
+      applyCamera({
+        x: pinchAnchor.midX - worldX * newScale,
+        y: pinchAnchor.midY - worldY * newScale,
+        scale: newScale,
+      });
+      return;
+    }
 
     if (activePointers.size === 1 && dragAnchor) {
       const dx = event.clientX - dragAnchor.pointerX;
@@ -63,9 +95,19 @@
 
   function handlePointerUp(event: PointerEvent) {
     activePointers.delete(event.pointerId);
+    if (activePointers.size < 2) {
+      pinchAnchor = null;
+    }
     if (activePointers.size === 0) {
       dragAnchor = null;
     }
+  }
+
+  function handleWheel(event: WheelEvent) {
+    event.preventDefault();
+    const local = toLocal(event.clientX, event.clientY);
+    const factor = event.deltaY < 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
+    applyCamera(zoomAtPoint(camera, local.x, local.y, camera.scale * factor));
   }
 
   function handleLayerClick(event: MouseEvent) {
@@ -96,7 +138,7 @@
   }
 </script>
 
-<div class="world-grid">
+<div class="world-grid" bind:this={gridEl}>
   <div
     class="world-layer"
     role="button"
@@ -108,6 +150,7 @@
     onpointermove={handlePointerMove}
     onpointerup={handlePointerUp}
     onpointercancel={handlePointerUp}
+    onwheel={handleWheel}
     onkeydown={(e) => (e.key === 'Enter' || e.key === ' ' ? (e.preventDefault(), onClearSelection?.()) : undefined)}
   >
     {#each cells as cell (cell.id)}
