@@ -16,7 +16,7 @@ A portrait-first idle railway tycoon. The player manages a layered transport emp
 * **World Generation:** Seed-based generation creating map layouts, city identities, and destination placements.
 * **Mine Generation:** Procedural generation of depth-based rubble/resource tiles within plots.
 * **Plot:** A World Cell of type `plot` — the developable unit of the game. Each Plot owns its own Mine (an array of **mineshafts**, each with **mineDepths**) and a **station**. **City** and **Factory** are train-destination Cell types — siblings of Plot, not containers of it. Miners are merged (Drag & Drop) to clear depth-based rubble.
-* **Rail:** Station platforms are built on deep mine levels (depth 5, 10, 15...).
+* **Rail:** Station platforms are built on the mine's surface and then every fifth level from 6 — depth 0, 6, 11, 16... (`isPlatformDepth`). Depth 1 is not eligible.
 * **Trains:** Assigned to a single route at a time. 
 * **Train Yard:** The management hub where players assign engines (Age-tier dependent) and cart configurations to platforms.
 * **Cart Types:** Differentiated by capacity and value multipliers (e.g., Simple/Double-floor/Luxury for passengers, or Generic for cargo).
