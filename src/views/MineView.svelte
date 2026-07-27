@@ -308,13 +308,7 @@
       <div class="soil-top">
         <span class="plot-name">{currentShaftLabel}</span>
         {#if showResourcePill}
-          <button
-            type="button"
-            class="resource-strip"
-            aria-label="Mined resources"
-            aria-expanded={resExpanded}
-            onclick={() => (resExpanded = !resExpanded)}
-          >
+          <button type="button" class="resource-strip" aria-label="Mined resources" aria-expanded={resExpanded} onclick={() => (resExpanded = !resExpanded)}>
             {#each shownOres as key (key)}
               {@const meta = RESOURCE_META[key]}
               <span class="resource-chip" class:empty={activePlotState.ageResources[key] === 0} title={meta?.label}>

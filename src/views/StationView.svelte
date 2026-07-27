@@ -27,7 +27,16 @@
     getTravelEta,
     type EligiblePosition,
   } from '../logic/station/stationActions';
-  import { AGE_ORDER, ENGINE_STATS, CART_STATS, isAgeAtLeast, getPlatformCost, getCityPayout, getCargoSaleValue, planCargoLoad } from '../logic/station/stationBalance';
+  import {
+    AGE_ORDER,
+    ENGINE_STATS,
+    CART_STATS,
+    isAgeAtLeast,
+    getPlatformCost,
+    getCityPayout,
+    getCargoSaleValue,
+    planCargoLoad,
+  } from '../logic/station/stationBalance';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import type { Platform, Train, CartType } from '../logic/station/stationTypes';
   import type { Ages, AgeResources } from '../logic/mine/mineTypes';
@@ -270,7 +279,11 @@
               {@const locked = !isAgeAtLeast(activePlotState.currentAge, age)}
               {@const missing = missingLabel(cost, activePlotState.ageResources)}
               <Button.Root class="build-btn" onclick={() => handleBuyEngine(age)} disabled={locked || missing !== ''}>
-                <span>{age} engine{#if locked}&nbsp;<span class="build-missing">(locked)</span>{:else if missing}&nbsp;<span class="build-missing">({missing})</span>{/if}</span>
+                <span
+                  >{age} engine{#if locked}&nbsp;<span class="build-missing">(locked)</span>{:else if missing}&nbsp;<span class="build-missing"
+                      >({missing})</span
+                    >{/if}</span
+                >
                 <span class="build-cost">
                   {cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
                 </span>
@@ -385,7 +398,8 @@
                           type="button"
                           class="qty-btn"
                           onclick={() => handleAddCart(train, cartType)}
-                          disabled={(station?.trainyardInventory.carts[cartType] ?? 0) <= 0 || getTotalCartCount(train) >= ENGINE_STATS[train.engineAge].maxCarts}
+                          disabled={(station?.trainyardInventory.carts[cartType] ?? 0) <= 0 ||
+                            getTotalCartCount(train) >= ENGINE_STATS[train.engineAge].maxCarts}
                         >
                           +
                         </button>

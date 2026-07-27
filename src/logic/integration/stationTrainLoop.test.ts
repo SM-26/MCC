@@ -7,16 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { makeTestPlot } from '../station/stationActions.test';
-import {
-  addCart,
-  assignRoute,
-  buildStation,
-  buyCart,
-  buyEngine,
-  dispatch,
-  dispatchExplore,
-  placeEngine,
-} from '../station/stationActions';
+import { addCart, assignRoute, buildStation, buyCart, buyEngine, dispatch, dispatchExplore, placeEngine } from '../station/stationActions';
 import { getCityPayout, getTripDuration } from '../station/stationBalance';
 import { processTrains } from '../station/trainTick';
 import type { WorldCell, WorldState } from '../world/worldTypes';
