@@ -7,6 +7,7 @@
   import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
   import { runMiningTick } from '../logic/mine/mineTick';
   import {
+    BASE_SHAFT_COST,
     buyMiner,
     canBuyMiner,
     digDeeper,
@@ -29,7 +30,7 @@
   import { gameState } from '../logic/app/gameState.svelte';
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { worldStore } from '../logic/world/worldStore.svelte';
-  import { isPlotBuilt } from '../logic/mine/mineTypes';
+  import { getMineDepthByDepth, isPlotBuilt } from '../logic/mine/mineTypes';
 
   import type { ScreenSize } from '../lib/sizes';
   import type { Miner, Mineshaft } from '../logic/mine/mineTypes';
@@ -41,23 +42,32 @@
   const activeMineshaft = $derived(activePlotState?.mineshafts[activePlotState.activeMineshaftIndex] ?? null);
   const activeMine = $derived(activeMineshaft?.mineDepths[activeMineshaft.activeDepthIndex] ?? null);
   const currentShaftLabel = $derived(activeWorldCell?.name ?? 'Mine');
-  const nextShaftLabel = $derived(`Shaft ${(activePlotState?.activeMineshaftIndex ?? 0) + 2}`);
   const minerCost = $derived(getMinerCost(activeMine));
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
   const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
-  const canGoNext = $derived(false);
-  const canDigDeeper = $derived(clearStatus === 'hard');
-  const canBuyNextShaft = $derived(
-    activeMine && activePlotState
-      ? activeMine.depth === 0 &&
-          clearStatus === 'soft' &&
-          gameState.current.money >= 100 &&
-          activePlotState.activeMineshaftIndex < engineeringStore.current.maxNorthExpansions
-      : false,
+  // The shaft gate is about its surface, not the depth you're standing on — digging
+  // down needs a hard-clear, so below depth 0 this is already satisfied.
+  const surfaceClearStatus = $derived.by(() => {
+    const surface = activeMineshaft ? getMineDepthByDepth(activeMineshaft, 0) : null;
+    return surface ? getClearStatus(surface) : 'none';
+  });
+  // Moving to the next shaft needs this shaft's surface cleared (soft or hard) and
+  // the shaft already bought. Works at any depth. Buying is the button's job.
+  const canGoNext = $derived(
+    activeMine && activePlotState ? surfaceClearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false,
   );
+  const canDigDeeper = $derived(clearStatus === 'hard');
+  /** '' when buyable, otherwise the reason shown on the disabled button. */
+  const nextShaftBlocker = $derived.by(() => {
+    if (!activeMine || !activePlotState) return 'unavailable';
+    if (surfaceClearStatus === 'none') return 'clear the rubble first';
+    if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxNorthExpansions) return 'shaft limit reached';
+    if (gameState.current.money < BASE_SHAFT_COST) return `need $${BASE_SHAFT_COST - gameState.current.money}`;
+    return '';
+  });
   const canBuyStation = $derived(false);
 
   // --- age-resource pill: collapsed shows what this depth yields, unfolds to all ---
@@ -194,8 +204,8 @@
   }
 
   function handlePreviousShaft() {
-    if (!activePlotState) return;
-    const result = handlePreviousShaftAction(activePlotState.activeMineshaftIndex);
+    if (!activePlotState || !activePlotCellId) return;
+    const result = handlePreviousShaftAction(activePlotCellId, activePlotState.activeMineshaftIndex);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
@@ -204,14 +214,13 @@
   }
 
   function handleNextShaft() {
-    if (!activePlotState) return;
+    if (!activePlotState || !activePlotCellId) return;
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
-      money: gameState.current.money,
       maxShafts: engineeringStore.current.maxNorthExpansions,
       activeShaftIndex: activePlotState.activeMineshaftIndex,
-      shaftsLength: 1,
+      cellId: activePlotCellId,
       activeMineshaft,
       activeMine,
     });
@@ -219,36 +228,6 @@
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
-    }
-
-    if (typeof result.nextMoney === 'number') {
-      gameState.current.money = result.nextMoney;
-    }
-
-    resetDragState();
-    debouncedSave();
-  }
-
-  function handleBuyNextShaft() {
-    if (!activePlotState) return;
-    const result = handleNextShaftAction({
-      worldSeed: gameState.current.settings.worldSeed,
-      resetCount: 0,
-      money: gameState.current.money,
-      maxShafts: engineeringStore.current.maxNorthExpansions,
-      activeShaftIndex: activePlotState.activeMineshaftIndex,
-      shaftsLength: 1,
-      activeMineshaft,
-      activeMine,
-    });
-
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-
-    if (typeof result.nextMoney === 'number') {
-      gameState.current.money = result.nextMoney;
     }
 
     resetDragState();
@@ -325,9 +304,9 @@
         <span>Depth {activeMine.depth}</span>
         <span>{clearStatusLabel} · {clearPercent}%</span>
       </div>
-      {#if canBuyNextShaft}
-        <Button.Root class="nav-btn" onclick={handleBuyNextShaft}>Buy next shaft</Button.Root>
-      {/if}
+      <Button.Root class="nav-btn" onclick={handleNextShaft} disabled={nextShaftBlocker !== ''}>
+        Buy next shaft · ${BASE_SHAFT_COST}{#if nextShaftBlocker}&nbsp;<span class="buy-reason">({nextShaftBlocker})</span>{/if}
+      </Button.Root>
     </div>
 
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
@@ -437,6 +416,13 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.75rem;
+    color: var(--mcc-text-muted);
+  }
+
+  /* Why the buy button is disabled — matches StationView's .build-missing. */
+  .buy-reason {
+    font-weight: 600;
+    font-size: 0.85em;
     color: var(--mcc-text-muted);
   }
 

@@ -159,6 +159,13 @@ const plotsStore = {
   setTile: vi.fn(),
 };
 
+const engineeringStore = {
+  current: structuredClone(initialState.engineering),
+  replace: vi.fn((next: typeof initialState.engineering) => {
+    engineeringStore.current = structuredClone(next);
+  }),
+};
+
 const saveStore = {
   current: {
     lastSaveMetadata: null as null | { saveVersion: string },
@@ -197,6 +204,7 @@ vi.mock('../app/gameState.svelte', () => ({ gameState }));
 vi.mock('../app/navigationStore.svelte', () => ({ navigation }));
 vi.mock('../world/worldStore.svelte', () => ({ worldStore }));
 vi.mock('../mine/plotsStore.svelte', () => ({ plotsStore }));
+vi.mock('../engineering/engineeringStore.svelte', () => ({ engineeringStore }));
 vi.mock('./saveStore.svelte', () => ({ saveStore }));
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -423,7 +431,35 @@ describe('save.svelte.ts', async () => {
     expect(navigation.setActiveTab).toHaveBeenCalledWith('settings');
     expect(worldStore.replace).toHaveBeenCalledWith(loaded.world);
     expect(plotsStore.replaceAll).toHaveBeenCalledWith(loaded.world.plots);
+    expect(engineeringStore.replace).toHaveBeenCalledWith(loaded.engineering);
     expect(log.info).toHaveBeenCalledWith('load', 'Full game state loaded from localStorage (1.0.0).');
+  });
+
+  it('persists the live engineering store, not the stateFactory defaults', () => {
+    // The store used to be write-only: the snapshot always wrote defaults, so
+    // maxNorthExpansions never left its zeroed module state and the mine's
+    // shaft-limit check could never pass.
+    engineeringStore.current = { engineeringIdeas: 5, resetCount: 1, maxNorthExpansions: 9, maxUndergroundLevels: 4 };
+
+    const snapshot = getSaveSnapshot();
+
+    expect(snapshot.engineering).toEqual(engineeringStore.current);
+    expect(snapshot.engineering.maxNorthExpansions).not.toBe(initialState.engineering.maxNorthExpansions);
+  });
+
+  it('loadGame falls back to default engineering when the save predates persisting it', () => {
+    saveStore.current.lastSaveMetadata = { saveVersion: '1.0.0' };
+    saveStore.loadFromLocalStorage.mockReturnValueOnce({
+      money: 10,
+      world: { cells: [makeHomeCell()], plots: { '0,0': makeHomePlot() }, activePlotCellId: '0,0', inspectedCellId: null },
+      engineering: undefined,
+      settings: structuredClone(initialState.settings),
+      navigation: structuredClone(navigation.current),
+    });
+
+    loadGame();
+
+    expect(engineeringStore.replace).toHaveBeenCalledWith(initialState.engineering);
   });
 
   it('loadGame falls back to home cell when active plot is not built', () => {

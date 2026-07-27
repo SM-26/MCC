@@ -15,9 +15,10 @@ import {
   placeEngine,
   removeCart,
   removeTrain,
+  upgradeEngine,
 } from './stationActions';
 import { createEmptyStation, createPlatform } from './stationTypes';
-import { CART_STATS, ENGINE_STATS, getPlatformCost, getTripDuration } from './stationBalance';
+import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration } from './stationBalance';
 import type { WorldCell, WorldState } from '../world/worldTypes';
 
 export function makeClearedDepth(depth: number): MineDepthState {
@@ -176,6 +177,55 @@ describe('addCart / removeCart', () => {
     const { station, platform } = makeYard();
     placeEngine(station, platform, 'Mechanical');
     expect(addCart(station, platform.train!, 'luxury').ok).toBe(false);
+  });
+});
+
+describe('upgradeEngine', () => {
+  it('charges the level-scaled cost and raises the level', () => {
+    const { station, platform } = makeYard();
+    station.trainyardInventory.engines.Steam = 1;
+    placeEngine(station, platform, 'Steam');
+    const train = platform.train!;
+    const plot = makeTestPlot();
+
+    const cost = getEngineUpgradeCost('Steam', 1);
+    expect(cost.money).toBe(ENGINE_STATS.Steam.cost.money);
+    expect(cost.resources.coal).toBe(ENGINE_STATS.Steam.cost.resources.coal);
+
+    const result = upgradeEngine(train, plot, 10_000);
+    expect(result.ok).toBe(true);
+    expect(result.nextMoney).toBe(10_000 - cost.money);
+    expect(plot.ageResources.coal).toBe(50 - (cost.resources.coal ?? 0));
+    expect(train.engineLevel).toBe(2);
+
+    // Next step costs twice the base (scaled by the level being left).
+    expect(getEngineUpgradeCost('Steam', 2).money).toBe(ENGINE_STATS.Steam.cost.money * 2);
+  });
+
+  it('refuses past the level cap', () => {
+    const { station, platform } = makeYard();
+    placeEngine(station, platform, 'Mechanical');
+    const train = platform.train!;
+    train.engineLevel = MAX_ENGINE_LEVEL;
+
+    const plot = makeTestPlot();
+    const result = upgradeEngine(train, plot, 99_999);
+    expect(result.ok).toBe(false);
+    expect(train.engineLevel).toBe(MAX_ENGINE_LEVEL);
+  });
+
+  it('refuses a traveling train and an unaffordable upgrade', () => {
+    const { station, platform } = makeYard();
+    placeEngine(station, platform, 'Mechanical');
+    const train = platform.train!;
+    const plot = makeTestPlot();
+
+    expect(upgradeEngine(train, plot, 1).ok).toBe(false);
+    expect(train.engineLevel).toBe(1);
+
+    train.trip = { kind: 'route', targetCellId: '1,0', departedAt: 0, durationMs: 9_999, cargo: {} };
+    expect(upgradeEngine(train, plot, 99_999).ok).toBe(false);
+    expect(train.engineLevel).toBe(1);
   });
 });
 

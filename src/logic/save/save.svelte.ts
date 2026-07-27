@@ -6,6 +6,7 @@ import { log } from '../../lib/logger';
 import { gameState } from '../app/gameState.svelte';
 import { navigation } from '../app/navigationStore.svelte';
 import { createDefaultNavigationState } from '../app/navigationTypes';
+import { engineeringStore } from '../engineering/engineeringStore.svelte';
 import { getInitialState } from '../stateFactory';
 import { isPlotBuilt } from '../mine/mineTypes';
 import { plotsStore } from '../mine/plotsStore.svelte';
@@ -30,7 +31,7 @@ function getPersistedSnapshot(): PersistedGameState {
     money: gameState.current.money,
     settings: $state.snapshot(gameState.current.settings),
     world,
-    engineering: $state.snapshot(defaults.engineering),
+    engineering: $state.snapshot(engineeringStore.current),
     navigation: $state.snapshot(navigation.current),
   };
 }
@@ -44,6 +45,7 @@ function applyDefaultState(): void {
 
   gameState.setMoney(defaults.money);
   gameState.updateSettings(defaults.settings);
+  engineeringStore.replace(defaults.engineering);
   worldStore.replace(defaults.world);
   plotsStore.replaceAll(defaults.world.plots);
   navigation.replace(createDefaultNavigationState());
@@ -52,6 +54,9 @@ function applyDefaultState(): void {
 function applyLoadedState(snapshot: PersistedGameState): void {
   gameState.setMoney(snapshot.money);
   gameState.updateSettings(snapshot.settings);
+  // Saves written before engineering was persisted have no usable block; fall back
+  // to defaults rather than leaving the store at its zeroed module-level state.
+  engineeringStore.replace(snapshot.engineering ?? getInitialState().engineering);
   worldStore.replace(snapshot.world);
   plotsStore.replaceAll(snapshot.world.plots ?? {});
 

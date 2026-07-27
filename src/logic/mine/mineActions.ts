@@ -1,6 +1,8 @@
 // /src/logic/mine/mineAction.ts
+import { log } from '../../lib/logger';
+import { gameState } from '../app/gameState.svelte';
 import { buildPlot, generatePlot, getClearStatus } from '../mine/mineGen';
-import { createScaffoldPlot, isPlotBuilt } from './mineTypes';
+import { createScaffoldPlot, getMineDepthByDepth, isPlotBuilt } from './mineTypes';
 import type { MineDepthState as MineDepth, Miner, Mineshaft, PlotState } from './mineTypes';
 import { plotsStore } from './plotsStore.svelte';
 
@@ -20,17 +22,15 @@ export interface BuyMinerResult extends ActionResult {
 export interface ShaftNavigationContext {
   worldSeed: string;
   resetCount: number;
-  money: number;
   maxShafts: number;
   activeShaftIndex: number;
-  shaftsLength: number;
+  cellId: string;
   activeMineshaft: Mineshaft | null;
   activeMine: MineDepth | null;
 }
 
 export interface ShaftNavigationResult extends ActionResult {
   nextActiveShaftIndex?: number;
-  nextMoney?: number;
 }
 
 export function createDefaultPlotState(worldSeed: string, resetCount: number, shaftIndex = 0, shaftName = 'Shaft I'): PlotState {
@@ -215,50 +215,59 @@ export function digDeeper(worldSeed: string, resetCount: number, activeShaftInde
   return { ok: true };
 }
 
-function resetMineshaftSelection(mineshaft: Mineshaft) {
-  mineshaft.selectedMiner = null;
-  mineshaft.draggedMiner = null;
-}
-
 export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigationResult {
-  const { activeMineshaft, activeMine, activeShaftIndex, shaftsLength, money, maxShafts } = ctx;
+  const { activeMineshaft, activeMine, activeShaftIndex, cellId, maxShafts, worldSeed, resetCount } = ctx;
+  const plot = plotsStore.get(cellId);
 
-  if (!activeMineshaft || !activeMine) {
+  if (!plot || !activeMineshaft || !activeMine) {
     return { ok: false, message: 'No active shaft context' };
   }
 
-  if (activeMine.depth > 0) {
-    activeMineshaft.activeDepthIndex = 0;
-    resetMineshaftSelection(activeMineshaft);
-    return { ok: true };
-  }
-
-  if (getClearStatus(activeMine) !== 'soft') {
+  // Gate on this shaft's surface, not the depth you happen to be standing on.
+  // Digging down requires a hard-clear, so past depth 0 this is always satisfied —
+  // otherwise arriving at a fresh depth would block you on rubble you just created.
+  //
+  // Soft OR hard — hard-cleared means the dirt is gone too, which is strictly
+  // more cleared. Gating on 'soft' alone soft-locked a fully mined-out surface.
+  const surface = getMineDepthByDepth(activeMineshaft, 0) ?? activeMine;
+  if (getClearStatus(surface) === 'none') {
     return { ok: false, message: 'Clear all of the rubble first!' };
   }
 
   const nextIndex = activeShaftIndex + 1;
-  if (nextIndex < shaftsLength) {
+  if (nextIndex < plot.mineshafts.length) {
+    plotsStore.setActiveMineshaftIndex(cellId, nextIndex);
     return { ok: true, nextActiveShaftIndex: nextIndex };
   }
 
-  if (money < BASE_SHAFT_COST) {
-    return { ok: false, message: 'Not enough money for a new shaft!' };
-  }
-
+  // Limit before payment — spendMoney is the commit point, nothing may fail after it.
   if (maxShafts < nextIndex) {
     return { ok: false, message: 'You reached the shaft limit!' };
   }
 
-  return { ok: true, nextActiveShaftIndex: nextIndex, nextMoney: money - BASE_SHAFT_COST };
+  if (!gameState.spendMoney(BASE_SHAFT_COST)) {
+    return { ok: false, message: 'Not enough money for a new shaft!' };
+  }
+
+  // ponytail: leans on addMineshaft already setting activeMineshaftIndex to the appended shaft.
+  // Set it explicitly here if addMineshaft ever stops doing that.
+  plotsStore.addMineshaft(cellId, { mineDepths: [generatePlot(worldSeed, resetCount, 0, nextIndex)] });
+  log.info('mineActions', `bought shaft ${nextIndex} on ${cellId}`);
+
+  return { ok: true, nextActiveShaftIndex: nextIndex };
 }
 
-export function handlePreviousShaftAction(activeShaftIndex: number): ActionResult {
+/** Owns the move, like handleNextShaftAction — returning an index the caller had
+ *  to apply is what left this button doing nothing at all. */
+export function handlePreviousShaftAction(cellId: string, activeShaftIndex: number): ShaftNavigationResult {
   if (activeShaftIndex === 0) {
     return { ok: false, message: 'Already at the first shaft' };
   }
 
-  return { ok: true };
+  const previousIndex = activeShaftIndex - 1;
+  plotsStore.setActiveMineshaftIndex(cellId, previousIndex);
+
+  return { ok: true, nextActiveShaftIndex: previousIndex };
 }
 
 // PROVISIONAL build economy (tune later)

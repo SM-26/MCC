@@ -78,6 +78,25 @@ const BASE_MS_PER_CELL = 30_000;
 const LEVEL_SPEED_BONUS = 0.1;
 /** Each cart adds this fraction to travel time (weight). 0 = carts are free. */
 export const CART_WEIGHT_PENALTY = 0.2;
+/** Highest engine level reachable by upgrading. */
+export const MAX_ENGINE_LEVEL = 5;
+/** Scales the engine's base cost per upgrade step. */
+export const ENGINE_UPGRADE_COST_MULTIPLIER = 1;
+
+/**
+ * Cost to go from `currentLevel` to `currentLevel + 1`: the engine's base cost
+ * scaled by the level you're leaving. Resources round up.
+ * ponytail: first-pass guess, tune the two constants above.
+ */
+export function getEngineUpgradeCost(age: Ages, currentLevel: number): { money: number; resources: Partial<AgeResources> } {
+  const base = ENGINE_STATS[age].cost;
+  const factor = ENGINE_UPGRADE_COST_MULTIPLIER * currentLevel;
+  const resources: Partial<AgeResources> = {};
+  for (const [resource, amount] of Object.entries(base.resources) as [keyof AgeResources, number][]) {
+    resources[resource] = Math.ceil(amount * factor);
+  }
+  return { money: Math.ceil(base.money * factor), resources };
+}
 
 /**
  * Round-trip duration in ms. Faster with engine speed/level, slower with cart
