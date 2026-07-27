@@ -580,7 +580,11 @@
     color: var(--mcc-text-muted);
   }
 
-  .trainyard-btn {
+  /* These classes are passed as a `class` prop to bits-ui, which renders them on
+     its own element without Svelte's scope hash — so a scoped selector matches
+     nothing and the styling silently doesn't apply. :global is required here.
+     Same pattern as :global(.nav-btn) in MineHeader.svelte. */
+  :global(.trainyard-btn) {
     flex-shrink: 0;
     background: var(--mcc-panel);
     background-image: var(--mcc-glass-sheen);
@@ -600,15 +604,16 @@
       transform 0.1s ease;
   }
 
-  .trainyard-btn:hover:not(:disabled) {
+  :global(.trainyard-btn:hover:not(:disabled):not([data-disabled])) {
     filter: brightness(1.15);
   }
 
-  .trainyard-btn:active:not(:disabled) {
+  :global(.trainyard-btn:active:not(:disabled):not([data-disabled])) {
     transform: translateY(1px);
   }
 
-  .trainyard-btn:disabled {
+  :global(.trainyard-btn:disabled),
+  :global(.trainyard-btn[data-disabled]) {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -664,25 +669,9 @@
     color: var(--error);
   }
 
-  .buy-btn {
-    align-self: flex-start;
-    background: var(--mcc-buy-btn);
-    color: #fff;
-    border: 1px solid var(--mcc-buy-btn-border);
-    border-radius: 6px;
-    padding: var(--spacing-sm) var(--spacing-md);
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .buy-btn:hover:not(:disabled) {
-    background: var(--mcc-buy-btn-hover);
-  }
-
-  .buy-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  /* .buy-btn is defined once, globally, in MineView.svelte — this component's
+     Build Station button already uses it. A second global definition here would
+     just race that one on stylesheet order. */
 
   /* platform selector */
   .platform-selector {
@@ -696,20 +685,8 @@
     color: var(--mcc-text-muted);
   }
 
-  .select-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
-    background: var(--mcc-surface-2);
-    color: var(--mcc-text-main);
-    border: 1px solid var(--mcc-border);
-    border-radius: 6px;
-    padding: var(--spacing-sm) var(--spacing-md);
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-  }
+  /* .select-trigger is defined once, globally, in SettingsView.svelte — same
+     reasoning as .buy-btn above. */
 
   .select-arrow {
     font-size: 0.7rem;
@@ -772,7 +749,7 @@
     gap: var(--spacing-xs);
   }
 
-  .build-btn {
+  :global(.build-btn) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -788,11 +765,12 @@
     box-sizing: border-box;
   }
 
-  .build-btn:hover:not(:disabled) {
+  :global(.build-btn:hover:not(:disabled):not([data-disabled])) {
     background: var(--mcc-button-hover);
   }
 
-  .build-btn:disabled {
+  :global(.build-btn:disabled),
+  :global(.build-btn[data-disabled]) {
     opacity: 0.5;
     cursor: not-allowed;
   }
