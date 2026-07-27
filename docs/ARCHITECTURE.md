@@ -8,7 +8,7 @@ The application is built on a modular, reactive architecture using Svelte 5 (Run
 
 - **Feature State Layer (`src/logic/*/*Types.ts`, `src/logic/*/*Store.svelte.ts`):** The main source of truth for game and UI feature state. Each feature owns its own data contracts and reactive store.
 - **Logic Layer (`src/logic/`):** The game brain. Contains pure TypeScript functions for simulation, world generation, routing, save composition, and state helpers.
-- **View Layer (`src/views/*.svelte`):** The tab-level screens. Each view renders one major gameplay or app area such as World, Mine, Station, Engineering, or Settings.
+- **View Layer (`src/views/*.svelte`):** The tab-level screens — World, Mine, Station, Settings. (Engineering is routed as a tab but is still an inline placeholder in `App.svelte`; there is no `EngineeringView.svelte`.)
 - **Layout Layer (`src/App.svelte`):** The application shell. Hosts the main structure, navigation UI, and active tab content.
 
 This project no longer treats `src/types.ts` as the central source of truth. Instead, types are owned by the feature that uses them.
@@ -18,7 +18,8 @@ This project no longer treats `src/types.ts` as the central source of truth. Ins
 The codebase is organized around **feature ownership**.
 
 - A feature owns its own types, helpers, and store.
-- Cross-feature composition happens at the root state level, not inside random feature modules.
+- **Stores** don't reach across features. **Action modules** deliberately do — `mineActions.ts` and `ageProgression.ts` both spend from `app/gameState`, and `mineActions` mutates `plotsStore`. Keep that composition in `*Actions.ts`-style modules, never in a store.
+- Ownership follows the domain, not the folder that happens to use it: age is a *plot* concept, so `mine/ageProgression.ts` owns the age ladder and `station/` imports from it.
 - Generic utilities belong in `src/lib/`.
 - Game-specific logic belongs in `src/logic/`.
 
@@ -30,12 +31,14 @@ Reactive state is split by feature.
 
 ### Feature-owned modules
 
-- `src/logic/mine/` — mine grids, depths, miners, carts, resources, plot state
-- `src/logic/station/` — stations, platforms, trainyards, trains
-- `src/logic/world/` — world map, cells, destinations, route references, world-level plot references
+- `src/logic/mine/` — mine grids, depths, miners, resources, plot state, and the age ladder (`ageProgression.ts`)
+- `src/logic/station/` — stations, platforms, trainyards, trains, trip resolution
+- `src/logic/world/` — world map, cells, destinations, hex maths, pathing
 - `src/logic/engineering/` — Engineering Ideas progression and reset-related progression state
-- `src/logic/app/` — navigation types, settings types, and app-shell contracts
+- `src/logic/app/` — app-shell state and contracts (`gameState`, `navigationStore`, `appContext`, `pwaInstallStore`, settings types)
 - `src/logic/save/` — persisted root-state shapes and save/load helpers
+- `src/logic/shared/` — small types and helpers shared across features
+- `src/logic/integration/` — cross-feature integration tests
 
 ### Root composition
 
@@ -69,17 +72,28 @@ The current tab set is:
 - **Source of truth is the embedded `PlotState.station`**, read/written via `plotsStore.get(activePlotCellId)`. The module-level `stationStore` singleton is **deleted** — it predated the per-plot embedding.
 - **Mutations go through `stationActions.ts`** — pure functions that take state as an argument and return a `{ ok, nextMoney? }` result (mirrors the `mineActions.ts` convention). The view commits `gameState.current.money = result.nextMoney` and calls `debouncedSave()`.
 - **Building:** a station costs money and requires the surface level (expansion 0, depth 0) to be `getClearStatus() === 'hard'`. Building it creates the foundation platform at (0, 0).
-- **Platform-depth rule:** the foundation is depth 0 (expansion 0 only); every other platform goes at depths 1, 6, 11, 16, … (`depth > 0 && depth % 5 === 1`), on a hard-cleared level. See `isPlatformDepth` in `stationActions.ts`.
+- **Platform-depth rule:** eligible depths are the surface and then every fifth level from 6 — **0, 6, 11, 16, …** (`isPlatformDepth`: `depth === 0 || (depth > 5 && depth % 5 === 1)`). Depth 1 is *not* eligible.
 - **Navigation:** StationView tracks its own focus via `Station.activePlatformId` (independent of MineView's deepest-depth pointer). Switching platforms and switching expansions are both done from the StationView selector.
-- **Train yard** (train assignment, carts, routes, trip ticks) is deferred — the view shows a placeholder panel for now.
+- **Train yard is built:** engines and carts are bought into `TrainyardInventory`, placed on platforms, assigned a `Route`, and dispatched. Trips carry absolute timestamps, so `processTrains` (`trainTick.ts`) resolves everything due in one pass — including trips that finished while the app was closed. Delivering to a `plot` destination scaffolds it on arrival and deposits the cargo into its `ageResources`.
+- **Engine upgrades:** `Train.engineLevel` feeds `getTripDuration`; raised via `upgradeEngine`, capped at `MAX_ENGINE_LEVEL`. Not permitted mid-trip.
 
 ## 5. File Structure Map
 
 ```text
 /public/                # Static browser assets (favicon, manifest, robots.txt)
+/CLAUDE.md              # Conventions, commands, agent guidance
+/CONTEXT.md             # Domain glossary / ubiquitous language
+/AGENTS.md              # Project status + agent tooling
 /docs/
 ├── ARCHITECTURE.md     # this file
-└── DESIGN.md           # Design Specification
+├── DESIGN.md           # Design specification
+├── DESIGN-SYSTEM.md    # Visual language
+├── CheatMenu.md        # Dev cheat panel reference
+├── FOLLOW-UPS.md       # Live deferred work
+├── worldGen.md         # World generator design
+├── adr/                # Architectural decision records
+├── agents/             # Agent skill configuration
+└── testing/            # Testing guides
 /src/
 ├── assets/             # Processed images and icons
 ├── components/         # Reusable UI components
@@ -130,7 +144,9 @@ Examples:
 - `engineeringStore.svelte.ts` manages Engineering Ideas progression
 - `saveStore.svelte.ts` handles save serialization and persistence boundaries
 
-There is currently no separate `appStore.svelte.ts`, because app-shell state is still small enough to stay as plain contracts and local usage.
+App-shell state lives in `src/logic/app/` as several small stores rather than one `appStore`: `gameState.svelte.ts` (money, settings), `navigationStore.svelte.ts`, `appContext.svelte.ts` (screen size), `pwaInstallStore.svelte.ts`.
+
+**Every store must be wired into all three save paths** — `getPersistedSnapshot()`, `applyLoadedState()` and `applyDefaultState()` in `save.svelte.ts` — or it silently stays at its module defaults forever. Nothing type-checks this; `engineeringStore` was missed for weeks and looked like a broken feature rather than an unsaved one. A save/load round-trip test is the only guard.
 
 ## 8. Save & Persistence Model
 
@@ -146,11 +162,13 @@ This keeps persistence concerns separate from feature ownership.
 ## 9. CSS & Logging Strategy
 
 - **CSS:** Use global CSS in `src/styles/` for tokens, resets, and shared themes. Use component-scoped CSS for local layout and stateful visual behavior.
+- **CSS on bits-ui components:** a class passed as a *prop* to a bits-ui component lands on bits-ui's own element, which carries no Svelte scope hash — a scoped rule matches nothing and the styling silently never applies. Wrap those selectors in `:global(...)`, define each such class in exactly one component, and treat an "Unused CSS selector" warning on one as a rendering bug. See CLAUDE.md for the full rule.
 - **Logging:** All game-specific logging should go through `src/lib/logger.ts`.
 
 Logging levels:
 - `log.debug` — transient state changes and simulation detail
 - `log.info` — lifecycle events, navigation events, major feature actions
+- `log.warn` — recoverable edge cases
 - `log.error` — failed saves, load errors, generation failures, unexpected logic crashes
 
 ## 10. Decision Test (Logic vs. Lib)

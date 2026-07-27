@@ -11,15 +11,19 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Single-context repo — all docs live under `docs/`:
+Single-context repo. The glossary sits at the repo root next to the other agent-facing files;
+everything else lives under `docs/`:
 
 ```
 /
+├── CONTEXT.md              ← domain glossary
+├── CLAUDE.md               ← conventions, commands
+├── AGENTS.md               ← project status, agent tooling
 ├── docs/
-│   ├── CONTEXT.md          ← domain glossary
 │   ├── adr/                ← architectural decision records
-│   │   └── 0001-example.md
-│   └── agents/             ← agent skill configuration (this folder)
+│   │   └── 0001-plots-as-cell-keyed-map.md
+│   ├── agents/             ← agent skill configuration (this folder)
+│   └── FOLLOW-UPS.md       ← live deferred work
 └── src/
 ```
 

@@ -479,10 +479,12 @@ See `docs/testing/edge-cases.md` for comprehensive manual testing guide.
 
 ## Documentation Resources
 
-- [`ARCHITECTURE-ANALYSIS.md`](../ARCHITECTURE-ANALYSIS.md) - Detailed architecture analysis
-- [`WORLD-MINE-SYNC-PLAN.md`](../WORLD-MINE-SYNC-PLAN.md) - Synchronization and refactoring plan
-- [`worldGen.md`](../worldGen.md) - World generation design document
-- [`BITS-UI-BEST-PRACTICES.md`](../BITS-UI-BEST-PRACTICES.md) - Bits-UI integration guide
+- [`/CLAUDE.md`](../../CLAUDE.md) - Conventions, commands, and the rules that bite (save wiring, bits-ui `:global`)
+- [`/CONTEXT.md`](../../CONTEXT.md) - Domain glossary
+- [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) - Project structure and feature ownership
+- [`docs/worldGen.md`](../../docs/worldGen.md) - World generation design document
+- [`docs/adr/`](../../docs/adr/) - Architectural decision records
+- [`docs/FOLLOW-UPS.md`](../../docs/FOLLOW-UPS.md) - Live deferred work
 
 ---
 

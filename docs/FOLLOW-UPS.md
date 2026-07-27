@@ -1,55 +1,58 @@
 # Follow-ups
 
-Deferred items from the plots-as-cell-keyed-map refactor (branch `refactor/fresh-start`).
-See `docs/adr/0001-plots-as-cell-keyed-map.md` and `docs/superpowers/plans/2026-06-29-plots-as-cell-keyed-map.md`.
+Live deferred work for this repo. Items are deleted as they land — git history holds what was here
+before. Bugs with a clear owner or a save-format impact go to GitHub Issues instead; this file is
+for things that would otherwise be forgotten.
 
-## Pre-existing breakage (out of refactor scope)
+## Live bugs
 
-- **`worldPathing.ts` / `worldPathing.test.ts` — stale world model.** These are the 6 remaining
-  `pnpm check` errors. `worldPathing.ts` still compares cell types against the removed `'fog'`
-  literal (fog is no longer a stored type — cells are `discovered`/undiscovered). The test file
-  also builds `plots: [{ plotId, cellId, plotName, discovered }]` — the old `WorldPlot[]` array
-  shape, which no longer exists (`world.plots` is now `Record<cellId, PlotState>`). Needs a
-  rewrite to the post-refactor world model. Predates this refactor; never in the plan.
+- **"Go to mine" / "Go to station" do nothing for an inspected-but-not-active plot.**
+  `WorldView.svelte:153-154` enable both buttons when the *inspected* plot is built, but the
+  handlers (`goToMine`/`goToStation`, `:45`/`:49`) guard on `activePlotCell` — so clicking is a
+  no-op unless that plot is already the active one. Fix: call
+  `worldStore.setActivePlotCellId(inspectedCell.id)` before switching tabs. _(verified 2026-07-27)_
 
-## Latent bug — fix when the feature lands
+- **Splash "Install App" button is dead on non-Chromium browsers.** `Splash.svelte:132` gates the
+  button on `!('deviceMemory' in navigator)`. `deviceMemory` is a Chromium-only API with nothing to
+  do with installability, so Firefox and Safari users get a permanently disabled button. The PWA
+  wiring itself (`beforeinstallprompt` → `pwaInstallStore`) is correct. _(verified 2026-07-27)_
 
-- **Engineering state is not round-tripped through save.** `getPersistedSnapshot` snapshots
-  `defaults.engineering` instead of live `engineeringStore.current`, and `applyLoadedState` /
-  `applyDefaultState` never restore/reset `engineeringStore`. Currently harmless because nothing
-  in the app mutates engineering state (the Engineering tab is a placeholder; the store's
-  mutators are defined but never called). **When the Engineering feature becomes player-mutable,
-  wire it in:** import `engineeringStore` in `save.svelte.ts`; `engineering:
-  $state.snapshot(engineeringStore.current)`; `engineeringStore.replace(snapshot.engineering)` on
-  load; `engineeringStore.reset()` on default — plus a round-trip test. (Also revisit prestige/
-  "Nuke" reset so EI survives a plot reset.)
+## Planned work
 
-## UX / behavior gaps (train system incomplete)
+- **Redesign the Station and trainyard view.** `DESIGN-SYSTEM.md` currently declares Station
+  explicitly out of scope for the design pass; that needs revisiting as part of this.
 
-- **"Go to mine" / "Go to station" no-op for a built-but-not-active inspected plot.** In
-  `WorldView`, those buttons are enabled when the *inspected* plot is built, but the handlers
-  guard on `activePlotCell`, so clicking does nothing unless that plot is already active. Fix:
-  on click, `worldStore.setActivePlotCellId(inspectedCell.id)` before navigating.
-- **Scaffold-on-discovery isn't wired to a real train-arrival event** (train/route system
-  incomplete); `ensurePlotScaffold` is invoked on the "Build plot" click for now.
-- **No resource flow accumulates coal into unbuilt plots' `ageResources`** yet, so the build
-  gate (`BUILD_COAL_COST`) can't be satisfied through normal play. Revisit when resource rail is live.
-- **Build economy constants are provisional:** `BUILD_COAL_COST = 10`, `BUILD_MONEY_COST = 100`
-  (named constants in `mineActions.ts`) — tune.
+- **Write ADR-0002** for the decisions made during age advancement, whose rationale currently lives
+  only in commit messages:
+  - The plot's age owns the dig ceiling (`getMaxDepthForAge`), and `EngineeringState.maxUndergroundLevels`
+    deliberately stays unused rather than being combined with it.
+  - The ceiling is never a prerequisite — `ageResources` pools across mineshafts, so a second shaft
+    funds an age without digging deeper.
+  - Actions own their own money spend via `gameState.spendMoney` (the commit point; every check that
+    can fail runs before it), instead of returning `nextMoney` for the caller to apply. Returning it
+    is what made shaft buying a money sink.
+  - Gated buttons render disabled with a visible reason, never hidden behind `{#if}`. Hiding the
+    buy-shaft button made a real bug undiagnosable from the UI.
 
-## Naming consistency (mineshaft rename leftovers)
+## Balance / provisional
 
-- Station-internal `northExpansionIndex` was intentionally left un-renamed: `Platform.northExpansionIndex`,
-  `getPlatformsForNorthExpansion`, `EligiblePosition.northExpansionIndex` (`stationTypes.ts`,
-  `stationActions.ts`, `stationStore` was deleted), and the `northExpansionIndex` parameter of
-  `generatePlot`/`getExpansionLabel`. Rename to `mineshaft*` for consistency with the domain model.
-- Engineering field `maxNorthExpansions` (and `unlock/canUnlockNorthExpansion`) likewise not
-  renamed — rename to `maxMineshafts` when convenient.
-- Stale comment in `stationActions.ts:10` still references the now-deleted `stationStore` singleton.
+- Build economy constants are provisional: `BUILD_COAL_COST = 10`, `BUILD_MONEY_COST = 100`
+  (`mineActions.ts`). Tune.
+- Age advance costs (`AGE_ADVANCE_COST`) and the engine upgrade curve
+  (`ENGINE_UPGRADE_COST_MULTIPLIER`, `MAX_ENGINE_LEVEL`) are first-pass. Both carry `ponytail:`
+  comments naming the ceiling and what to change.
 
-## Minor test/polish nits (low priority)
+## Minor test / polish nits (low priority)
 
-- A few derived/test polish items flagged during review: double `plotsStore.get` in a WorldView
-  `$derived`; round-trip save test needlessly `async`; `tryBuildPlot` already-built test doesn't
-  assert `nextMoney` unchanged; `MineView` renders blank if a plot is built but has empty
-  mineshafts (add an `{:else}` fallback); a couple of missing null/miss-path coverage cases.
+- Double `plotsStore.get` in a `WorldView` `$derived`.
+- Round-trip save test is needlessly `async`.
+- `tryBuildPlot` already-built test doesn't assert `nextMoney` is unchanged.
+- `MineView` renders blank if a plot is built but has empty mineshafts — add an `{:else}` fallback.
+- A couple of missing null/miss-path coverage cases.
+
+## Tracked in GitHub Issues
+
+- **#22** — flaky `mineGen` test ("only uses valid fillable tile types above the bottom row") failed
+  once and would not reproduce, despite fixed seeds.
+- **#24** — finish the `northExpansion` → Mineshaft rename. Touches the save format
+  (`maxNorthExpansions` and `Platform.northExpansionIndex` are both persisted).
