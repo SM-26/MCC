@@ -78,7 +78,7 @@ Initial boot state:
 - The next six adjacent tiles are ring `1` and start as `fog`.
 - The initial visible world therefore contains 7 tiles: one discovered starting plot and six fog tiles in ring 1.
 
-The player always sees the next frontier ring as fog and may choose which fog tile to explore.
+New fog tiles appear as soon as they touch a discovered tile — the frontier grows organically with exploration rather than waiting for a whole ring to clear before the next one appears. The player may choose which visible fog tile to explore.
 
 ## Exploration model
 

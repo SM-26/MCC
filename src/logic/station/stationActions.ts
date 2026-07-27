@@ -43,7 +43,9 @@ export function isPlatformDepth(depth: number): boolean {
 }
 
 function getMissingResources(required: Partial<AgeResources>, available: AgeResources): (keyof AgeResources)[] {
-  return (Object.entries(required) as [keyof AgeResources, number][]).filter(([resource, amount]) => available[resource] < amount).map(([resource]) => resource);
+  return (Object.entries(required) as [keyof AgeResources, number][])
+    .filter(([resource, amount]) => available[resource] < amount)
+    .map(([resource]) => resource);
 }
 
 function platformIdFor(northExpansionIndex: number, depth: number): PlatformId {

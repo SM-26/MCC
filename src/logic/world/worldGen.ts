@@ -8,7 +8,7 @@ import type { NameState } from './worldNames';
 import { getRingConfig, getRingTileCount, getMinCount, getMaxCount, getNormalizedWeights } from './worldBalance';
 import type { RingConfig } from './worldBalance';
 
-import { getHexRing, makeHex, hexCoordToId } from './hex';
+import { getHexNeighbors, getHexRing, getRingIndex, makeHex, hexCoordToId } from './hex';
 import type { WorldCell, WorldCellType, ResourceType, WorldState } from './worldTypes';
 
 // ============================================================================
@@ -302,6 +302,58 @@ export function generateWorld(worldSeed: string, resetCount: number, ringsToGene
     activePlotCellId: state.generatedCells.find((c) => c.type === 'plot' && c.ring === 0)?.id ?? null,
     inspectedCellId: null,
   };
+}
+
+/**
+ * Generate the cells for a single ring, appending any that aren't already
+ * present in `world.cells`. No-op if that ring already exists.
+ *
+ * Regenerates the whole world from scratch rather than resuming the RNG
+ * stream in place — generation is deterministic from (worldSeed, resetCount),
+ * so replaying rings 0..ring reproduces the exact same existing cells.
+ */
+export function ensureRingGenerated(world: WorldState, worldSeed: string, resetCount: number, ring: number): WorldCell[] {
+  if (world.cells.some((cell) => cell.ring === ring)) {
+    return [];
+  }
+
+  const regenerated = generateWorld(worldSeed, resetCount, ring);
+  const newCells = regenerated.cells.filter((cell) => cell.ring === ring);
+  world.cells.push(...newCells);
+  return newCells;
+}
+
+/**
+ * Reveal fog tiles that touch an already-discovered cell, so the frontier
+ * grows organically with exploration instead of gating on a fully-cleared
+ * ring — discovering one tile deep in ring 3 exposes its ring-4 neighbors
+ * immediately, without needing every other ring-3 tile cleared first.
+ * Returns the newly generated cells (empty if nothing new touches discovered
+ * ground yet).
+ */
+export function revealTouchingFrontier(world: WorldState, worldSeed: string, resetCount: number): WorldCell[] {
+  const existingIds = new Set(world.cells.map((cell) => cell.id));
+  const missingIds = new Set<string>();
+  let maxMissingRing = 0;
+
+  for (const cell of world.cells) {
+    if (!cell.discovered) continue;
+    for (const neighbor of getHexNeighbors(cell)) {
+      const id = hexCoordToId(neighbor);
+      if (existingIds.has(id) || missingIds.has(id)) continue;
+      missingIds.add(id);
+      maxMissingRing = Math.max(maxMissingRing, getRingIndex(neighbor));
+    }
+  }
+
+  if (missingIds.size === 0) {
+    return [];
+  }
+
+  const regenerated = generateWorld(worldSeed, resetCount, maxMissingRing);
+  const newCells = regenerated.cells.filter((cell) => missingIds.has(cell.id));
+  world.cells.push(...newCells);
+  return newCells;
 }
 
 /**

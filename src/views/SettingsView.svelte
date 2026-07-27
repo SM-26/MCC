@@ -4,9 +4,13 @@
   import { Toggle, Switch, Button, AlertDialog, Select, Accordion } from 'bits-ui';
   import { log } from '../lib/logger';
   import { gameState } from '../logic/app/gameState.svelte';
+  import { engineeringStore } from '../logic/engineering/engineeringStore.svelte';
   import { worldStore } from '../logic/world/worldStore.svelte';
+  import { ensureRingGenerated, revealTouchingFrontier } from '../logic/world/worldGen';
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { ensurePlotScaffold } from '../logic/mine/mineActions';
+
+  const MAX_PLOT_SEARCH_RINGS = 15;
 
   import { debouncedSave, manualSave, resetProgress } from '../logic/save/save.svelte';
   import SettingsSection from '../components/settings/SettingsSection.svelte';
@@ -72,8 +76,15 @@
     debouncedSave();
   }
 
+  /**
+   * Reveal every currently-generated cell and pull in whatever new fog tiles
+   * now touch discovered ground (see `revealTouchingFrontier`) — so repeated
+   * clicks keep growing the map outward instead of stalling at whatever was
+   * generated so far.
+   */
   function cheatRevealWorld() {
     worldStore.current.cells.forEach((cell) => worldStore.discoverCell(cell.id));
+    revealTouchingFrontier(worldStore.current, gameState.current.settings.worldSeed, engineeringStore.current.resetCount);
     log.debug('cheat', 'revealed all world cells');
     debouncedSave();
   }
@@ -90,12 +101,27 @@
     debouncedSave();
   }
 
+  /**
+   * Skip the RNG grind for a second buildable plot: finds an already-generated
+   * but undiscovered `plot` cell (ring 2+ only, per worldGen's ring pools),
+   * generating further-out rings on demand if none exist yet. Unlike
+   * `cheatRevealWorld`, this only reveals the one plot tile it finds — every
+   * other fog tile (including its own ring-mates) stays hidden.
+   */
   function cheatDiscoverNeighborPlot() {
-    const cell = worldStore.current.cells.find((c) => c.type === 'plot' && !c.discovered);
+    let cell = worldStore.current.cells.find((c) => c.type === 'plot' && !c.discovered) ?? null;
+
+    let ring = worldStore.current.cells.reduce((max, c) => Math.max(max, c.ring), 0) + 1;
+    for (let searched = 0; !cell && searched < MAX_PLOT_SEARCH_RINGS; searched++, ring++) {
+      const newCells = ensureRingGenerated(worldStore.current, gameState.current.settings.worldSeed, engineeringStore.current.resetCount, ring);
+      cell = newCells.find((c) => c.type === 'plot') ?? null;
+    }
+
     if (!cell) {
-      log.debug('cheat', 'no undiscovered plot cells left');
+      log.debug('cheat', `no plot cell found within ${MAX_PLOT_SEARCH_RINGS} rings`);
       return;
     }
+
     worldStore.discoverCell(cell.id);
     ensurePlotScaffold(cell.id);
     log.debug('cheat', `discovered + scaffolded neighbor plot ${cell.id}`);

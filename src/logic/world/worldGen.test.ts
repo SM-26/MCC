@@ -1,7 +1,7 @@
 // src/logic/world/worldGen.test.ts
 import { describe, expect, it } from 'vitest';
 
-import { makeSeededRng, generateWorld, revealFogTile } from './worldGen';
+import { makeSeededRng, generateWorld, revealFogTile, revealTouchingFrontier } from './worldGen';
 import type { WorldState, WorldCell } from './worldTypes';
 
 // Helper: find an undiscovered tile in the world (fog in UI terms)
@@ -221,6 +221,42 @@ describe('worldGen', () => {
 
       expect(revealed1.type).toBe(revealed2.type);
       expect(revealed1.name).toBe(revealed2.name);
+    });
+  });
+
+  describe('revealTouchingFrontier', () => {
+    it('does nothing right after initial generation (ring 1 already borders the discovered center)', () => {
+      const world = generateWorld('123456', 0, 1);
+      expect(revealTouchingFrontier(world, '123456', 0)).toEqual([]);
+      expect(world.cells.length).toBe(7);
+    });
+
+    it('reveals only the ring-2 tiles touching a single discovered ring-1 tile', () => {
+      const world = generateWorld('123456', 0, 1);
+      const tile = world.cells.find((c) => c.id === '1,0')!;
+      tile.discovered = true;
+
+      const newCells = revealTouchingFrontier(world, '123456', 0);
+
+      // (1,0) touches exactly 3 ring-2 tiles: (2,0), (1,1), (2,-1).
+      expect(newCells.length).toBe(3);
+      expect(newCells.every((c) => c.ring === 2 && !c.discovered)).toBe(true);
+      expect(new Set(newCells.map((c) => c.id))).toEqual(new Set(['2,0', '1,1', '2,-1']));
+    });
+
+    it('reveals the full ring 2 once every ring-1 tile is discovered', () => {
+      const world = generateWorld('123456', 0, 1);
+      for (const cell of world.cells) {
+        if (cell.ring === 1) {
+          cell.discovered = true;
+        }
+      }
+
+      const newCells = revealTouchingFrontier(world, '123456', 0);
+
+      expect(newCells.length).toBe(12);
+      expect(newCells.every((c) => c.ring === 2 && !c.discovered)).toBe(true);
+      expect(world.cells.filter((c) => c.ring === 2).length).toBe(12);
     });
   });
 });
