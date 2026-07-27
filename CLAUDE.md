@@ -78,6 +78,22 @@ The world is a hex grid. Cells use axial coordinates `(q, r)`; `ring` is Chebysh
 
 `WorldState.activePlotCellId` holds the Cell id of the active (managed) plot. `WorldState.inspectedCellId` holds the Cell being viewed/hovered in the World view (read-only, not persisted). Developed plots live in `world.plots: Record<cellId, PlotState>`, owned at runtime by `plotsStore` (`src/logic/mine/plotsStore.svelte.ts`). Mine and Station views read `plotsStore.get(activePlotCellId)` and mutate in place.
 
+## Styling bits-ui components
+
+A class passed as a **prop** to a bits-ui component (`Button.Root`, `Select.Trigger`, …) is rendered on bits-ui's own element, which does not carry Svelte's scope hash. A scoped rule therefore matches nothing and the styling silently never applies. Wrap those selectors in `:global(...)`:
+
+```css
+:global(.build-btn) { … }
+/* bits-ui sets [data-disabled] alongside :disabled — match both */
+:global(.build-btn:hover:not(:disabled):not([data-disabled])) { … }
+:global(.build-btn:disabled),
+:global(.build-btn[data-disabled]) { … }
+```
+
+Define each such class in **exactly one** component — a second `:global` definition of the same class races the first on stylesheet order. Current owners: `.buy-btn` → MineView, `.select-trigger` → SettingsView, `.build-btn` / `.trainyard-btn` → StationView, `.nav-btn` → MineHeader.
+
+Keep `pnpm check` at **0 warnings**. An "Unused CSS selector" on one of these classes is not noise — it means the button is rendering unstyled. The warning only appears when no other component defines the class globally, so a shadowed scoped rule can be broken without any warning at all.
+
 ## Logging
 
 Use `log` from `src/lib/logger.ts` — never `console.*` directly:
