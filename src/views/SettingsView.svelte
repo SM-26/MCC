@@ -8,9 +8,11 @@
   import { worldStore } from '../logic/world/worldStore.svelte';
   import { ensureRingGenerated, revealTouchingFrontier } from '../logic/world/worldGen';
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
-  import { ensurePlotScaffold } from '../logic/mine/mineActions';
+  import { ensurePlotScaffold, placeMiner } from '../logic/mine/mineActions';
+  import { getActiveMineDepth } from '../logic/mine/mineTypes';
 
   const MAX_PLOT_SEARCH_RINGS = 15;
+  const CHEAT_MINER_LEVEL = 5;
 
   import { debouncedSave, manualSave, resetProgress } from '../logic/save/save.svelte';
   import SettingsSection from '../components/settings/SettingsSection.svelte';
@@ -125,6 +127,21 @@
     worldStore.discoverCell(cell.id);
     ensurePlotScaffold(cell.id);
     log.debug('cheat', `discovered + scaffolded neighbor plot ${cell.id}`);
+    debouncedSave();
+  }
+
+  /** Skip the buy-and-merge grind: a level 5 miner needs 16 level-1 merges. */
+  function cheatFreeMiner() {
+    const cellId = worldStore.current.activePlotCellId;
+    const plot = cellId ? plotsStore.get(cellId) : null;
+    const activeMine = plot ? getActiveMineDepth(plot) : null;
+
+    if (!placeMiner(activeMine, CHEAT_MINER_LEVEL)) {
+      log.debug('cheat', 'no active mine, or no free tile for a miner');
+      return;
+    }
+
+    log.debug('cheat', `placed a level ${CHEAT_MINER_LEVEL} miner`);
     debouncedSave();
   }
 </script>
@@ -263,6 +280,7 @@
             <Button.Root class="glass-btn" onclick={cheatRevealWorld}>🗺️ Reveal All Cells</Button.Root>
             <Button.Root class="glass-btn" onclick={cheatBuildActivePlot}>🏗️ Build Active Plot</Button.Root>
             <Button.Root class="glass-btn" onclick={cheatDiscoverNeighborPlot}>📍 Discover Neighbor Plot</Button.Root>
+            <Button.Root class="glass-btn" onclick={cheatFreeMiner}>⛏️ Free Lvl {CHEAT_MINER_LEVEL} Miner</Button.Root>
           </div>
         </SettingsSection>
       {/if}

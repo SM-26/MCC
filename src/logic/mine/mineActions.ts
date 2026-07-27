@@ -65,15 +65,14 @@ export function canBuyMiner(money: number, activeMine: MineDepth | null): boolea
   return money >= getMinerCost(activeMine);
 }
 
-export function buyMiner(money: number, activeMine: MineDepth | null): BuyMinerResult {
+/**
+ * Drop a miner on the first free empty tile. Returns false when the depth is
+ * full — the caller decides whether that is an error or a no-op.
+ * Placement only: charging is the caller's business.
+ */
+export function placeMiner(activeMine: MineDepth | null, level = 1): boolean {
   if (!activeMine) {
-    return { ok: false, message: 'No active mine', minerCost: getMinerCost(activeMine) };
-  }
-
-  const minerCost = getMinerCost(activeMine);
-
-  if (money < minerCost) {
-    return { ok: false, message: 'Not enough money!', minerCost };
+    return false;
   }
 
   const emptyIndices = activeMine.tiles
@@ -85,15 +84,33 @@ export function buyMiner(money: number, activeMine: MineDepth | null): BuyMinerR
   const freeIndices = emptyIndices.filter((index) => !occupiedIndices.has(index));
 
   if (freeIndices.length === 0) {
-    return { ok: false, message: 'No room!', minerCost };
+    return false;
   }
 
   activeMine.miners.push({
-    level: 1,
+    level,
     tileIndex: freeIndices[0],
     facing: 0,
     progress: 0,
   });
+
+  return true;
+}
+
+export function buyMiner(money: number, activeMine: MineDepth | null): BuyMinerResult {
+  if (!activeMine) {
+    return { ok: false, message: 'No active mine', minerCost: getMinerCost(activeMine) };
+  }
+
+  const minerCost = getMinerCost(activeMine);
+
+  if (money < minerCost) {
+    return { ok: false, message: 'Not enough money!', minerCost };
+  }
+
+  if (!placeMiner(activeMine)) {
+    return { ok: false, message: 'No room!', minerCost };
+  }
 
   return { ok: true, minerCost, nextMoney: money - minerCost };
 }

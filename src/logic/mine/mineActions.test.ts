@@ -13,6 +13,7 @@ import {
   ensurePlotScaffold,
   handleNextShaftAction,
   handlePreviousShaftAction,
+  placeMiner,
   tryBuildPlot,
 } from './mineActions';
 
@@ -260,6 +261,44 @@ describe('handleNextShaftAction', () => {
     expect(gameState.current.money).toBe(500); // navigation is free
     expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(2);
     expect(plotsStore.get(TEST_CELL)!.activeMineshaftIndex).toBe(1);
+  });
+});
+
+describe('placeMiner', () => {
+  function clearedDepth() {
+    const depth = generatePlot(SEED, RESET_COUNT, 0, 0);
+    depth.tiles = depth.tiles.map((row) => row.map((tile) => ({ ...tile, type: 'empty' as const, hp: 0 })));
+    return depth;
+  }
+
+  it('places at the requested level, not always level 1', () => {
+    const depth = clearedDepth();
+
+    expect(placeMiner(depth, 5)).toBe(true);
+    expect(depth.miners).toHaveLength(1);
+    expect(depth.miners[0].level).toBe(5);
+  });
+
+  it('never stacks two miners on one tile', () => {
+    const depth = clearedDepth();
+
+    placeMiner(depth);
+    placeMiner(depth);
+
+    const indices = depth.miners.map((m) => m.tileIndex);
+    expect(new Set(indices).size).toBe(indices.length);
+  });
+
+  it('returns false when the depth is full or missing', () => {
+    const depth = clearedDepth();
+    const capacity = depth.tiles.flat().filter((tile) => tile.type === 'empty').length;
+
+    for (let i = 0; i < capacity; i++) {
+      expect(placeMiner(depth)).toBe(true);
+    }
+
+    expect(placeMiner(depth)).toBe(false);
+    expect(placeMiner(null)).toBe(false);
   });
 });
 
