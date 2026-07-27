@@ -39,6 +39,14 @@
   const KEY_PAN_STEP = 40;
   const KEY_ZOOM_FACTOR = 1.15;
 
+  const isAtDefault = $derived(
+    Math.abs(camera.x - DEFAULT_CAMERA.x) < 0.5 && Math.abs(camera.y - DEFAULT_CAMERA.y) < 0.5 && Math.abs(camera.scale - DEFAULT_CAMERA.scale) < 0.01,
+  );
+
+  function recenter() {
+    camera = { ...DEFAULT_CAMERA };
+  }
+
   function applyCamera(next: CameraState) {
     const bounds = getCellBounds(cells, BOUNDS_PADDING);
     const rect = gridEl.getBoundingClientRect();
@@ -225,6 +233,9 @@
       </button>
     {/each}
   </div>
+  {#if !isAtDefault}
+    <button class="glass-btn recenter-btn" onclick={recenter} type="button" aria-label="Recenter map">⌖</button>
+  {/if}
 </div>
 
 <style>
@@ -354,5 +365,19 @@
     color: rgba(255, 255, 255, 0.85);
     pointer-events: none;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  }
+
+  .recenter-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 3;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
   }
 </style>
