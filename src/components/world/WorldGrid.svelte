@@ -3,6 +3,8 @@
   import type { WorldCell, WorldCellId } from '../../logic/world/worldTypes';
   import { gameState } from '../../logic/app/gameState.svelte';
   import { log } from '../../lib/logger';
+  import { axialToPixel, clampCamera, DEFAULT_CAMERA, getCellBounds, HEX_H, HEX_W } from './worldCamera';
+  import type { CameraState } from './worldCamera';
 
   type Props = {
     cells: WorldCell[];
@@ -16,32 +18,65 @@
   const { cells, selectedCellId = null, onSelectCell, onSelectPlot, onClearSelection, onOpenMine }: Props = $props();
 
   $effect(() => {
-    // console.log('WorldGrid props', cells.length, selectedCellId);
     log.debug('WorldGrid', 'Props updated:', { cells, selectedCellId });
   });
 
-  const HEX_SIZE = 30;
-  const HEX_W = 80;
-  const HEX_H = 80;
-  const SCALE_X = HEX_W / (Math.sqrt(3) * HEX_SIZE);
-  const SCALE_Y = HEX_H / (2 * HEX_SIZE);
-  const SPACING_X = 1;
-  const SPACING_Y = 1.15;
+  const BOUNDS_PADDING = 200;
+  const CLICK_DRAG_THRESHOLD = 6;
 
-  function axialToPixel(cell: WorldCell) {
-    return {
-      x: HEX_SIZE * (Math.sqrt(3) * cell.q + (Math.sqrt(3) / 2) * cell.r) * SCALE_X * SPACING_X,
-      y: HEX_SIZE * (1.5 * cell.r) * SCALE_Y * SPACING_Y,
-    };
+  let camera = $state<CameraState>({ ...DEFAULT_CAMERA });
+  let layerEl: HTMLDivElement;
+
+  // Ephemeral drag/click-vs-drag tracking. Plain (non-reactive) state is fine —
+  // nothing here needs to trigger a re-render on its own.
+  const activePointers = new Map<number, { x: number; y: number }>();
+  let dragAnchor: { camX: number; camY: number; pointerX: number; pointerY: number } | null = null;
+  let totalMovement = 0;
+
+  function applyCamera(next: CameraState) {
+    const bounds = getCellBounds(cells, BOUNDS_PADDING);
+    const rect = layerEl.getBoundingClientRect();
+    camera = clampCamera(next, bounds, rect.width, rect.height);
+  }
+
+  function handlePointerDown(event: PointerEvent) {
+    layerEl.setPointerCapture(event.pointerId);
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    totalMovement = 0;
+
+    if (activePointers.size === 1) {
+      dragAnchor = { camX: camera.x, camY: camera.y, pointerX: event.clientX, pointerY: event.clientY };
+    }
+  }
+
+  function handlePointerMove(event: PointerEvent) {
+    if (!activePointers.has(event.pointerId)) return;
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (activePointers.size === 1 && dragAnchor) {
+      const dx = event.clientX - dragAnchor.pointerX;
+      const dy = event.clientY - dragAnchor.pointerY;
+      totalMovement = Math.hypot(dx, dy);
+      applyCamera({ x: dragAnchor.camX + dx, y: dragAnchor.camY + dy, scale: camera.scale });
+    }
+  }
+
+  function handlePointerUp(event: PointerEvent) {
+    activePointers.delete(event.pointerId);
+    if (activePointers.size === 0) {
+      dragAnchor = null;
+    }
   }
 
   function handleLayerClick(event: MouseEvent) {
+    if (totalMovement > CLICK_DRAG_THRESHOLD) return;
     const target = event.target as HTMLElement;
     if (!target.closest('button.hex')) onClearSelection?.();
   }
 
   function handleClick(cell: WorldCell, event: MouseEvent) {
     event.stopPropagation();
+    if (totalMovement > CLICK_DRAG_THRESHOLD) return;
 
     if (cell.type === 'plot') {
       onSelectPlot?.(cell);
@@ -53,6 +88,7 @@
 
   function handleDoubleClick(cell: WorldCell, event: MouseEvent) {
     event.stopPropagation();
+    if (totalMovement > CLICK_DRAG_THRESHOLD) return;
 
     if (cell.type === 'plot' && selectedCellId === cell.id) {
       onOpenMine?.(cell);
@@ -65,7 +101,13 @@
     class="world-layer"
     role="button"
     tabindex="0"
+    bind:this={layerEl}
+    style={`transform: translate(${camera.x}px, ${camera.y}px) scale(${camera.scale});`}
     onclick={handleLayerClick}
+    onpointerdown={handlePointerDown}
+    onpointermove={handlePointerMove}
+    onpointerup={handlePointerUp}
+    onpointercancel={handlePointerUp}
     onkeydown={(e) => (e.key === 'Enter' || e.key === ' ' ? (e.preventDefault(), onClearSelection?.()) : undefined)}
   >
     {#each cells as cell (cell.id)}
@@ -119,6 +161,12 @@
   .world-layer {
     position: absolute;
     inset: 0;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .world-layer:active {
+    cursor: grabbing;
   }
 
   .hex {
