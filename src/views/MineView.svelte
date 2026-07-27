@@ -57,14 +57,12 @@
       : false,
   );
   const canDigDeeper = $derived(clearStatus === 'hard');
-  // Hidden only when another shaft isn't purchasable at all; every other reason is
-  // something the player can act on, so the button stays visible and says why.
-  const atShaftLimit = $derived((activePlotState?.activeMineshaftIndex ?? 0) >= engineeringStore.current.maxNorthExpansions);
   /** '' when buyable, otherwise the reason shown on the disabled button. */
   const nextShaftBlocker = $derived.by(() => {
     if (!activeMine || !activePlotState) return 'unavailable';
     if (activeMine.depth > 0) return 'go up to the surface';
     if (clearStatus === 'none') return 'clear the rubble first';
+    if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxNorthExpansions) return 'shaft limit reached';
     if (gameState.current.money < BASE_SHAFT_COST) return `need $${BASE_SHAFT_COST - gameState.current.money}`;
     return '';
   });
@@ -304,11 +302,9 @@
         <span>Depth {activeMine.depth}</span>
         <span>{clearStatusLabel} · {clearPercent}%</span>
       </div>
-      {#if !atShaftLimit}
-        <Button.Root class="nav-btn" onclick={handleNextShaft} disabled={nextShaftBlocker !== ''}>
-          Buy next shaft · ${BASE_SHAFT_COST}{#if nextShaftBlocker}&nbsp;<span class="buy-reason">({nextShaftBlocker})</span>{/if}
-        </Button.Root>
-      {/if}
+      <Button.Root class="nav-btn" onclick={handleNextShaft} disabled={nextShaftBlocker !== ''}>
+        Buy next shaft · ${BASE_SHAFT_COST}{#if nextShaftBlocker}&nbsp;<span class="buy-reason">({nextShaftBlocker})</span>{/if}
+      </Button.Root>
     </div>
 
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
