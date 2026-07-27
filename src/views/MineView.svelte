@@ -7,6 +7,7 @@
   import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
   import { runMiningTick } from '../logic/mine/mineTick';
   import {
+    BASE_SHAFT_COST,
     buyMiner,
     canBuyMiner,
     digDeeper,
@@ -48,22 +49,25 @@
   const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
   // Mirrors handleNextShaftAction's navigation branches: surfacing from a deeper
-  // level always works; moving to the next shaft needs it soft-cleared and already
-  // bought. Buying a new one is canBuyNextShaft's job.
+  // level always works; moving to the next shaft needs the rubble gone (soft or
+  // hard) and the shaft already bought. Buying is the button's job, not the arrow's.
   const canGoNext = $derived(
     activeMine && activePlotState
-      ? activeMine.depth > 0 || (clearStatus === 'soft' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length)
+      ? activeMine.depth > 0 || (clearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length)
       : false,
   );
   const canDigDeeper = $derived(clearStatus === 'hard');
-  const canBuyNextShaft = $derived(
-    activeMine && activePlotState
-      ? activeMine.depth === 0 &&
-          clearStatus === 'soft' &&
-          gameState.current.money >= 100 &&
-          activePlotState.activeMineshaftIndex < engineeringStore.current.maxNorthExpansions
-      : false,
-  );
+  // Hidden only when another shaft isn't purchasable at all; every other reason is
+  // something the player can act on, so the button stays visible and says why.
+  const atShaftLimit = $derived((activePlotState?.activeMineshaftIndex ?? 0) >= engineeringStore.current.maxNorthExpansions);
+  /** '' when buyable, otherwise the reason shown on the disabled button. */
+  const nextShaftBlocker = $derived.by(() => {
+    if (!activeMine || !activePlotState) return 'unavailable';
+    if (activeMine.depth > 0) return 'go up to the surface';
+    if (clearStatus === 'none') return 'clear the rubble first';
+    if (gameState.current.money < BASE_SHAFT_COST) return `need $${BASE_SHAFT_COST - gameState.current.money}`;
+    return '';
+  });
   const canBuyStation = $derived(false);
 
   // --- age-resource pill: collapsed shows what this depth yields, unfolds to all ---
@@ -300,8 +304,10 @@
         <span>Depth {activeMine.depth}</span>
         <span>{clearStatusLabel} · {clearPercent}%</span>
       </div>
-      {#if canBuyNextShaft}
-        <Button.Root class="nav-btn" onclick={handleNextShaft}>Buy next shaft</Button.Root>
+      {#if !atShaftLimit}
+        <Button.Root class="nav-btn" onclick={handleNextShaft} disabled={nextShaftBlocker !== ''}>
+          Buy next shaft · ${BASE_SHAFT_COST}{#if nextShaftBlocker}&nbsp;<span class="buy-reason">({nextShaftBlocker})</span>{/if}
+        </Button.Root>
       {/if}
     </div>
 
@@ -412,6 +418,13 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.75rem;
+    color: var(--mcc-text-muted);
+  }
+
+  /* Why the buy button is disabled — matches StationView's .build-missing. */
+  .buy-reason {
+    font-weight: 600;
+    font-size: 0.85em;
     color: var(--mcc-text-muted);
   }
 

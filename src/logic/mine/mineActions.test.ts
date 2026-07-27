@@ -154,6 +154,19 @@ describe('handleNextShaftAction', () => {
     expect(gameState.current.money).toBe(BASE_SHAFT_COST - 1);
   });
 
+  it('allows buying from a hard-cleared surface, not just a soft-cleared one', () => {
+    const plot = seedSoftClearedPlot();
+    // Hard-cleared: the dirt is gone too. Strictly more cleared than 'soft',
+    // and it used to soft-lock the purchase because the guard was `!== 'soft'`.
+    const surface = plot.mineshafts[0].mineDepths[0];
+    surface.tiles = surface.tiles.map((row) => row.map((tile) => ({ ...tile, type: 'empty' as const, hp: 0 })));
+
+    const result = nextShaft(500);
+
+    expect(result.ok).toBe(true);
+    expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(2);
+  });
+
   it('refuses past the shaft limit without charging', () => {
     seedSoftClearedPlot();
     gameState.setMoney(500);

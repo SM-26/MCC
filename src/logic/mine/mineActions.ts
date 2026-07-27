@@ -234,7 +234,9 @@ export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigat
     return { ok: true };
   }
 
-  if (getClearStatus(activeMine) !== 'soft') {
+  // Soft OR hard — hard-cleared means the dirt is gone too, which is strictly
+  // more cleared. Gating on 'soft' alone soft-locked a fully mined-out surface.
+  if (getClearStatus(activeMine) === 'none') {
     return { ok: false, message: 'Clear all of the rubble first!' };
   }
 
