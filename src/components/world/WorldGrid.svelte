@@ -71,6 +71,10 @@
   }
 
   function handlePointerDown(event: PointerEvent) {
+    // Only the primary mouse button pans; touch/pen always report button 0.
+    // Right-drag should open the context menu, not move the map.
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
     layerEl.setPointerCapture(event.pointerId);
     activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     totalMovement = 0;
