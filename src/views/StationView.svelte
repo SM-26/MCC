@@ -25,6 +25,7 @@
     assignRoute,
     dispatch,
     getTravelEta,
+    upgradeEngine,
     type EligiblePosition,
   } from '../logic/station/stationActions';
   import {
@@ -32,6 +33,8 @@
     ENGINE_STATS,
     CART_STATS,
     isAgeAtLeast,
+    MAX_ENGINE_LEVEL,
+    getEngineUpgradeCost,
     getPlatformCost,
     getCityPayout,
     getCargoSaleValue,
@@ -197,6 +200,17 @@
       if (result.message) triggerMobileToast(result.message);
       return;
     }
+    debouncedSave();
+  }
+
+  function handleUpgradeEngine(train: Train) {
+    if (!activePlotState) return;
+    const result = upgradeEngine(train, activePlotState, gameState.current.money);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
+    gameState.current.money = result.nextMoney ?? gameState.current.money;
     debouncedSave();
   }
 
@@ -407,6 +421,23 @@
                     </div>
                   {/each}
                   <p class="muted">{getTotalCartCount(train)}/{ENGINE_STATS[train.engineAge].maxCarts} carts</p>
+                </div>
+
+                {@const maxed = train.engineLevel >= MAX_ENGINE_LEVEL}
+                {@const upgradeCost = getEngineUpgradeCost(train.engineAge, train.engineLevel)}
+                {@const upgradeMissing = maxed ? '' : missingLabel(upgradeCost, activePlotState?.ageResources)}
+                <div class="build-list">
+                  <Button.Root class="build-btn" onclick={() => handleUpgradeEngine(train)} disabled={maxed || upgradeMissing !== ''}>
+                    <span
+                      >Upgrade engine · Lv {train.engineLevel}/{MAX_ENGINE_LEVEL}{#if maxed}&nbsp;<span class="build-missing">(max level)</span
+                        >{:else if upgradeMissing}&nbsp;<span class="build-missing">({upgradeMissing})</span>{/if}</span
+                    >
+                    {#if !maxed}
+                      <span class="build-cost">
+                        {upgradeCost.money}{#each Object.entries(upgradeCost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
+                      </span>
+                    {/if}
+                  </Button.Root>
                 </div>
 
                 <div class="platform-selector">

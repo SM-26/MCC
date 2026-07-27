@@ -1,10 +1,11 @@
 // src/logic/mine/mineActions.test.ts
 import { beforeEach, describe, expect, it } from 'vitest';
+import { gameState } from '../app/gameState.svelte';
 import { plotsStore } from './plotsStore.svelte';
 import { isPlotBuilt } from './mineTypes';
 import type { Miner, Mineshaft } from './mineTypes';
 import { generatePlot } from './mineGen';
-import { BUILD_COAL_COST, BUILD_MONEY_COST, digDeeper, ensurePlotScaffold, tryBuildPlot } from './mineActions';
+import { BASE_SHAFT_COST, BUILD_COAL_COST, BUILD_MONEY_COST, digDeeper, ensurePlotScaffold, handleNextShaftAction, tryBuildPlot } from './mineActions';
 
 const TEST_CELL = 'test-cell-1';
 const SEED = 'test-seed';
@@ -95,6 +96,94 @@ describe('tryBuildPlot', () => {
     plotsStore.get(TEST_CELL)!.ageResources.coal = BUILD_COAL_COST;
     const result = tryBuildPlot(TEST_CELL, SEED, RESET_COUNT, BUILD_MONEY_COST);
     expect(result).toEqual({ ok: true, nextMoney: 0 });
+  });
+});
+
+describe('handleNextShaftAction', () => {
+  // Depth 0 with every resource/rubble tile turned to dirt => getClearStatus === 'soft'.
+  function seedSoftClearedPlot() {
+    const surface = generatePlot(SEED, RESET_COUNT, 0, 0);
+    surface.tiles = surface.tiles.map((row) => row.map((tile) => (tile.type === 'empty' ? tile : { ...tile, type: 'dirt' as const })));
+    plotsStore.set(TEST_CELL, {
+      currentAge: 'Mechanical',
+      ageResources: { coal: 0, oil: 0, copper: 0, superalloy: 0 },
+      mineshafts: [{ mineDepths: [surface], selectedMiner: null, draggedMiner: null, lastTick: 0, activeDepthIndex: 0 }],
+      activeMineshaftIndex: 0,
+      station: null,
+    });
+    return plotsStore.get(TEST_CELL)!;
+  }
+
+  /** The action spends from gameState directly, so stage the wallet first. */
+  function nextShaft(money: number) {
+    gameState.setMoney(money);
+    const plot = plotsStore.get(TEST_CELL)!;
+    const shaft = plot.mineshafts[plot.activeMineshaftIndex];
+    return handleNextShaftAction({
+      worldSeed: SEED,
+      resetCount: RESET_COUNT,
+      maxShafts: 5,
+      activeShaftIndex: plot.activeMineshaftIndex,
+      cellId: TEST_CELL,
+      activeMineshaft: shaft,
+      activeMine: shaft.mineDepths[shaft.activeDepthIndex],
+    });
+  }
+
+  it('buying a shaft charges money AND grows plot.mineshafts', () => {
+    seedSoftClearedPlot();
+    const result = nextShaft(500);
+
+    expect(result.ok).toBe(true);
+    expect(gameState.current.money).toBe(500 - BASE_SHAFT_COST);
+
+    const plot = plotsStore.get(TEST_CELL)!;
+    expect(plot.mineshafts).toHaveLength(2);
+    expect(plot.activeMineshaftIndex).toBe(1);
+    // Seeded like shaft 0, but with shaftIndex 1 — not a blank default depth.
+    expect(plot.mineshafts[1].mineDepths[0]).toEqual(generatePlot(SEED, RESET_COUNT, 0, 1));
+  });
+
+  it('refuses and leaves the plot untouched when money is short', () => {
+    seedSoftClearedPlot();
+    const result = nextShaft(BASE_SHAFT_COST - 1);
+
+    expect(result.ok).toBe(false);
+    expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(1);
+    // The wallet is the action's own now — a refusal must not have charged it.
+    expect(gameState.current.money).toBe(BASE_SHAFT_COST - 1);
+  });
+
+  it('refuses past the shaft limit without charging', () => {
+    seedSoftClearedPlot();
+    gameState.setMoney(500);
+    const plot = plotsStore.get(TEST_CELL)!;
+    const shaft = plot.mineshafts[0];
+    const result = handleNextShaftAction({
+      worldSeed: SEED,
+      resetCount: RESET_COUNT,
+      maxShafts: 0,
+      activeShaftIndex: 0,
+      cellId: TEST_CELL,
+      activeMineshaft: shaft,
+      activeMine: shaft.mineDepths[0],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(gameState.current.money).toBe(500);
+    expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(1);
+  });
+
+  it('switches to an existing shaft without charging or appending', () => {
+    seedSoftClearedPlot();
+    nextShaft(500); // buy shaft 1
+    plotsStore.setActiveMineshaftIndex(TEST_CELL, 0);
+
+    const result = nextShaft(500);
+    expect(result.ok).toBe(true);
+    expect(gameState.current.money).toBe(500); // navigation is free
+    expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(2);
+    expect(plotsStore.get(TEST_CELL)!.activeMineshaftIndex).toBe(1);
   });
 });
 

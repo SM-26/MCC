@@ -1,6 +1,6 @@
 - add an option the advance an age
-- add an option to buying more shafts
-- add an option to upgrade the train engine
+- ~~add an option to buying more shafts~~
+- ~~add an option to upgrade the train engine~~
 - redesign the station (and trainyard) view
 - ~~fix exploration bug, why are no new fog tiles genorated?~~
 - make sure that the install is in the splash screen

@@ -21,9 +21,9 @@
 
 <header class="header">
   <div class="nav-line">
-    <Button.Root class="nav-btn nav-arrow" onclick={onPreviousShaft} disabled={!canGoPrevious}>‹</Button.Root>
+    <Button.Root class="nav-btn nav-arrow" onclick={onPreviousShaft} disabled={!canGoPrevious} aria-label="Previous shaft">‹</Button.Root>
     <span class="shaft-label">Shaft <b class="shaft-num">{shaftIndex + 1}</b> / {shaftTotal}</span>
-    <Button.Root class="nav-btn nav-arrow" onclick={onNextShaft} disabled={!canGoNext}>›</Button.Root>
+    <Button.Root class="nav-btn nav-arrow" onclick={onNextShaft} disabled={!canGoNext} aria-label="Next shaft">›</Button.Root>
   </div>
 </header>
 

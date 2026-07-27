@@ -41,14 +41,20 @@
   const activeMineshaft = $derived(activePlotState?.mineshafts[activePlotState.activeMineshaftIndex] ?? null);
   const activeMine = $derived(activeMineshaft?.mineDepths[activeMineshaft.activeDepthIndex] ?? null);
   const currentShaftLabel = $derived(activeWorldCell?.name ?? 'Mine');
-  const nextShaftLabel = $derived(`Shaft ${(activePlotState?.activeMineshaftIndex ?? 0) + 2}`);
   const minerCost = $derived(getMinerCost(activeMine));
   const playerCanBuyMiner = $derived(canBuyMiner(gameState.current.money, activeMine));
   const clearPercent = $derived(activeMine ? getClearProgress(activeMine) : 0);
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
   const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
-  const canGoNext = $derived(false);
+  // Mirrors handleNextShaftAction's navigation branches: surfacing from a deeper
+  // level always works; moving to the next shaft needs it soft-cleared and already
+  // bought. Buying a new one is canBuyNextShaft's job.
+  const canGoNext = $derived(
+    activeMine && activePlotState
+      ? activeMine.depth > 0 || (clearStatus === 'soft' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length)
+      : false,
+  );
   const canDigDeeper = $derived(clearStatus === 'hard');
   const canBuyNextShaft = $derived(
     activeMine && activePlotState
@@ -204,14 +210,13 @@
   }
 
   function handleNextShaft() {
-    if (!activePlotState) return;
+    if (!activePlotState || !activePlotCellId) return;
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
-      money: gameState.current.money,
       maxShafts: engineeringStore.current.maxNorthExpansions,
       activeShaftIndex: activePlotState.activeMineshaftIndex,
-      shaftsLength: 1,
+      cellId: activePlotCellId,
       activeMineshaft,
       activeMine,
     });
@@ -219,36 +224,6 @@
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
-    }
-
-    if (typeof result.nextMoney === 'number') {
-      gameState.current.money = result.nextMoney;
-    }
-
-    resetDragState();
-    debouncedSave();
-  }
-
-  function handleBuyNextShaft() {
-    if (!activePlotState) return;
-    const result = handleNextShaftAction({
-      worldSeed: gameState.current.settings.worldSeed,
-      resetCount: 0,
-      money: gameState.current.money,
-      maxShafts: engineeringStore.current.maxNorthExpansions,
-      activeShaftIndex: activePlotState.activeMineshaftIndex,
-      shaftsLength: 1,
-      activeMineshaft,
-      activeMine,
-    });
-
-    if (!result.ok) {
-      if (result.message) triggerMobileToast(result.message);
-      return;
-    }
-
-    if (typeof result.nextMoney === 'number') {
-      gameState.current.money = result.nextMoney;
     }
 
     resetDragState();
@@ -326,7 +301,7 @@
         <span>{clearStatusLabel} · {clearPercent}%</span>
       </div>
       {#if canBuyNextShaft}
-        <Button.Root class="nav-btn" onclick={handleBuyNextShaft}>Buy next shaft</Button.Root>
+        <Button.Root class="nav-btn" onclick={handleNextShaft}>Buy next shaft</Button.Root>
       {/if}
     </div>
 

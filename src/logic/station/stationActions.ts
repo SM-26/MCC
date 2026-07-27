@@ -11,7 +11,16 @@ import type { AgeResources, Ages, PlotState } from '../mine/mineTypes';
 import { getHexDistance } from '../world/hex';
 import { getCellById, parseWorldCellId } from '../world/worldTypes';
 import type { Destination, WorldCellId, WorldState } from '../world/worldTypes';
-import { CART_STATS, ENGINE_STATS, getPlatformCost, getTripDuration, isAgeAtLeast, planCargoLoad } from './stationBalance';
+import {
+  CART_STATS,
+  ENGINE_STATS,
+  MAX_ENGINE_LEVEL,
+  getEngineUpgradeCost,
+  getPlatformCost,
+  getTripDuration,
+  isAgeAtLeast,
+  planCargoLoad,
+} from './stationBalance';
 import { createEmptyStation, createPlatform, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
 import type { CartType, PlatformId, Platform, Station, Train } from './stationTypes';
 
@@ -227,6 +236,31 @@ export function buyCart(station: Station, cartType: CartType, money: number): Bu
   }
 
   station.trainyardInventory.carts[cartType] = (station.trainyardInventory.carts[cartType] ?? 0) + 1;
+
+  return { ok: true, nextMoney: money - cost.money };
+}
+
+/** Raise the train's engine level by one, charging money + age resources. */
+export function upgradeEngine(train: Train, plot: PlotState, money: number): BuildResult {
+  if (isTraveling(train)) {
+    return { ok: false, message: 'Train is traveling' };
+  }
+  if (train.engineLevel >= MAX_ENGINE_LEVEL) {
+    return { ok: false, message: 'Engine is at max level' };
+  }
+
+  const cost = getEngineUpgradeCost(train.engineAge, train.engineLevel);
+  if (money < cost.money) {
+    return { ok: false, message: 'Not enough money for an upgrade!' };
+  }
+  if (getMissingResources(cost.resources, plot.ageResources).length > 0) {
+    return { ok: false, message: 'Not enough resources for an upgrade!' };
+  }
+
+  for (const [resource, amount] of Object.entries(cost.resources) as [keyof AgeResources, number][]) {
+    plot.ageResources[resource] -= amount;
+  }
+  train.engineLevel += 1;
 
   return { ok: true, nextMoney: money - cost.money };
 }
