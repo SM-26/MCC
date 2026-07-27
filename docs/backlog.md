@@ -1,4 +1,4 @@
-- add an option the advance an age
+- ~~add an option the advance an age~~
 - ~~add an option to buying more shafts~~
 - ~~add an option to upgrade the train engine~~
 - redesign the station (and trainyard) view
