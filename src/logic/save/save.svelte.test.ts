@@ -58,49 +58,64 @@ function makeHomeCell() {
   };
 }
 
-const makeInitialState = () => ({
-  money: 100,
-  world: {
-    cells: [makeHomeCell()],
-    plots: { '0,0': makeHomePlot() } as Record<WorldCellId, PlotState>,
-    activePlotCellId: '0,0' as WorldCellId | null,
-    inspectedCellId: null as WorldCellId | null,
-  },
-  engineering: {
-    engineeringIdeas: 0,
-    resetCount: 0,
-    maxNorthExpansions: 3,
-    maxUndergroundLevels: 1,
-  },
-  settings: {
-    navbarPosition: 'top' as const,
-    defaultView: 'world' as const,
-    devMode: false,
-    soundEnabled: true,
-    notificationsEnabled: true,
-    theme: 'dark' as const,
-    worldSeed: 'seed-123',
-  },
-});
+// Function declaration, not a const arrow: the vi.hoisted blocks below run
+// before any const in this file is initialised.
+function makeInitialState() {
+  return {
+    money: 100,
+    world: {
+      cells: [makeHomeCell()],
+      plots: { '0,0': makeHomePlot() } as Record<WorldCellId, PlotState>,
+      activePlotCellId: '0,0' as WorldCellId | null,
+      inspectedCellId: null as WorldCellId | null,
+    },
+    engineering: {
+      engineeringIdeas: 0,
+      resetCount: 0,
+      maxNorthExpansions: 3,
+      maxUndergroundLevels: 1,
+    },
+    settings: {
+      navbarPosition: 'top' as const,
+      defaultView: 'world' as const,
+      devMode: false,
+      soundEnabled: true,
+      notificationsEnabled: true,
+      theme: 'dark' as const,
+      worldSeed: 'seed-123',
+    },
+  };
+}
 
-const initialState = makeInitialState();
+const initialState = vi.hoisted(() => makeInitialState());
 
 // ── Mock objects ──────────────────────────────────────────────────────────────
 
-const gameState = {
+// vi.hoisted throughout: vi.mock factories are evaluated as soon as a mocked
+// module is first imported, which can now happen while this file's own consts
+// are still in their temporal dead zone.
+const gameState = vi.hoisted(() => ({
   current: {
-    money: initialState.money,
-    settings: structuredClone(initialState.settings),
+    money: 100,
+    settings: {
+      navbarPosition: 'top' as const,
+      defaultView: 'world' as const,
+      devMode: false,
+      soundEnabled: true,
+      notificationsEnabled: true,
+      theme: 'dark' as const,
+      worldSeed: 'seed-123',
+    },
   },
   setMoney: vi.fn((value: number) => {
     gameState.current.money = value;
   }),
-  updateSettings: vi.fn((updates: Partial<typeof initialState.settings>) => {
+  updateSettings: vi.fn((updates: Partial<typeof gameState.current.settings>) => {
     Object.assign(gameState.current.settings, updates);
   }),
-};
+}));
 
-const navigation = {
+const navigation = vi.hoisted(() => ({
   current: {
     activeTab: 'world' as TabId,
     tabs: ['world', 'mine', 'station', 'engineering', 'settings'] as TabId[],
@@ -127,20 +142,20 @@ const navigation = {
   setShowActiveLabel: vi.fn((value: boolean) => {
     navigation.current.showActiveLabel = value;
   }),
-};
+}));
 
-const worldStore = {
-  current: structuredClone(initialState.world),
-  replace: vi.fn((next: typeof initialState.world) => {
+const worldStore = vi.hoisted(() => ({
+  current: structuredClone(makeInitialState().world),
+  replace: vi.fn((next: ReturnType<typeof makeInitialState>['world']) => {
     worldStore.current = structuredClone(next);
   }),
   setActivePlotCellId: vi.fn((cellId: WorldCellId | null) => {
     worldStore.current.activePlotCellId = cellId;
   }),
-};
+}));
 
-const plotsStore = {
-  _state: structuredClone(initialState.world.plots),
+const plotsStore = vi.hoisted(() => ({
+  _state: structuredClone(makeInitialState().world.plots),
   get current() {
     return plotsStore._state;
   },
@@ -157,16 +172,16 @@ const plotsStore = {
     }
   }),
   setTile: vi.fn(),
-};
+}));
 
-const engineeringStore = {
-  current: structuredClone(initialState.engineering),
-  replace: vi.fn((next: typeof initialState.engineering) => {
+const engineeringStore = vi.hoisted(() => ({
+  current: structuredClone(makeInitialState().engineering),
+  replace: vi.fn((next: ReturnType<typeof makeInitialState>['engineering']) => {
     engineeringStore.current = structuredClone(next);
   }),
-};
+}));
 
-const saveStore = {
+const saveStore = vi.hoisted(() => ({
   current: {
     lastSaveMetadata: null as null | { saveVersion: string },
     lastSavedAt: null as null | number,
@@ -178,14 +193,14 @@ const saveStore = {
   loadFromLocalStorage: vi.fn(),
   saveToLocalStorage: vi.fn(),
   clearLocalStorageSave: vi.fn(),
-};
+}));
 
-const log = {
+const log = vi.hoisted(() => ({
   debug: vi.fn(),
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
-};
+}));
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 

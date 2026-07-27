@@ -21,6 +21,7 @@
   import MineHeader from '../components/mine/MineHeader.svelte';
   import MineGrid from '../components/mine/MineGrid.svelte';
   import MyMeter from '../components/MyMeter.svelte';
+  import { AGE_ADVANCE_COST, advanceAge, getMaxDepthForAge, getNextAge } from '../logic/mine/ageProgression';
   import { RESOURCE_KEYS, RESOURCE_META, type ResourceKey } from '../logic/mine/mineLabels';
   import { getActiveResourcesForDepth } from '../logic/mine/mineGen';
   import { log } from '../lib/logger';
@@ -59,7 +60,33 @@
   const canGoNext = $derived(
     activeMine && activePlotState ? surfaceClearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false,
   );
-  const canDigDeeper = $derived(clearStatus === 'hard');
+  // --- age advancement ---
+  const nextAge = $derived(activePlotState ? getNextAge(activePlotState.currentAge) : null);
+  const advanceCost = $derived(nextAge ? AGE_ADVANCE_COST[nextAge] : null);
+  const advanceCostLabel = $derived(
+    advanceCost
+      ? [`$${advanceCost.money}`, ...(Object.entries(advanceCost.resources) as [ResourceKey, number][]).map(([res, amount]) => `${amount} ${res}`)].join(' + ')
+      : '',
+  );
+  /** '' when affordable, otherwise the reason shown on the disabled button. */
+  const advanceBlocker = $derived.by(() => {
+    if (!activePlotState) return 'unavailable';
+    if (!advanceCost) return 'max age';
+    const parts: string[] = [];
+    if (gameState.current.money < advanceCost.money) parts.push(`$${advanceCost.money - gameState.current.money}`);
+    for (const [res, amount] of Object.entries(advanceCost.resources) as [ResourceKey, number][]) {
+      const have = activePlotState.ageResources[res];
+      if (have < amount) parts.push(`${amount - have} ${res}`);
+    }
+    return parts.length > 0 ? `need ${parts.join(', ')}` : '';
+  });
+  /** '' when diggable, otherwise the reason shown on the disabled button. */
+  const digBlocker = $derived.by(() => {
+    if (!activeMine || !activePlotState) return 'unavailable';
+    if (clearStatus !== 'hard') return 'clear this level first';
+    if (activeMine.depth + 1 > getMaxDepthForAge(activePlotState.currentAge)) return `advance to ${nextAge}`;
+    return '';
+  });
   /** '' when buyable, otherwise the reason shown on the disabled button. */
   const nextShaftBlocker = $derived.by(() => {
     if (!activeMine || !activePlotState) return 'unavailable';
@@ -194,12 +221,22 @@
 
   function handleDigDeeperAction() {
     if (!activePlotState) return;
-    const result = digDeeper(gameState.current.settings.worldSeed, 0, activePlotState.activeMineshaftIndex, activeMineshaft);
+    const result = digDeeper(gameState.current.settings.worldSeed, 0, activePlotState.activeMineshaftIndex, activeMineshaft, activePlotState.currentAge);
     if (!result.ok) {
       if (result.message) triggerMobileToast(result.message);
       return;
     }
     resetDragState();
+    debouncedSave();
+  }
+
+  function handleAdvanceAge() {
+    if (!activePlotState) return;
+    const result = advanceAge(activePlotState);
+    if (!result.ok) {
+      if (result.message) triggerMobileToast(result.message);
+      return;
+    }
     debouncedSave();
   }
 
@@ -307,12 +344,19 @@
       <Button.Root class="nav-btn" onclick={handleNextShaft} disabled={nextShaftBlocker !== ''}>
         Buy next shaft · ${BASE_SHAFT_COST}{#if nextShaftBlocker}&nbsp;<span class="buy-reason">({nextShaftBlocker})</span>{/if}
       </Button.Root>
+      <Button.Root class="nav-btn" onclick={handleAdvanceAge} disabled={advanceBlocker !== ''}>
+        {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}{#if advanceBlocker}&nbsp;<span class="buy-reason"
+            >({advanceBlocker})</span
+          >{/if}
+      </Button.Root>
     </div>
 
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
 
     <div class="mine-actions">
-      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction} disabled={!canDigDeeper}>Dig deeper ↓</Button.Root>
+      <Button.Root class="nav-btn dig-deeper-btn" onclick={handleDigDeeperAction} disabled={digBlocker !== ''}>
+        Dig deeper ↓{#if digBlocker}&nbsp;<span class="buy-reason">({digBlocker})</span>{/if}
+      </Button.Root>
       <Button.Root class="buy-btn" onclick={handleBuyMiner} disabled={!playerCanBuyMiner}>
         Buy Miner (${minerCost})
       </Button.Root>

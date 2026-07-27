@@ -4,6 +4,7 @@
 // here. Balancing is a later pass over this one file — values below are
 // playable placeholders, not balanced.
 
+import { AGE_RESOURCE } from '../mine/ageProgression';
 import type { AgeResources, Ages } from '../mine/mineTypes';
 import type { CartRole, CartSlot, CartType } from './stationTypes';
 
@@ -19,21 +20,6 @@ export interface CartStats {
   valueMultiplier: number;
   cost: { money: number };
 }
-
-export const AGE_ORDER: Ages[] = ['Mechanical', 'Steam', 'Diesel', 'Electric', 'Maglev'];
-
-export function isAgeAtLeast(current: Ages, required: Ages): boolean {
-  return AGE_ORDER.indexOf(current) >= AGE_ORDER.indexOf(required);
-}
-
-/** The signature resource of each age (what its tech "runs on"). */
-export const AGE_RESOURCE: Record<Ages, keyof AgeResources | null> = {
-  Mechanical: null,
-  Steam: 'coal',
-  Diesel: 'oil',
-  Electric: 'copper',
-  Maglev: 'superalloy',
-};
 
 export const ENGINE_STATS: Record<Ages, EngineStats> = {
   Mechanical: { cost: { money: 150, resources: {} }, maxCarts: 2, speed: 1 },

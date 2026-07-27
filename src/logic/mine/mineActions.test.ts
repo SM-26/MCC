@@ -4,6 +4,7 @@ import { gameState } from '../app/gameState.svelte';
 import { plotsStore } from './plotsStore.svelte';
 import { isPlotBuilt } from './mineTypes';
 import type { Miner, Mineshaft } from './mineTypes';
+import { getMaxDepthForAge } from './ageProgression';
 import { generatePlot, getClearStatus } from './mineGen';
 import {
   BASE_SHAFT_COST,
@@ -303,8 +304,8 @@ describe('placeMiner', () => {
 });
 
 describe('digDeeper', () => {
-  function makeClearedShaft(minerCount: number): Mineshaft {
-    const mineDepth = generatePlot(SEED, RESET_COUNT, 0, 0);
+  function makeClearedShaft(minerCount: number, depth = 0): Mineshaft {
+    const mineDepth = generatePlot(SEED, RESET_COUNT, depth, 0);
     // Fully clear the depth so getClearStatus reports 'hard'.
     mineDepth.tiles = mineDepth.tiles.map((row) => row.map((tile) => ({ ...tile, type: 'empty' as const, hp: 0 })));
     const miners: Miner[] = Array.from({ length: minerCount }, (_, i) => ({
@@ -326,19 +327,32 @@ describe('digDeeper', () => {
 
   it("refuses to dig deeper when miners outnumber the next depth's empty tiles", () => {
     const shaft = makeClearedShaft(6); // next depth only has 5 empty (bottom-row) tiles
-    const result = digDeeper(SEED, RESET_COUNT, 0, shaft);
+    const result = digDeeper(SEED, RESET_COUNT, 0, shaft, 'Mechanical');
     expect(result.ok).toBe(false);
     expect(shaft.mineDepths).toHaveLength(1);
   });
 
   it('digs deeper and gives every miner a unique tile when miners fit', () => {
     const shaft = makeClearedShaft(5);
-    const result = digDeeper(SEED, RESET_COUNT, 0, shaft);
+    const result = digDeeper(SEED, RESET_COUNT, 0, shaft, 'Mechanical');
     expect(result.ok).toBe(true);
     expect(shaft.mineDepths).toHaveLength(2);
 
     const nextMine = shaft.mineDepths[1];
     const tileIndices = nextMine.miners.map((m) => m.tileIndex);
     expect(new Set(tileIndices).size).toBe(tileIndices.length);
+  });
+
+  it("refuses one past the age's depth cap, and succeeds there once advanced", () => {
+    const shaft = makeClearedShaft(0, getMaxDepthForAge('Mechanical')); // depth 9
+
+    const blocked = digDeeper(SEED, RESET_COUNT, 0, shaft, 'Mechanical');
+    expect(blocked.ok).toBe(false);
+    expect(blocked.message).toContain('Steam');
+    expect(shaft.mineDepths).toHaveLength(1);
+
+    const allowed = digDeeper(SEED, RESET_COUNT, 0, shaft, 'Steam');
+    expect(allowed.ok).toBe(true);
+    expect(shaft.mineDepths[1].depth).toBe(10);
   });
 });

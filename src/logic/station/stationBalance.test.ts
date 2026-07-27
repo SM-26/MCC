@@ -1,17 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { AGE_ORDER, isAgeAtLeast } from '../mine/ageProgression';
 import { createEmptyAgeResources } from '../mine/mineTypes';
-import {
-  AGE_ORDER,
-  ENGINE_STATS,
-  CART_STATS,
-  getCargoSaleValue,
-  getCityPayout,
-  getPlatformCost,
-  getTripDuration,
-  isAgeAtLeast,
-  planCargoLoad,
-  RESOURCE_VALUE,
-} from './stationBalance';
+import { ENGINE_STATS, CART_STATS, getCargoSaleValue, getCityPayout, getPlatformCost, getTripDuration, planCargoLoad, RESOURCE_VALUE } from './stationBalance';
 
 describe('isAgeAtLeast', () => {
   it('orders ages Mechanical → Maglev', () => {
