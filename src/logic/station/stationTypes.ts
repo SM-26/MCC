@@ -21,7 +21,7 @@ export interface Station {
 
 export interface Platform {
   id: PlatformId;
-  northExpansionIndex: number;
+  mineshaftIndex: number;
   depth: number; // platform level in the mine
   train: Train | null; // default: null
 }
@@ -71,10 +71,10 @@ export function createEmptyStation(id: StationId): Station {
   };
 }
 
-export function createPlatform(id: PlatformId, northExpansionIndex: number, depth: number): Platform {
+export function createPlatform(id: PlatformId, mineshaftIndex: number, depth: number): Platform {
   return {
     id,
-    northExpansionIndex,
+    mineshaftIndex,
     depth,
     train: null,
   };
@@ -131,16 +131,16 @@ export function cloneStation(station: Station): Station {
   };
 }
 
-export function hasPlatformAtDepth(station: Station, northExpansionIndex: number, depth: number): boolean {
-  return station.platforms.some((platform) => platform.northExpansionIndex === northExpansionIndex && platform.depth === depth);
+export function hasPlatformAtDepth(station: Station, mineshaftIndex: number, depth: number): boolean {
+  return station.platforms.some((platform) => platform.mineshaftIndex === mineshaftIndex && platform.depth === depth);
 }
 
-export function getPlatformsForNorthExpansion(station: Station, northExpansionIndex: number): Platform[] {
-  return station.platforms.filter((platform) => platform.northExpansionIndex === northExpansionIndex).sort((a, b) => a.depth - b.depth);
+export function getPlatformsForMineshaft(station: Station, mineshaftIndex: number): Platform[] {
+  return station.platforms.filter((platform) => platform.mineshaftIndex === mineshaftIndex).sort((a, b) => a.depth - b.depth);
 }
 
 export function getPlatformDisplayIndex(station: Station, platform: Platform): number {
-  const ordered = getPlatformsForNorthExpansion(station, platform.northExpansionIndex);
+  const ordered = getPlatformsForMineshaft(station, platform.mineshaftIndex);
 
   return ordered.findIndex((candidate) => candidate.id === platform.id);
 }

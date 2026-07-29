@@ -3,20 +3,20 @@
 export interface EngineeringState {
   engineeringIdeas: number; // EI points, default: 0
   resetCount: number; // nuke count, default: 0
-  maxNorthExpansions: number; // 0 = I, 1 = II, default: 1 — must match stateFactory
+  maxMineshafts: number; // 0 = I, 1 = II, default: 1 — must match stateFactory
   maxUndergroundLevels: number; // default: 0
 }
 export function createDefaultEngineeringState(): EngineeringState {
   return {
     engineeringIdeas: 0,
     resetCount: 0,
-    maxNorthExpansions: 1,
+    maxMineshafts: 1,
     maxUndergroundLevels: 0,
   };
 }
 
-export function canUnlockNorthExpansion(engineeringIdeas: EngineeringState, northExpansionIndex: number): boolean {
-  return northExpansionIndex <= engineeringIdeas.maxNorthExpansions;
+export function canUnlockMineshaft(engineeringIdeas: EngineeringState, mineshaftIndex: number): boolean {
+  return mineshaftIndex <= engineeringIdeas.maxMineshafts;
 }
 
 export function canUnlockUndergroundLevel(engineeringIdeas: EngineeringState, level: number): boolean {

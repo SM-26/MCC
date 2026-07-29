@@ -89,7 +89,7 @@
   const nextShaftBlocker = $derived.by(() => {
     if (!activeMine || !activePlotState) return 'No active mine';
     if (surfaceClearStatus === 'none') return 'Clear all of the rubble first!';
-    if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxNorthExpansions) return 'You reached the shaft limit!';
+    if (activePlotState.activeMineshaftIndex >= engineeringStore.current.maxMineshafts) return 'You reached the shaft limit!';
     if (gameState.current.money < BASE_SHAFT_COST) return `Need $${BASE_SHAFT_COST - gameState.current.money} more for a new shaft!`;
     return '';
   });
@@ -266,7 +266,7 @@
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
-      maxShafts: engineeringStore.current.maxNorthExpansions,
+      maxShafts: engineeringStore.current.maxMineshafts,
       activeShaftIndex: activePlotState.activeMineshaftIndex,
       cellId: activePlotCellId,
       activeMineshaft,

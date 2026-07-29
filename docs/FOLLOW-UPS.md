@@ -71,5 +71,3 @@ hiding a fully dead `src/logic/shared/` folder.
 
 - **#22** — flaky `mineGen` test ("only uses valid fillable tile types above the bottom row") failed
   once and would not reproduce, despite fixed seeds.
-- **#24** — finish the `northExpansion` → Mineshaft rename. Touches the save format
-  (`maxNorthExpansions` and `Platform.northExpansionIndex` are both persisted).

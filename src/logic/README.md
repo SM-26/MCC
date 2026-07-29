@@ -18,7 +18,7 @@ every existing world or mine regenerates differently.
 seedrandom(`${worldSeed}-${resetCount}`);
 
 // Mine: one RNG per depth per shaft (mineGen.ts)
-seedrandom(`${worldSeed}-${resetCount}-${depth}-${northExpansionIndex}`);
+seedrandom(`${worldSeed}-${resetCount}-${depth}-${mineshaftIndex}`);
 ```
 
 The mine seed includes depth and shaft index, which is why a newly bought shaft must be generated
@@ -68,7 +68,7 @@ separate plots array.
 **Every store must appear in all three of these**, or it silently never loads:
 `getPersistedSnapshot()`, `applyLoadedState()`, `applyDefaultState()`. Nothing type-checks it.
 `engineeringStore` was written from `stateFactory` defaults and never read back for weeks, so
-`maxNorthExpansions` sat at its module default and the feature gated on it looked broken rather
+`maxMineshafts` sat at its module default and the feature gated on it looked broken rather
 than unsaved. A save/load round-trip test is the only guard.
 
 ---

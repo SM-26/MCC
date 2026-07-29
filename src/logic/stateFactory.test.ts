@@ -63,7 +63,7 @@ describe('stateFactory', () => {
       expect(state.engineering).toEqual({
         engineeringIdeas: 0,
         resetCount: 0,
-        maxNorthExpansions: 1,
+        maxMineshafts: 1,
         maxUndergroundLevels: 0,
       });
 

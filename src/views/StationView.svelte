@@ -107,8 +107,8 @@
   function platformLabel(p: Platform): string {
     // Cross-expansion label: expansion as Roman numeral + depth, plus the
     // per-expansion display name (e.g. "Main Platform" for the foundation).
-    const expansion = getExpansionLabel(p.northExpansionIndex);
-    const expansionPart = p.northExpansionIndex === 0 ? '' : ` · ${expansion}`;
+    const expansion = getExpansionLabel(p.mineshaftIndex);
+    const expansionPart = p.mineshaftIndex === 0 ? '' : ` · ${expansion}`;
     const name = station ? getPlatformDisplayName(station, p) : `Platform`;
     return `${name}${expansionPart} · Depth ${p.depth}`;
   }
@@ -137,7 +137,7 @@
 
   function handleBuildPlatform(position: EligiblePosition) {
     if (!station || !activePlotState) return;
-    commit(buildPlatform(station, activePlotState, position.northExpansionIndex, position.depth, gameState.current.money));
+    commit(buildPlatform(station, activePlotState, position.mineshaftIndex, position.depth, gameState.current.money));
   }
 
   function handleSelectPlatform(platformId: string) {
@@ -228,7 +228,7 @@
       <h2 class="header-name">{headerName}</h2>
       <p class="header-sub">
         {#if activePlatform}
-          Expansion {toRoman(activePlatform.northExpansionIndex)} · Depth {activePlatform.depth}
+          Expansion {toRoman(activePlatform.mineshaftIndex)} · Depth {activePlatform.depth}
         {:else}
           No station yet
         {/if}
@@ -337,7 +337,7 @@
             <dl class="platform-stats">
               <div>
                 <dt>Expansion</dt>
-                <dd>{activePlatform.northExpansionIndex === 0 ? 'Main (I)' : toRoman(activePlatform.northExpansionIndex)}</dd>
+                <dd>{activePlatform.mineshaftIndex === 0 ? 'Main (I)' : toRoman(activePlatform.mineshaftIndex)}</dd>
               </div>
               <div>
                 <dt>Depth</dt>
@@ -461,11 +461,11 @@
             <h4 class="build-title">Build a platform</h4>
             <p class="muted">Available on hard-cleared levels on the platform grid (depth 0, 6, 11, 16, …).</p>
             <div class="build-list">
-              {#each eligiblePositions as pos (`${pos.northExpansionIndex}-${pos.depth}`)}
+              {#each eligiblePositions as pos (`${pos.mineshaftIndex}-${pos.depth}`)}
                 {@const cost = getPlatformCost(pos.depth, activePlotState?.currentAge ?? 'Mechanical')}
                 {@const missingResources = activePlotState ? lacksResources(cost.resources, activePlotState.ageResources) : false}
                 <Button.Root class="build-btn" onclick={() => handleBuildPlatform(pos)} disabled={money < cost.money || missingResources}>
-                  <span>Expansion {toRoman(pos.northExpansionIndex)} · Depth {pos.depth}</span>
+                  <span>Expansion {toRoman(pos.mineshaftIndex)} · Depth {pos.depth}</span>
                   <span class="build-cost">
                     {cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
                   </span>

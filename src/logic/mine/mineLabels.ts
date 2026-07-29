@@ -36,8 +36,8 @@ export function toRoman(num: number): string {
   return result;
 }
 
-export function getExpansionLabel(activeNorthExpansionIndex: number): string {
-  return activeNorthExpansionIndex === 0 ? 'none' : toRoman(activeNorthExpansionIndex);
+export function getExpansionLabel(activeMineshaftIndex: number): string {
+  return activeMineshaftIndex === 0 ? 'none' : toRoman(activeMineshaftIndex);
 }
 
 export function getPlotLabel(plotName: string | null | undefined, plotIndex: number): string {

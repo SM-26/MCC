@@ -27,9 +27,9 @@ export const MineGenConfig = {
   blockerDensity: 0.1,
   resourceOrder: RESOURCE_ORDER,
 
-  getDimensions: (_depth: number, northExpansionIndex: number) => {
+  getDimensions: (_depth: number, mineshaftIndex: number) => {
     const cols = BASE_COLS;
-    const rows = BASE_ROWS + Math.floor((northExpansionIndex + 1) / 2);
+    const rows = BASE_ROWS + Math.floor((mineshaftIndex + 1) / 2);
     return { rows, cols };
   },
 
@@ -268,12 +268,12 @@ function applyBlockers(tiles: MineTile[][], rows: number, cols: number, rng: see
 }
 
 /**
- * Generate deterministic MineDepth based on world seed, reset count, depth, and north expansion.
+ * Generate deterministic MineDepth based on world seed, reset count, depth, and mineshaft.
  */
-export function generatePlot(worldSeed: string, resetCount: number, depth: number, northExpansionIndex: number): MineDepth {
+export function generatePlot(worldSeed: string, resetCount: number, depth: number, mineshaftIndex: number): MineDepth {
   // Include resetCount in the seed string (matching worldGen pattern)
-  const rng = seedrandom(`${worldSeed}-${resetCount}-${depth}-${northExpansionIndex}`);
-  const { rows, cols } = MineGenConfig.getDimensions(depth, northExpansionIndex);
+  const rng = seedrandom(`${worldSeed}-${resetCount}-${depth}-${mineshaftIndex}`);
+  const { rows, cols } = MineGenConfig.getDimensions(depth, mineshaftIndex);
 
   const tiles: MineTile[][] = Array.from({ length: rows }, (_, row) => Array.from({ length: cols }, () => createTile(row === rows - 1 ? 'empty' : 'dirt')));
 

@@ -40,9 +40,9 @@ Five tabs are routed in `src/App.svelte`; four have real views in `src/views/`.
 | Mine | Built — tile clearing, miner drag-to-merge, dig deeper, multiple mineshafts, age advancement |
 | Station | Built — platforms, train yard, engines/carts, routes, dispatch. A redesign is planned (`docs/FOLLOW-UPS.md`) |
 | Settings | Built — theme, navbar position, dev toggles, save management, dev cheat panel |
-| Engineering | **Placeholder only** — an inline block in `App.svelte`, no view file. `EngineeringState` (`engineeringIdeas`, `maxNorthExpansions`, `maxUndergroundLevels`) exists and is persisted, but nothing in the UI can spend ideas or raise a cap |
+| Engineering | **Placeholder only** — an inline block in `App.svelte`, no view file. `EngineeringState` (`engineeringIdeas`, `maxMineshafts`, `maxUndergroundLevels`) exists and is persisted, but nothing in the UI can spend ideas or raise a cap |
 
-Consequences of that last row worth knowing before planning work: `maxNorthExpansions` defaults to 1, so a plot is limited to two mineshafts and no in-game action can change that. `maxUndergroundLevels` is unused entirely — the dig-depth ceiling comes from the plot's age (`getMaxDepthForAge`), not from engineering.
+Consequences of that last row worth knowing before planning work: `maxMineshafts` defaults to 1, so a plot is limited to two mineshafts and no in-game action can change that. `maxUndergroundLevels` is unused entirely — the dig-depth ceiling comes from the plot's age (`getMaxDepthForAge`), not from engineering.
 
 Remaining work is tracked in `docs/FOLLOW-UPS.md` (deferred items, live bugs, provisional balance) and GitHub Issues (anything with an owner or a save-format impact) — not here.
 

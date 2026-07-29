@@ -72,11 +72,6 @@ several. The canonical term is Mineshaft; `northExpansion` is **deprecated** (th
 "north").
 _Avoid_: north expansion, northExpansion, shaft (use the full word)
 
-**The rename is incomplete.** `PlotState.mineshafts` uses the new name, but the old one is still
-load-bearing in: `Platform.northExpansionIndex`, `EngineeringState.maxNorthExpansions` (which is
-**persisted in saves**), the shaft-index arguments in `mineGen`, and `StationView`. Treat all of
-these as the same concept as Mineshaft. Finishing the rename is tracked in GitHub Issues.
-
 **Mine Depth**:
 One level of a Mineshaft, holding its grid of Tiles and its miners. Depth 0 is the surface.
 _Avoid_: layer, floor
