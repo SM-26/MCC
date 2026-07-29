@@ -12,11 +12,6 @@ for things that would otherwise be forgotten.
   no-op unless that plot is already the active one. Fix: call
   `worldStore.setActivePlotCellId(inspectedCell.id)` before switching tabs. _(verified 2026-07-27)_
 
-- **Splash "Install App" button is dead on non-Chromium browsers.** `Splash.svelte:132` gates the
-  button on `!('deviceMemory' in navigator)`. `deviceMemory` is a Chromium-only API with nothing to
-  do with installability, so Firefox and Safari users get a permanently disabled button. The PWA
-  wiring itself (`beforeinstallprompt` → `pwaInstallStore`) is correct. _(verified 2026-07-27)_
-
 ## Planned work
 
 - **Redesign the Station and trainyard view.** `DESIGN-SYSTEM.md` currently declares Station
