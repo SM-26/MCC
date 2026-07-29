@@ -33,6 +33,17 @@ export default defineConfig({
     tsconfigPaths: true
   },
   publicDir: 'public',
+  build: {
+    // The service worker precaches every asset up front (see "precache N entries"
+    // in the build output), so splitting this bundle would change *when* bytes
+    // arrive, not how many — a first-time visitor downloads the same ~950 kB
+    // either way. The weight is real but earned: bits-ui ~115 kB and svelte
+    // ~51 kB, all of it genuinely used. Raised past the 500 kB default so the
+    // warning stops crying wolf on every build.
+    // ponytail: if this ever trips again, that's ~27% growth and worth a look —
+    // the upgrade path is lazy-loading views with dynamic import(), not chunking.
+    chunkSizeWarningLimit: 1200,
+  },
   server: {
     port: 8080,
     host: '0.0.0.0',
