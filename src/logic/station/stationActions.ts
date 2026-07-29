@@ -183,8 +183,8 @@ export function buildPlatform(station: Station, plot: PlotState, mineshaftIndex:
   station.platforms.push(platform);
 
   station.platforms.sort((a, b) => {
-    if (a.northExpansionIndex !== b.northExpansionIndex) {
-      return a.northExpansionIndex - b.northExpansionIndex;
+    if (a.mineshaftIndex !== b.mineshaftIndex) {
+      return a.mineshaftIndex - b.mineshaftIndex;
     }
     return a.depth - b.depth;
   });

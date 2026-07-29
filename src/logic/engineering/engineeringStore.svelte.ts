@@ -54,12 +54,12 @@ export function createEngineeringStore(initial?: Partial<EngineeringState>) {
       state.resetCount = clampMin(state.resetCount + amount, 0);
     },
 
-    setMaxNorthExpansions(value: number) {
-      state.maxNorthExpansions = clampMin(value, 0);
+    setMaxMineshafts(value: number) {
+      state.maxMineshafts = clampMin(value, 0);
     },
 
-    unlockNorthExpansion(amount = 1) {
-      state.maxNorthExpansions = clampMin(state.maxNorthExpansions + amount, 0);
+    unlockMineshaft(amount = 1) {
+      state.maxMineshafts = clampMin(state.maxMineshafts + amount, 0);
     },
 
     setMaxUndergroundLevels(value: number) {
@@ -77,8 +77,8 @@ export function createEngineeringStore(initial?: Partial<EngineeringState>) {
       return state.engineeringIdeas >= cost;
     },
 
-    canUnlockNorthExpansion(index: number): boolean {
-      return index <= state.maxNorthExpansions;
+    canUnlockMineshaft(index: number): boolean {
+      return index <= state.maxMineshafts;
     },
 
     canUnlockUndergroundLevel(level: number): boolean {

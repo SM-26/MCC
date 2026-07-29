@@ -15,7 +15,7 @@ export function getInitialState(): GameState {
   return {
     money: 75,
     world,
-    engineering: { engineeringIdeas: 0, resetCount: 0, maxNorthExpansions: 1, maxUndergroundLevels: 0 },
+    engineering: { engineeringIdeas: 0, resetCount: 0, maxMineshafts: 1, maxUndergroundLevels: 0 },
     settings: { ...createDefaultSettingsState(), worldSeed },
   };
 }

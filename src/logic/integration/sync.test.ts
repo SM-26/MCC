@@ -115,7 +115,7 @@ describe('World-Mine Integration', () => {
 
     expect(engineering.engineeringIdeas).toBe(0);
     expect(engineering.resetCount).toBe(0);
-    expect(engineering.maxNorthExpansions).toBe(1);
+    expect(engineering.maxMineshafts).toBe(1);
     expect(engineering.maxUndergroundLevels).toBe(0);
   });
 

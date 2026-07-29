@@ -60,7 +60,7 @@ Use `$state.snapshot(store.current)` when you need a plain-object copy (e.g. bef
 - Autosave is debounced 500 ms and only fires after the splash screen clears
 - Save version is read from `package.json`'s `version`; the commit hash/message come from `src/assets/git-info.txt`, generated at dev/build start by `gitInfoPlugin` in `vite.config.ts` (git-ignored, not committed)
 
-**Adding a store? Wire it into all three of these or it will silently never load:** `getPersistedSnapshot()` (write), `applyLoadedState()` (read a save), `applyDefaultState()` (new game / reset). `engineeringStore` was missed here for a long time — it was written from `stateFactory` defaults and never read back, so `maxNorthExpansions` sat at its module default forever and the feature gated on it looked broken rather than unsaved. Nothing type-checks this; the only guard is a save/load round-trip test.
+**Adding a store? Wire it into all three of these or it will silently never load:** `getPersistedSnapshot()` (write), `applyLoadedState()` (read a save), `applyDefaultState()` (new game / reset). `engineeringStore` was missed here for a long time — it was written from `stateFactory` defaults and never read back, so `maxMineshafts` sat at its module default forever and the feature gated on it looked broken rather than unsaved. Nothing type-checks this; the only guard is a save/load round-trip test.
 
 ## Mine state hierarchy
 

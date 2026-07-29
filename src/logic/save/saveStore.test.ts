@@ -65,7 +65,7 @@ function createMockGameState(): GameState {
     engineering: {
       engineeringIdeas: 0,
       resetCount: 0,
-      maxNorthExpansions: 1,
+      maxMineshafts: 1,
       maxUndergroundLevels: 0,
     },
     settings: {

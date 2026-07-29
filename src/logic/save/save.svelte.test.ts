@@ -72,7 +72,7 @@ function makeInitialState() {
     engineering: {
       engineeringIdeas: 0,
       resetCount: 0,
-      maxNorthExpansions: 3,
+      maxMineshafts: 3,
       maxUndergroundLevels: 1,
     },
     settings: {
@@ -415,7 +415,7 @@ describe('save.svelte.ts', async () => {
       engineering: {
         engineeringIdeas: 10,
         resetCount: 2,
-        maxNorthExpansions: 7,
+        maxMineshafts: 7,
         maxUndergroundLevels: 3,
       },
       settings: {
@@ -452,14 +452,14 @@ describe('save.svelte.ts', async () => {
 
   it('persists the live engineering store, not the stateFactory defaults', () => {
     // The store used to be write-only: the snapshot always wrote defaults, so
-    // maxNorthExpansions never left its zeroed module state and the mine's
+    // maxMineshafts never left its zeroed module state and the mine's
     // shaft-limit check could never pass.
-    engineeringStore.current = { engineeringIdeas: 5, resetCount: 1, maxNorthExpansions: 9, maxUndergroundLevels: 4 };
+    engineeringStore.current = { engineeringIdeas: 5, resetCount: 1, maxMineshafts: 9, maxUndergroundLevels: 4 };
 
     const snapshot = getSaveSnapshot();
 
     expect(snapshot.engineering).toEqual(engineeringStore.current);
-    expect(snapshot.engineering.maxNorthExpansions).not.toBe(initialState.engineering.maxNorthExpansions);
+    expect(snapshot.engineering.maxMineshafts).not.toBe(initialState.engineering.maxMineshafts);
   });
 
   it('loadGame falls back to default engineering when the save predates persisting it', () => {
@@ -502,7 +502,7 @@ describe('save.svelte.ts', async () => {
         activePlotCellId: '0,0' as WorldCellId | null,
         inspectedCellId: null as WorldCellId | null,
       },
-      engineering: { engineeringIdeas: 0, resetCount: 0, maxNorthExpansions: 1, maxUndergroundLevels: 0 },
+      engineering: { engineeringIdeas: 0, resetCount: 0, maxMineshafts: 1, maxUndergroundLevels: 0 },
       settings: {
         navbarPosition: 'top' as const,
         defaultView: 'world' as const,
@@ -544,7 +544,7 @@ describe('save.svelte.ts', async () => {
         activePlotCellId: '0,0' as WorldCellId | null,
         inspectedCellId: null as WorldCellId | null,
       },
-      engineering: { engineeringIdeas: 0, resetCount: 0, maxNorthExpansions: 1, maxUndergroundLevels: 0 },
+      engineering: { engineeringIdeas: 0, resetCount: 0, maxMineshafts: 1, maxUndergroundLevels: 0 },
       settings: {
         navbarPosition: 'top' as const,
         defaultView: 'world' as const,
@@ -636,7 +636,7 @@ describe('save.svelte.ts', async () => {
         activePlotCellId: '0,0' as WorldCellId | null,
         inspectedCellId: null as WorldCellId | null,
       },
-      engineering: { engineeringIdeas: 0, resetCount: 0, maxNorthExpansions: 1, maxUndergroundLevels: 0 },
+      engineering: { engineeringIdeas: 0, resetCount: 0, maxMineshafts: 1, maxUndergroundLevels: 0 },
       settings: {
         navbarPosition: 'top' as const,
         defaultView: 'world' as const,

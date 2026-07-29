@@ -107,8 +107,8 @@
   function platformLabel(p: Platform): string {
     // Cross-expansion label: expansion as Roman numeral + depth, plus the
     // per-expansion display name (e.g. "Main Platform" for the foundation).
-    const expansion = getExpansionLabel(p.northExpansionIndex);
-    const expansionPart = p.northExpansionIndex === 0 ? '' : ` · ${expansion}`;
+    const expansion = getExpansionLabel(p.mineshaftIndex);
+    const expansionPart = p.mineshaftIndex === 0 ? '' : ` · ${expansion}`;
     const name = station ? getPlatformDisplayName(station, p) : `Platform`;
     return `${name}${expansionPart} · Depth ${p.depth}`;
   }
@@ -228,7 +228,7 @@
       <h2 class="header-name">{headerName}</h2>
       <p class="header-sub">
         {#if activePlatform}
-          Expansion {toRoman(activePlatform.northExpansionIndex)} · Depth {activePlatform.depth}
+          Expansion {toRoman(activePlatform.mineshaftIndex)} · Depth {activePlatform.depth}
         {:else}
           No station yet
         {/if}
@@ -337,7 +337,7 @@
             <dl class="platform-stats">
               <div>
                 <dt>Expansion</dt>
-                <dd>{activePlatform.northExpansionIndex === 0 ? 'Main (I)' : toRoman(activePlatform.northExpansionIndex)}</dd>
+                <dd>{activePlatform.mineshaftIndex === 0 ? 'Main (I)' : toRoman(activePlatform.mineshaftIndex)}</dd>
               </div>
               <div>
                 <dt>Depth</dt>
