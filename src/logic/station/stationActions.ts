@@ -34,7 +34,7 @@ export interface BuildResult extends ActionResult {
 }
 
 export interface EligiblePosition {
-  northExpansionIndex: number;
+  mineshaftIndex: number;
   depth: number;
 }
 
@@ -49,8 +49,8 @@ function getMissingResources(required: Partial<AgeResources>, available: AgeReso
     .map(([resource]) => resource);
 }
 
-function platformIdFor(northExpansionIndex: number, depth: number): PlatformId {
-  return `platform-n${northExpansionIndex}-d${depth}`;
+function platformIdFor(mineshaftIndex: number, depth: number): PlatformId {
+  return `platform-n${mineshaftIndex}-d${depth}`;
 }
 
 /** Stable station id derived from the plot id, matching the singleton's scheme. */
@@ -125,18 +125,18 @@ export function getEligiblePlatformPositions(plot: PlotState): EligiblePosition[
       if (hasPlatformAtDepth(station, expansionIndex, depthState.depth)) {
         return;
       }
-      positions.push({ northExpansionIndex: expansionIndex, depth: depthState.depth });
+      positions.push({ mineshaftIndex: expansionIndex, depth: depthState.depth });
     });
   });
 
   // Stable order: by expansion, then by depth (shallow first).
-  positions.sort((a, b) => (a.northExpansionIndex !== b.northExpansionIndex ? a.northExpansionIndex - b.northExpansionIndex : a.depth - b.depth));
+  positions.sort((a, b) => (a.mineshaftIndex !== b.mineshaftIndex ? a.mineshaftIndex - b.mineshaftIndex : a.depth - b.depth));
 
   return positions;
 }
 
 /** Can the player build a platform at this position right now? */
-export function canBuildPlatform(station: Station, plot: PlotState, northExpansionIndex: number, depth: number, money: number): ActionResult {
+export function canBuildPlatform(station: Station, plot: PlotState, mineshaftIndex: number, depth: number, money: number): ActionResult {
   if (!station) {
     return { ok: false, message: 'Build a station first' };
   }
@@ -145,11 +145,11 @@ export function canBuildPlatform(station: Station, plot: PlotState, northExpansi
     return { ok: false, message: 'Invalid platform depth' };
   }
 
-  if (hasPlatformAtDepth(station, northExpansionIndex, depth)) {
+  if (hasPlatformAtDepth(station, mineshaftIndex, depth)) {
     return { ok: false, message: 'Platform already exists here' };
   }
 
-  const depthState = plot.mineshafts[northExpansionIndex]?.mineDepths.find((d) => d.depth === depth) ?? null;
+  const depthState = plot.mineshafts[mineshaftIndex]?.mineDepths.find((d) => d.depth === depth) ?? null;
   if (!depthState) {
     return { ok: false, message: 'That depth has not been dug yet' };
   }
@@ -170,16 +170,16 @@ export function canBuildPlatform(station: Station, plot: PlotState, northExpansi
 }
 
 /**
- * Build a platform at (northExpansionIndex, depth). Mutates `station.platforms`
+ * Build a platform at (mineshaftIndex, depth). Mutates `station.platforms`
  * in place (sorted by expansion then depth) and focuses it. Returns `nextMoney`.
  */
-export function buildPlatform(station: Station, plot: PlotState, northExpansionIndex: number, depth: number, money: number): BuildResult {
-  const check = canBuildPlatform(station, plot, northExpansionIndex, depth, money);
+export function buildPlatform(station: Station, plot: PlotState, mineshaftIndex: number, depth: number, money: number): BuildResult {
+  const check = canBuildPlatform(station, plot, mineshaftIndex, depth, money);
   if (!check.ok) {
     return check;
   }
 
-  const platform = createPlatform(platformIdFor(northExpansionIndex, depth), northExpansionIndex, depth);
+  const platform = createPlatform(platformIdFor(mineshaftIndex, depth), mineshaftIndex, depth);
   station.platforms.push(platform);
 
   station.platforms.sort((a, b) => {

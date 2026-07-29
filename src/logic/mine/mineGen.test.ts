@@ -209,13 +209,13 @@ describe('MineGen structural invariants', () => {
   const seeds = ['seed-a', 'seed-b', 'seed-c', 'seed-d', 'seed-e', 'seed-f', 'seed-g', 'seed-h', 'seed-i', 'seed-j'];
 
   const depths = [0, 1, 2, 4, 5, 9, 10, 14, 15, 19, 20, 24];
-  const northExpansionIndices = [0, 1, 2, 3, 4, 8];
+  const mineshaftIndices = [0, 1, 2, 3, 4, 8];
 
   it('always keeps the bottom row empty', () => {
     for (const seed of seeds) {
       for (const depth of depths) {
-        for (const northExpansionIndex of northExpansionIndices) {
-          const plot = generatePlot(seed, depth, northExpansionIndex, 0);
+        for (const mineshaftIndex of mineshaftIndices) {
+          const plot = generatePlot(seed, depth, mineshaftIndex, 0);
           const bottomRow = plot.tiles[plot.rows - 1];
 
           bottomRow.forEach((tile) => {
@@ -229,8 +229,8 @@ describe('MineGen structural invariants', () => {
   it('never places blockers before depth 2', () => {
     for (const seed of seeds) {
       for (const depth of [0, 1]) {
-        for (const northExpansionIndex of northExpansionIndices) {
-          const plot = generatePlot(seed, depth, northExpansionIndex, 0);
+        for (const mineshaftIndex of mineshaftIndices) {
+          const plot = generatePlot(seed, depth, mineshaftIndex, 0);
           const stats = getPlotStats(plot);
 
           expect(stats.blocker).toBeGreaterThanOrEqual(0);
@@ -244,8 +244,8 @@ describe('MineGen structural invariants', () => {
 
     for (const seed of seeds) {
       for (const depth of depths) {
-        for (const northExpansionIndex of northExpansionIndices) {
-          const plot = generatePlot(seed, depth, northExpansionIndex, 0);
+        for (const mineshaftIndex of mineshaftIndices) {
+          const plot = generatePlot(seed, depth, mineshaftIndex, 0);
           const tiles = getNonBottomTiles(plot);
 
           tiles.forEach((tile) => {
@@ -260,8 +260,8 @@ describe('MineGen structural invariants', () => {
   it('preserves reachability for all non-blocker tiles above the bottom row', () => {
     for (const seed of seeds) {
       for (const depth of depths) {
-        for (const northExpansionIndex of northExpansionIndices) {
-          const plot = generatePlot(seed, depth, northExpansionIndex, 0);
+        for (const mineshaftIndex of mineshaftIndices) {
+          const plot = generatePlot(seed, depth, mineshaftIndex, 0);
           expect(hasUnreachableNonBlocker(plot)).toBe(false);
         }
       }
@@ -271,8 +271,8 @@ describe('MineGen structural invariants', () => {
   it('never creates an illegal blocker chain', () => {
     for (const seed of seeds) {
       for (const depth of depths.filter((value) => value >= 2)) {
-        for (const northExpansionIndex of northExpansionIndices) {
-          const plot = generatePlot(seed, depth, northExpansionIndex, 0);
+        for (const mineshaftIndex of mineshaftIndices) {
+          const plot = generatePlot(seed, depth, mineshaftIndex, 0);
           expect(hasIllegalBlockerChain(plot)).toBe(false);
         }
       }
@@ -282,8 +282,8 @@ describe('MineGen structural invariants', () => {
   it('treats blocker density as a soft upper target, not an exact requirement', () => {
     for (const seed of seeds) {
       for (const depth of depths.filter((value) => value >= 2)) {
-        for (const northExpansionIndex of northExpansionIndices) {
-          const plot = generatePlot(seed, depth, northExpansionIndex, 0);
+        for (const mineshaftIndex of mineshaftIndices) {
+          const plot = generatePlot(seed, depth, mineshaftIndex, 0);
           const fillableTileCount = (plot.rows - 1) * plot.cols;
           const blockerCount = getPlotStats(plot).blocker;
           const maxAllowed = Math.floor(fillableTileCount * MineGenConfig.blockerDensity);
