@@ -25,15 +25,14 @@
 
   const emptySlotCount = $derived(showSlots && train ? Math.max(0, ENGINE_STATS[train.engineAge].maxCarts - getTotalCartCount(train)) : 0);
 
-  const enRoute = $derived(train?.trip != null);
-  const interactive = $derived(onCartClick != null || onSlotClick != null);
+  const enRoute = $derived(Boolean(train?.trip));
 
   const label = $derived(
     ghost || !train ? 'No train on this platform' : `${train.engineAge} engine, level ${train.engineLevel}, ${cartSprites.length} carts`,
   );
 </script>
 
-<div class="consist" class:en-route={enRoute} class:interactive style="--sprite-scale: {scale}" role="img" aria-label={label}>
+<div class="consist" class:en-route={enRoute} style="--sprite-scale: {scale}" role="img" aria-label={label}>
   {#if ghost || !train}
     <img class="sprite engine is-ghost" src={ENGINE_SPRITE.Mechanical} alt="" draggable="false" />
   {:else}

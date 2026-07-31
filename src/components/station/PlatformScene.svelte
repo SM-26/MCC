@@ -16,7 +16,7 @@
 
   const { train, statusLabel, statusTone, cartLabel, cargoUnits = 0 }: Props = $props();
 
-  const enRoute = $derived(train?.trip != null);
+  const enRoute = $derived(Boolean(train?.trip));
 
   // One crate per 10 planned units, capped at 3 — the deck is scenery, not a gauge.
   const crateCount = $derived(Math.min(3, Math.ceil(cargoUnits / 10)));
