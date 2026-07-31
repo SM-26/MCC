@@ -17,6 +17,7 @@
   import { runTrainCompletion } from './logic/trainRuntime';
 
   import Splash from './components/Splash.svelte';
+  import PwaInstallPrompt from './components/PwaInstallPrompt.svelte';
   import { toastState, triggerMobileToast } from './components/GameTooltip.svelte';
 
   /** What a freshly explored cell is called in the toast. */
@@ -183,6 +184,10 @@
   {#if appContext.current.isLoading || appContext.current.splashVisible}
     <Splash />
   {/if}
+
+  <!-- Deliberately outside the splash conditional: `beforeinstallprompt`
+       typically fires after the splash has already dismissed itself. -->
+  <PwaInstallPrompt />
 
   <div class="app-main" role="application" aria-label="Web Game: Mines and Choo Choos">
     <header class="top-bar">

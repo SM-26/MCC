@@ -12,10 +12,14 @@ for things that would otherwise be forgotten.
   no-op unless that plot is already the active one. Fix: call
   `worldStore.setActivePlotCellId(inspectedCell.id)` before switching tabs. _(verified 2026-07-27)_
 
-- **Splash "Install App" button is dead on non-Chromium browsers.** `Splash.svelte:132` gates the
-  button on `!('deviceMemory' in navigator)`. `deviceMemory` is a Chromium-only API with nothing to
-  do with installability, so Firefox and Safari users get a permanently disabled button. The PWA
-  wiring itself (`beforeinstallprompt` → `pwaInstallStore`) is correct. _(verified 2026-07-27)_
+- **Icon assets dominate the service-worker precache.** The SW precaches ~1842 KiB, of which
+  `favicon.ico` (361 KiB), `favicon.svg` (243 KiB) and `pwa-512x512.png` (233 KiB) account for
+  883 KiB — nearly as much as the entire JS bundle (921 KiB). The `.ico` is almost certainly
+  carrying oversized frames, and a 243 KiB `.svg` suggests embedded raster data; the splash
+  renders it at 120×120. Re-encoding these three is a far bigger win than anything available in
+  the JS build, where `chunkSizeWarningLimit` was deliberately raised instead of code-splitting.
+  Note the plugin's `precache N entries (KiB)` build line understates the total — it excludes
+  `includeAssets`; sum the `sw.js` manifest for the real figure. _(measured 2026-07-31)_
 
 ## Planned work
 

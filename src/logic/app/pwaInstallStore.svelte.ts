@@ -64,3 +64,24 @@ export function createPwaInstallStore(initial?: Partial<PwaInstallState>) {
 }
 
 export const pwaInstallStore = createPwaInstallStore();
+
+// Registered at module scope, not in a component's onMount: `beforeinstallprompt`
+// can fire before the app has mounted, and the install UI has to outlive the
+// splash screen. Wiring it to a component that unmounts is how the prompt got
+// lost — the event would land after the splash was gone, with nothing rendering.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (event) => {
+    // Keep the event so the install can be triggered later, from our own button.
+    event.preventDefault();
+    pwaInstallStore.setDeferredPrompt(event as BeforeInstallPromptEvent);
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (!isStandalone && pwaInstallStore.current.shouldShow) {
+      pwaInstallStore.setVisible(true);
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    pwaInstallStore.markInstalled();
+  });
+}
