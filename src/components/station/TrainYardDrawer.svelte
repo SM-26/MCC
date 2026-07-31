@@ -7,7 +7,7 @@
   import { toRoman } from '../../logic/mine/mineLabels';
   import { CART_SPRITE, ENGINE_SPRITE } from '../../logic/station/stationSprites';
   import { CART_STATS, ENGINE_STATS } from '../../logic/station/stationBalance';
-  import { buyCart, buyEngine, placeEngine, removeTrain } from '../../logic/station/stationActions';
+  import { addCart, buyCart, buyEngine, placeEngine, removeTrain } from '../../logic/station/stationActions';
   import type { CartType, Platform, Station } from '../../logic/station/stationTypes';
   import type { Ages, PlotState } from '../../logic/mine/mineTypes';
 
@@ -47,6 +47,21 @@
 
   function handleBuyCart(cartType: CartType) {
     commit(buyCart(station, cartType, gameState.current.money));
+  }
+
+  /**
+   * The other half of "tap an empty slot": the slot opens this tab, and picking
+   * a type here attaches it. Over-capacity is left to addCart's own guard so the
+   * refusal arrives as a toast that says why.
+   */
+  function handleAddCart(cartType: CartType) {
+    const train = targetPlatform?.train;
+    if (!train) {
+      return;
+    }
+    if (commit(addCart(station, train, cartType))) {
+      stationUi.closeYard();
+    }
   }
 
   function handleRecall(platform: Platform) {
@@ -143,12 +158,19 @@
           {#each CART_TYPES as cartType (cartType)}
             {@const stats = CART_STATS[cartType]}
             {@const pooled = station.trainyardInventory.carts[cartType] ?? 0}
+            {@const canAdd = pooled > 0 && Boolean(targetPlatform?.train)}
             <div class="row">
-              <img class="row-sprite cart" src={CART_SPRITE[cartType]} alt="" draggable="false" />
-              <span class="row-body">
-                <span class="row-title">{cartType}</span>
-                <span class="row-sub">{stats.role} · capacity {stats.capacity} · in pool ×{pooled}</span>
-              </span>
+              <!-- Picking the row attaches from the pool; buying stays its own
+                   button so an owned type is never a dead end in either direction. -->
+              <button type="button" class="row-pick" onclick={() => handleAddCart(cartType)} disabled={!canAdd}>
+                <img class="row-sprite cart" src={CART_SPRITE[cartType]} alt="" draggable="false" />
+                <span class="row-body">
+                  <span class="row-title">{cartType}</span>
+                  <span class="row-sub">
+                    {stats.role} · capacity {stats.capacity} · in pool ×{pooled}{canAdd ? ' · tap to attach' : ''}
+                  </span>
+                </span>
+              </button>
               <button type="button" class="btn-buy" onclick={() => handleBuyCart(cartType)} disabled={gameState.current.money < stats.cost.money}>
                 ${stats.cost.money}
               </button>
@@ -409,6 +431,29 @@
     gap: 2px;
     flex: 1;
     min-width: 0;
+    text-align: left;
+  }
+
+  .row-pick {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .row-pick:disabled {
+    cursor: default;
+  }
+
+  .row-pick:hover:not(:disabled) .row-title {
+    color: var(--mcc-accent);
   }
 
   .row-title {

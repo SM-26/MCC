@@ -21,6 +21,11 @@ for things that would otherwise be forgotten.
   Note the plugin's `precache N entries (KiB)` build line understates the total — it excludes
   `includeAssets`; sum the `sw.js` manifest for the real figure. _(measured 2026-07-31)_
 
+- **`Super_Alloy.webp` is a photoreal outlier.** Every other resource and train asset is pixel art
+  (1px `#151116` outline, four-tone ramp, speckled highlights) — this one is from a different pass
+  and reads as foreign next to the new train sprites. It should be redrawn to match. Flagged by the
+  Station design handoff, which deliberately scoped it out. _(noted 2026-07-31)_
+
 ## Planned work
 
 - **Redesign the Station and trainyard view.** `DESIGN-SYSTEM.md` currently declares Station
