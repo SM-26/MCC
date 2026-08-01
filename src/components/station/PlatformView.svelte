@@ -68,7 +68,10 @@
 
   // --- route ---
   const routeDestinations = $derived(worldStore.destinations.filter((d) => d.id !== plotCellId));
-  const routeName = $derived(worldStore.destinations.find((d) => d.id === train?.route?.destinationId)?.name ?? null);
+  const routeDestination = $derived(worldStore.destinations.find((d) => d.id === train?.route?.destinationId) ?? null);
+  const routeName = $derived(routeDestination?.name ?? null);
+  // "Cargo" on its own never said *which* ore the factory buys.
+  const acceptedLabel = $derived(routeDestination?.acceptedResources?.length ? routeDestination.acceptedResources.join(', ') : null);
   const preview = $derived(train && train.route ? tripPreview(train, plot, plotCellId) : null);
 
   // --- upgrade ---
@@ -191,8 +194,9 @@
         <Select.Portal>
           <Select.Content class="select-content">
             {#each routeDestinations as dest (dest.id)}
-              <Select.Item class="select-item" value={dest.id} label={`${dest.name} · ${dest.type}`}>
-                {dest.name} · {dest.type}
+              {@const accepts = dest.acceptedResources?.length ? ` · buys ${dest.acceptedResources.join(', ')}` : ''}
+              <Select.Item class="select-item" value={dest.id} label={`${dest.name} · ${dest.type}${accepts}`}>
+                {dest.name} · {dest.type}{accepts}
               </Select.Item>
             {/each}
           </Select.Content>
@@ -204,6 +208,9 @@
           <span>Round trip {preview.etaSec !== null ? `~${preview.etaSec}s` : '—'}</span>
           <span>Pays {preview.reward}</span>
         </div>
+      {/if}
+      {#if acceptedLabel}
+        <p class="hint">Buys {acceptedLabel} — only that ore sells here.</p>
       {/if}
       <p class="hint">Explore fog from the World map — pick a hidden tile there to send an idle train.</p>
     </section>

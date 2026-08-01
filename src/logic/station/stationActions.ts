@@ -14,7 +14,7 @@ import { getCellById, parseWorldCellId } from '../world/worldTypes';
 import type { Destination, WorldCellId, WorldState } from '../world/worldTypes';
 import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration, planCargoLoad } from './stationBalance';
 import { createEmptyStation, createPlatform, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
-import type { CartType, PlatformId, Platform, Station, Train } from './stationTypes';
+import type { CartType, PlatformId, Platform, Station, Train, Trip } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
 // requirements can be layered into the signatures later without breaking callers.
@@ -416,16 +416,25 @@ export function getTravelEta(train: Train, plotCellId: WorldCellId, targetCellId
 
 /** Cell ids currently targeted by an in-flight explore trip across all plots. */
 export function getActiveExploreTargets(plots: Record<WorldCellId, PlotState>): Set<WorldCellId> {
-  const targets = new Set<WorldCellId>();
+  return new Set(getExploreTripsByTarget(plots).keys());
+}
+
+/**
+ * In-flight explore trips keyed by the fog cell they're headed for, so the World
+ * map can show a live countdown on the tile itself rather than just knowing that
+ * *something* is on its way.
+ */
+export function getExploreTripsByTarget(plots: Record<WorldCellId, PlotState>): Map<WorldCellId, Trip> {
+  const trips = new Map<WorldCellId, Trip>();
   for (const plot of Object.values(plots)) {
     for (const platform of plot.station?.platforms ?? []) {
       const trip = platform.train?.trip;
       if (trip?.kind === 'explore') {
-        targets.add(trip.targetCellId);
+        trips.set(trip.targetCellId, trip);
       }
     }
   }
-  return targets;
+  return trips;
 }
 
 /**

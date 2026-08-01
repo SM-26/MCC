@@ -9,13 +9,14 @@
   type Props = {
     cells: WorldCell[];
     selectedCellId?: WorldCellId | null;
+    /** Fog cells with a train inbound, keyed by cell id → "m:ss" remaining. */
+    exploreEtaByCell?: Map<WorldCellId, string>;
     onSelectCell?: (cell: WorldCell) => void;
-    onSelectPlot?: (cell: WorldCell) => void;
     onClearSelection?: () => void;
-    onOpenMine?: (cell: WorldCell) => void;
+    onActivatePlot?: (cell: WorldCell) => void;
   };
 
-  const { cells, selectedCellId = null, onSelectCell, onSelectPlot, onClearSelection, onOpenMine }: Props = $props();
+  const { cells, selectedCellId = null, exploreEtaByCell, onSelectCell, onClearSelection, onActivatePlot }: Props = $props();
 
   $effect(() => {
     log.debug('WorldGrid', 'Props updated:', { cells, selectedCellId });
@@ -148,24 +149,22 @@
     if (!target.closest('button.hex')) onClearSelection?.();
   }
 
+  // A single click only ever inspects — every cell type, plots included.
   function handleClick(cell: WorldCell, event: MouseEvent) {
     event.stopPropagation();
     if (totalMovement > CLICK_DRAG_THRESHOLD) return;
 
-    if (cell.type === 'plot') {
-      onSelectPlot?.(cell);
-      return;
-    }
-
     onSelectCell?.(cell);
   }
 
+  // Activating a plot changes what the Mine and Station tabs operate on, so it
+  // takes the deliberate gesture rather than riding along with inspection.
   function handleDoubleClick(cell: WorldCell, event: MouseEvent) {
     event.stopPropagation();
     if (totalMovement > CLICK_DRAG_THRESHOLD) return;
 
-    if (cell.type === 'plot' && selectedCellId === cell.id) {
-      onOpenMine?.(cell);
+    if (cell.type === 'plot') {
+      onActivatePlot?.(cell);
     }
   }
 
@@ -249,6 +248,12 @@
 
           {#if gameState.current.settings.devMode}
             <span class="coords">{cell.q}, {cell.r}</span>
+          {/if}
+
+          <!-- A train is already on its way to this fog tile; show the same
+               green countdown the Station uses so the map reads as live. -->
+          {#if exploreEtaByCell?.has(cell.id)}
+            <span class="eta-pill"><span class="eta-dot" aria-hidden="true"></span>{exploreEtaByCell.get(cell.id)}</span>
           {/if}
         </span>
       </button>
@@ -378,6 +383,46 @@
     line-height: 1;
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  .eta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--success);
+    background: rgba(0, 0, 0, 0.55);
+    color: var(--success);
+    font-size: 0.6rem;
+    font-weight: 800;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .eta-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: eta-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes eta-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .eta-dot {
+      animation: none;
+    }
   }
 
   .fog-icon {

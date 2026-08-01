@@ -10,44 +10,44 @@
   import { plotsStore } from '../logic/mine/plotsStore.svelte';
   import { isPlotBuilt } from '../logic/mine/mineTypes';
   import { ensurePlotScaffold, tryBuildPlot } from '../logic/mine/mineActions';
-  import { dispatchExplore, findIdleTrain, getActiveExploreTargets, getTravelEta } from '../logic/station/stationActions';
+  import { onMount } from 'svelte';
+  import { dispatchExplore, findIdleTrain, getExploreTripsByTarget, getTravelEta } from '../logic/station/stationActions';
+  import { getTripRemainingMs } from '../logic/station/stationTypes';
+  import { formatCountdown } from '../components/station/stationSelectors';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
   import { engineeringStore } from '../logic/engineering/engineeringStore.svelte';
   import { log } from '../lib/logger';
 
   const cells = $derived(worldStore.current.cells);
-  const activePlotCell = $derived(worldStore.activePlotCell);
   const inspectedCell = $derived(
     worldStore.current.inspectedCellId ? (worldStore.current.cells.find((cell) => cell.id === worldStore.current.inspectedCellId) ?? null) : null,
   );
   const inspectedCellId = $derived(inspectedCell?.id ?? null);
 
+  // Single click inspects, and only inspects. Activating a plot is a commitment
+  // — it changes what the Mine and Station tabs operate on — so it takes the
+  // deliberate gesture.
   function selectCell(cell: WorldCell) {
     worldStore.setInspectedCellId(cell.id);
   }
 
-  function selectPlot(cell: WorldCell) {
-    worldStore.setInspectedCellId(cell.id);
-    if (cell.type === 'plot' && (cell.discovered || gameState.current.settings.devMode)) {
-      worldStore.setActivePlotCellId(cell.id);
-      debouncedSave();
-    }
-  }
-
-  function openMine(cell: WorldCell) {
+  function activatePlot(cell: WorldCell) {
     if (cell.type !== 'plot' || !(cell.discovered || gameState.current.settings.devMode)) return;
     worldStore.setActivePlotCellId(cell.id);
     worldStore.setInspectedCellId(cell.id);
     debouncedSave();
-    navigation.setActiveTab('mine');
   }
 
-  function goToMine() {
-    if (activePlotCell) navigation.setActiveTab('mine');
-  }
-
-  function goToStation() {
-    if (activePlotCell) navigation.setActiveTab('station');
+  /**
+   * Activate first, then navigate. These used to guard on `activePlotCell`, so
+   * with single-click no longer activating they would have become dead buttons
+   * for any plot that wasn't already the active one.
+   */
+  function openInspected(tab: 'mine' | 'station') {
+    if (!inspectedCell || !inspectedPlotBuilt) return;
+    worldStore.setActivePlotCellId(inspectedCell.id);
+    debouncedSave();
+    navigation.setActiveTab(tab);
   }
 
   function clearSelection() {
@@ -60,8 +60,21 @@
   const activePlotCellId = $derived(worldStore.current.activePlotCellId);
   const activePlotState = $derived(activePlotCellId ? plotsStore.get(activePlotCellId) : null);
   const idleTrain = $derived(findIdleTrain(activePlotState ?? null));
-  const exploreTargets = $derived(getActiveExploreTargets(plotsStore.current));
+
+  // Ticking clock so the countdown on inbound fog tiles actually counts down.
+  let now = $state(Date.now());
+  onMount(() => {
+    const timer = window.setInterval(() => (now = Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  });
+
+  const exploreTrips = $derived(getExploreTripsByTarget(plotsStore.current));
+  const exploreTargets = $derived(new Set(exploreTrips.keys()));
+  const exploreEtaByCell = $derived(
+    new Map([...exploreTrips].map(([cellId, trip]) => [cellId, formatCountdown(getTripRemainingMs(trip, now))])),
+  );
   const alreadyExploring = $derived(inspectedCell ? exploreTargets.has(inspectedCell.id) : false);
+  const isInspectedActive = $derived(inspectedCell !== null && inspectedCell.id === activePlotCellId);
   const exploreEtaMs = $derived(
     inspectedCell && !inspectedCell.discovered && idleTrain && activePlotCellId ? getTravelEta(idleTrain, activePlotCellId, inspectedCell.id) : null,
   );
@@ -96,14 +109,7 @@
     <p class="world-sub">Choose a plot, city, or factory.</p>
   </header>
 
-  <WorldGrid
-    {cells}
-    selectedCellId={inspectedCellId}
-    onSelectCell={selectCell}
-    onSelectPlot={selectPlot}
-    onClearSelection={clearSelection}
-    onOpenMine={openMine}
-  />
+  <WorldGrid {cells} selectedCellId={inspectedCellId} {exploreEtaByCell} onSelectCell={selectCell} onClearSelection={clearSelection} onActivatePlot={activatePlot} />
 
   <section class="inspect-card">
     {#if inspectedCell}
@@ -128,7 +134,10 @@
             <p class="cell-sub">Ring {inspectedCell.ring} · Hidden</p>
           {/if}
         </div>
-        {#if inspectedCell.type === 'plot' && inspectedPlotBuilt}
+        <!-- Reflects the plot the Mine/Station tabs actually operate on, not
+             merely "a built plot is being looked at", which is what this used
+             to say for every built plot. -->
+        {#if isInspectedActive}
           <span class="state-pill">Active</span>
         {/if}
       </div>
@@ -139,9 +148,19 @@
         {:else if inspectedCell.type === 'city'}
           Passenger destination.
         {:else if inspectedCell.type === 'factory'}
-          Cargo destination.
+          <!-- Name the ore: "cargo destination" alone never told the player what
+               this factory actually buys. -->
+          {#if inspectedCell.acceptedResources?.length}
+            Cargo destination · buys {inspectedCell.acceptedResources.join(', ')}.
+          {:else}
+            Cargo destination.
+          {/if}
         {:else if inspectedCell.type === 'plot'}
-          {inspectedPlotBuilt ? 'Mine and station views will use this tile.' : 'Under construction. Gather coal and money to build this plot.'}
+          {inspectedPlotBuilt
+            ? isInspectedActive
+              ? 'Mine and station views use this tile.'
+              : 'Double-tap to make this the active plot.'
+            : 'Under construction. Gather coal and money to build this plot.'}
         {/if}
       </p>
 
@@ -150,8 +169,8 @@
           {#if !inspectedPlotBuilt}
             <Button.Root class="glass-btn" onclick={() => buildPlotAction(inspectedCell!)}>Build plot</Button.Root>
           {/if}
-          <Button.Root class="glass-btn" onclick={goToMine} disabled={!inspectedPlotBuilt}>Go to mine</Button.Root>
-          <Button.Root class="glass-btn" onclick={goToStation} disabled={!inspectedPlotBuilt}>Go to station</Button.Root>
+          <Button.Root class="glass-btn" onclick={() => openInspected('mine')} disabled={!inspectedPlotBuilt}>Go to mine</Button.Root>
+          <Button.Root class="glass-btn" onclick={() => openInspected('station')} disabled={!inspectedPlotBuilt}>Go to station</Button.Root>
         </div>
       {:else if !inspectedCell.discovered}
         <div class="inspect-actions">

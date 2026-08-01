@@ -50,6 +50,9 @@ export interface Destination {
   distance: number;
   basePayout: number;
   discovered: boolean;
+  /** Factories only — what this one buys. Carried so the Station can say what
+      "cargo" actually means without re-looking-up the cell. */
+  acceptedResources?: ResourceType[];
 }
 
 export interface WorldState {
@@ -83,6 +86,7 @@ export function getDestinationFromCell(cell: WorldCell): Destination | null {
     distance: 0,
     basePayout: 0,
     discovered: cell.discovered,
+    acceptedResources: cell.acceptedResources,
   };
 }
 

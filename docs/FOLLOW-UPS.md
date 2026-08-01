@@ -6,12 +6,6 @@ for things that would otherwise be forgotten.
 
 ## Live bugs
 
-- **"Go to mine" / "Go to station" do nothing for an inspected-but-not-active plot.**
-  `WorldView.svelte:153-154` enable both buttons when the *inspected* plot is built, but the
-  handlers (`goToMine`/`goToStation`, `:45`/`:49`) guard on `activePlotCell` — so clicking is a
-  no-op unless that plot is already the active one. Fix: call
-  `worldStore.setActivePlotCellId(inspectedCell.id)` before switching tabs. _(verified 2026-07-27)_
-
 - **Icon assets dominate the service-worker precache.** The SW precaches ~1842 KiB, of which
   `favicon.ico` (361 KiB), `favicon.svg` (243 KiB) and `pwa-512x512.png` (233 KiB) account for
   883 KiB — nearly as much as the entire JS bundle (921 KiB). The `.ico` is almost certainly
