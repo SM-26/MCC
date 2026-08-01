@@ -5,7 +5,6 @@
 
   import { debouncedSave } from '../logic/save/save.svelte';
   import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
-  import { runMiningTick } from '../logic/mine/mineTick';
   import {
     BASE_SHAFT_COST,
     buyMiner,
@@ -119,27 +118,14 @@
   const showResourcePill = $derived(hasAnyResource || currentOres.length > 0);
   const shownOres = $derived(resExpanded || currentOres.length === 0 ? RESOURCE_KEYS : currentOres);
 
-  let interval: ReturnType<typeof setInterval>;
   let draggedMiner = $state<Miner | null>(null);
   let draggedPointerId = $state<number | null>(null);
   let dragPos = $state({ x: 0, y: 0 });
   let isDraggingMiner = $state(false);
 
-  function handleMiningTick() {
-    if (!activeMine) return;
-    const result = runMiningTick(activeMine, gameState.current.money);
-    gameState.current.money = result.nextMoney;
-
-    let didEarnResource = false;
-    if (activePlotState) {
-      for (const [res, amount] of Object.entries(result.resourcesEarned) as [ResourceKey, number][]) {
-        activePlotState.ageResources[res] += amount;
-        didEarnResource = true;
-      }
-    }
-
-    if (result.didClearTile || result.didEarnMoney || didEarnResource) debouncedSave();
-  }
+  // Mining itself is driven by the app-level heartbeat in App.svelte
+  // (`runMiningForAllPlots`), so every shaft of every plot produces whether or
+  // not this view is mounted. This component only renders it.
 
   function resetDragState() {
     isDraggingMiner = false;
@@ -308,14 +294,12 @@
   }
 
   onMount(() => {
-    interval = setInterval(handleMiningTick, 1000);
     window.addEventListener('pointermove', handleGlobalPointerMove, { passive: false });
     window.addEventListener('pointerup', handleGlobalPointerUp, { passive: false });
     window.addEventListener('pointercancel', handleGlobalPointerCancel, { passive: false });
   });
 
   onDestroy(() => {
-    clearInterval(interval);
     window.removeEventListener('pointermove', handleGlobalPointerMove);
     window.removeEventListener('pointerup', handleGlobalPointerUp);
     window.removeEventListener('pointercancel', handleGlobalPointerCancel);

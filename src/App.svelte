@@ -15,6 +15,7 @@
   import { debouncedSave } from './logic/save/save.svelte';
   import { engineeringStore } from './logic/engineering/engineeringStore.svelte';
   import { runTrainCompletion } from './logic/trainRuntime';
+  import { runMiningForAllPlots } from './logic/mineRuntime';
 
   import Splash from './components/Splash.svelte';
   import PwaInstallPrompt from './components/PwaInstallPrompt.svelte';
@@ -109,7 +110,11 @@
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
 
-    const trainTimer = window.setInterval(() => {
+    // One heartbeat for the whole game. Mining lives here rather than in
+    // MineView so every shaft of every plot produces, not just the depth that
+    // happens to be on screen.
+    const gameTimer = window.setInterval(() => {
+      const mined = runMiningForAllPlots();
       const { completed, explored } = runTrainCompletion();
       // Toasts last 2s and replace each other, so announce only the last of a
       // batch — several trips can land on the same tick.
@@ -117,7 +122,7 @@
       if (latest) {
         triggerMobileToast(`Explored ${latest.name} — ${EXPLORED_LABEL[latest.type]}`);
       }
-      if (completed) {
+      if (completed || mined.changed) {
         debouncedSave();
       }
     }, 1000);
@@ -137,7 +142,7 @@
 
     return () => {
       window.clearTimeout(splashTimer);
-      window.clearInterval(trainTimer);
+      window.clearInterval(gameTimer);
       window.removeEventListener('resize', updateScreenSize);
       stopWatchingSystemTheme();
     };
