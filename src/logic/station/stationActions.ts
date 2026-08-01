@@ -10,7 +10,7 @@ import { isAgeAtLeast } from '../mine/ageProgression';
 import { getClearStatus } from '../mine/mineGen';
 import type { AgeResources, Ages, PlotState } from '../mine/mineTypes';
 import { getHexDistance } from '../world/hex';
-import { getCellById, parseWorldCellId } from '../world/worldTypes';
+import { getCellById, isExplorationRoute, parseWorldCellId } from '../world/worldTypes';
 import type { Destination, WorldCellId, WorldState } from '../world/worldTypes';
 import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration, planCargoLoad } from './stationBalance';
 import { createEmptyStation, createPlatform, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
@@ -366,6 +366,12 @@ export function dispatch(train: Train, plot: PlotState, world: WorldState, plotC
     return { ok: false, message: 'Assign a route first' };
   }
 
+  // Exploration has no fixed target — the tile is chosen in the World map, so
+  // this train is dispatched by `dispatchExplore`, not from the Station.
+  if (isExplorationRoute(train.route)) {
+    return { ok: false, message: 'Pick a hidden tile in the World map to explore' };
+  }
+
   // Destination ids ARE cell ids (see getDestinationFromCell).
   const targetCellId = train.route.destinationId;
   const cell = getCellById(world, targetCellId);
@@ -400,6 +406,21 @@ export function findIdleTrain(plot: PlotState | null): Train | null {
   for (const platform of plot?.station?.platforms ?? []) {
     if (platform.train && !isTraveling(platform.train)) {
       return platform.train;
+    }
+  }
+  return null;
+}
+
+/**
+ * First idle train whose standing order is Exploration. Only these may be sent
+ * into the fog, so committing a train to exploring is a deliberate choice rather
+ * than something any idle train gets volunteered for.
+ */
+export function findExplorerTrain(plot: PlotState | null): Train | null {
+  for (const platform of plot?.station?.platforms ?? []) {
+    const train = platform.train;
+    if (train && !isTraveling(train) && isExplorationRoute(train.route)) {
+      return train;
     }
   }
   return null;
@@ -451,6 +472,12 @@ export function dispatchExplore(
 ): ActionResult {
   if (isTraveling(train)) {
     return { ok: false, message: 'Train is traveling' };
+  }
+
+  // Exploring is a standing order, not something any idle train gets drafted
+  // into: the route has to say Exploration first.
+  if (!isExplorationRoute(train.route)) {
+    return { ok: false, message: 'Set this train’s route to Exploration first' };
   }
 
   if (occupiedTargets.has(targetCellId)) {

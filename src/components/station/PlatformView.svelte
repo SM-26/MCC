@@ -11,6 +11,7 @@
   import { AGE_ORDER } from '../../logic/mine/ageProgression';
   import { toRoman } from '../../logic/mine/mineLabels';
   import { getPlatformDisplayName, getPlatformsForMineshaft, getTotalCartCount, getTripRemainingMs } from '../../logic/station/stationTypes';
+  import { createExplorationDestination, isExplorationRoute } from '../../logic/world/worldTypes';
   import { assignRoute, dispatch, placeEngine, removeCart, upgradeEngine } from '../../logic/station/stationActions';
   import { ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost } from '../../logic/station/stationBalance';
   import type { CartType, Platform, Station } from '../../logic/station/stationTypes';
@@ -67,8 +68,11 @@
   const cargoUnits = $derived(train ? plannedCargoUnits(train, plot) : 0);
 
   // --- route ---
-  const routeDestinations = $derived(worldStore.destinations.filter((d) => d.id !== plotCellId));
-  const routeDestination = $derived(worldStore.destinations.find((d) => d.id === train?.route?.destinationId) ?? null);
+  // Exploration leads: it's the standing order for a scout, and unlike the rest
+  // of the list it isn't a place, so it never competes with a real destination.
+  const routeDestinations = $derived([createExplorationDestination(), ...worldStore.destinations.filter((d) => d.id !== plotCellId)]);
+  const routeDestination = $derived(routeDestinations.find((d) => d.id === train?.route?.destinationId) ?? null);
+  const isExploring = $derived(isExplorationRoute(train?.route));
   const routeName = $derived(routeDestination?.name ?? null);
   // "Cargo" on its own never said *which* ore the factory buys.
   const acceptedLabel = $derived(routeDestination?.acceptedResources?.length ? routeDestination.acceptedResources.join(', ') : null);
@@ -109,7 +113,7 @@
   }
 
   function handleAssignRoute(destinationId: string) {
-    const destination = worldStore.destinations.find((d) => d.id === destinationId);
+    const destination = routeDestinations.find((d) => d.id === destinationId);
     if (train && destination) {
       commit(assignRoute(train, destination));
     }
@@ -212,7 +216,11 @@
       {#if acceptedLabel}
         <p class="hint">Buys {acceptedLabel} — only that ore sells here.</p>
       {/if}
-      <p class="hint">Explore fog from the World map — pick a hidden tile there to send an idle train.</p>
+      {#if isExploring}
+        <p class="hint">Scout duty. Pick a hidden tile in the World map to send this train — the estimate above tracks whichever fog tile you last inspected.</p>
+      {:else}
+        <p class="hint">Explore fog from the World map — set a train's route to Exploration to send it.</p>
+      {/if}
     </section>
 
     {#if trip}
@@ -230,7 +238,11 @@
             {#if upgradeMissing}<span class="shortfall">({upgradeMissing})</span>{/if}
           {/if}
         </button>
-        <button type="button" class="btn-primary" onclick={handleDispatch} disabled={!train.route}>Dispatch</button>
+        <!-- An exploring train picks its target in the World map, so there is
+             nothing to dispatch to from here. -->
+        <button type="button" class="btn-primary" onclick={handleDispatch} disabled={!train.route || isExploring}>
+          {isExploring ? 'Send from World map' : 'Dispatch'}
+        </button>
       </footer>
     {/if}
   {:else}

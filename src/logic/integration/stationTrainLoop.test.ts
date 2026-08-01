@@ -10,6 +10,7 @@ import { makeTestPlot } from '../station/stationActions.test';
 import { addCart, assignRoute, buildStation, buyCart, buyEngine, dispatch, dispatchExplore, placeEngine } from '../station/stationActions';
 import { getCityPayout, getTripDuration } from '../station/stationBalance';
 import { processTrains } from '../station/trainTick';
+import { createExplorationDestination } from '../world/worldTypes';
 import type { WorldCell, WorldState } from '../world/worldTypes';
 
 function makeCell(id: string, type: WorldCell['type'], discovered = true): WorldCell {
@@ -80,6 +81,8 @@ describe('station train loop', () => {
     placeEngine(station, platform, 'Mechanical');
 
     // Explore trip dispatched at t=1000, app "closes", reopens days later.
+    // Only a train on exploration duty may be sent into the fog.
+    assignRoute(platform.train!, createExplorationDestination());
     expect(dispatchExplore(platform.train!, world, '0,3', '0,0', 1_000).ok).toBe(true);
     const daysLater = 1_000 + 3 * 24 * 60 * 60 * 1000;
 

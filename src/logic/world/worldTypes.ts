@@ -7,7 +7,29 @@ export type WorldCellId = string;
 export type DestinationId = string;
 
 export type WorldCellType = 'empty' | 'plot' | 'city' | 'factory' | 'blocker';
-export type DestinationType = 'city' | 'factory' | 'plot';
+/**
+ * `exploration` is not a place. It is a standing order — "go reveal fog" — whose
+ * actual target is chosen later, per trip, by tapping a hidden tile in the World
+ * map. Everything else is a fixed cell.
+ */
+export type DestinationType = 'city' | 'factory' | 'plot' | 'exploration';
+
+export const EXPLORATION_DESTINATION_ID = 'exploration';
+
+export function createExplorationDestination(): Destination {
+  return {
+    id: EXPLORATION_DESTINATION_ID,
+    name: 'Exploration',
+    type: 'exploration',
+    distance: 0,
+    basePayout: 0,
+    discovered: true,
+  };
+}
+
+export function isExplorationRoute(route: Route | null | undefined): boolean {
+  return route?.destinationType === 'exploration';
+}
 export type ResourceType = 'Oil' | 'Coal' | 'Copper' | 'SuperAlloy';
 
 /**

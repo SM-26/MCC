@@ -19,6 +19,7 @@ import {
 } from './stationActions';
 import { createEmptyStation, createPlatform } from './stationTypes';
 import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration } from './stationBalance';
+import { createExplorationDestination } from '../world/worldTypes';
 import type { WorldCell, WorldState } from '../world/worldTypes';
 
 export function makeClearedDepth(depth: number): MineDepthState {
@@ -295,31 +296,62 @@ describe('dispatch', () => {
   });
 });
 
+/** A train on scout duty — only these may be sent into the fog. */
+function makeExplorerTrain() {
+  const train = makeReadyTrain();
+  assignRoute(train, createExplorationDestination());
+  return train;
+}
+
 describe('dispatchExplore', () => {
   it('sends a train to an undiscovered cell without touching the standing route', () => {
+    const train = makeExplorerTrain();
+
+    const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', false)]);
+    const result = dispatchExplore(train, world, '0,4', '0,0', 1_000);
+    expect(result.ok).toBe(true);
+    expect(train.trip).toMatchObject({ kind: 'explore', targetCellId: '0,4', departedAt: 1_000, cargo: {} });
+    expect(train.route).toEqual({ destinationId: 'exploration', destinationType: 'exploration' });
+  });
+
+  it('refuses a train that is not on exploration duty', () => {
     const train = makeReadyTrain();
     const city = { id: '2,0', name: 'C', type: 'city' as const, distance: 0, basePayout: 0, discovered: true };
     assignRoute(train, city);
 
     const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', false)]);
     const result = dispatchExplore(train, world, '0,4', '0,0', 1_000);
-    expect(result.ok).toBe(true);
-    expect(train.trip).toMatchObject({ kind: 'explore', targetCellId: '0,4', departedAt: 1_000, cargo: {} });
+
+    expect(result.ok).toBe(false);
+    expect(train.trip).toBeNull();
+    // The city route is left exactly as it was.
     expect(train.route).toEqual({ destinationId: '2,0', destinationType: 'city' });
   });
 
   it('rejects discovered or unknown cells', () => {
-    const train = makeReadyTrain();
+    const train = makeExplorerTrain();
     const world = makeWorld([makeCell('0,0', 'plot'), makeCell('1,0', 'city', true)]);
     expect(dispatchExplore(train, world, '1,0', '0,0', 0).ok).toBe(false);
     expect(dispatchExplore(train, world, '9,9', '0,0', 0).ok).toBe(false);
   });
 
   it('rejects a tile already being explored by another train', () => {
-    const train = makeReadyTrain();
+    const train = makeExplorerTrain();
     const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', false)]);
     const occupied = new Set(['0,4']);
     expect(dispatchExplore(train, world, '0,4', '0,0', 1_000, occupied).ok).toBe(false);
+    expect(train.trip).toBeNull();
+  });
+});
+
+describe('dispatch with an exploration route', () => {
+  it('refuses to dispatch from the station — the tile is picked in the World map', () => {
+    const train = makeExplorerTrain();
+    const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', false)]);
+
+    const result = dispatch(train, makeTestPlot(), world, '0,0', 1_000);
+
+    expect(result.ok).toBe(false);
     expect(train.trip).toBeNull();
   });
 });

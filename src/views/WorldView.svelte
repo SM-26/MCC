@@ -11,7 +11,7 @@
   import { isPlotBuilt } from '../logic/mine/mineTypes';
   import { ensurePlotScaffold, tryBuildPlot } from '../logic/mine/mineActions';
   import { onMount } from 'svelte';
-  import { dispatchExplore, findIdleTrain, getExploreTripsByTarget, getTravelEta } from '../logic/station/stationActions';
+  import { dispatchExplore, findExplorerTrain, getExploreTripsByTarget, getTravelEta } from '../logic/station/stationActions';
   import { getTripRemainingMs } from '../logic/station/stationTypes';
   import { formatCountdown } from '../components/station/stationSelectors';
   import { triggerMobileToast } from '../components/GameTooltip.svelte';
@@ -59,7 +59,8 @@
   // --- fog exploration: send an idle train from the active plot to reveal a cell ---
   const activePlotCellId = $derived(worldStore.current.activePlotCellId);
   const activePlotState = $derived(activePlotCellId ? plotsStore.get(activePlotCellId) : null);
-  const idleTrain = $derived(findIdleTrain(activePlotState ?? null));
+  // Only a train whose standing order is Exploration may be sent into the fog.
+  const idleTrain = $derived(findExplorerTrain(activePlotState ?? null));
 
   // Ticking clock so the countdown on inbound fog tiles actually counts down.
   let now = $state(Date.now());
@@ -179,7 +180,7 @@
           {:else if !activePlotState}
             <p class="cell-sub">Build a plot with a station to send explorers.</p>
           {:else if !idleTrain}
-            <p class="cell-sub">No idle train available — free one up in your station.</p>
+            <p class="cell-sub">No train on scout duty — set a train's route to Exploration in your station.</p>
           {:else}
             <Button.Root class="glass-btn" onclick={exploreInspected}>
               Send train to explore{exploreEtaMs !== null ? ` (~${Math.ceil(exploreEtaMs / 1000)}s)` : ''}

@@ -11,7 +11,7 @@
 import { debouncedSave } from '../../logic/save/save.svelte';
 import { gameState } from '../../logic/app/gameState.svelte';
 import { worldStore } from '../../logic/world/worldStore.svelte';
-import { getCellById } from '../../logic/world/worldTypes';
+import { getCellById, isExplorationRoute } from '../../logic/world/worldTypes';
 import { getCartCapacity } from '../../logic/station/stationTypes';
 import { getTravelEta } from '../../logic/station/stationActions';
 import { getCargoSaleValue, getCityPayout, planCargoLoad } from '../../logic/station/stationBalance';
@@ -72,6 +72,19 @@ export function tripPreview(train: Train, plot: PlotState | null, plotCellId: st
   const destId = train.route?.destinationId;
   if (!destId || !plotCellId) {
     return null;
+  }
+
+  // Exploration has no fixed target, so the estimate is against whichever fog
+  // tile the player last looked at in the World map — and it never pays.
+  if (isExplorationRoute(train.route)) {
+    const inspectedId = worldStore.current.inspectedCellId;
+    const inspected = inspectedId ? getCellById(worldStore.current, inspectedId) : null;
+    const target = inspected && !inspected.discovered ? inspected : null;
+    const etaMs = target ? getTravelEta(train, plotCellId, target.id) : null;
+    return {
+      etaSec: etaMs !== null ? Math.ceil(etaMs / 1000) : null,
+      reward: 'no payout — reveals the map',
+    };
   }
 
   const cell = getCellById(worldStore.current, destId);
