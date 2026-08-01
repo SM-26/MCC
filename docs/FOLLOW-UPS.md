@@ -21,12 +21,36 @@ for things that would otherwise be forgotten.
   Note the plugin's `precache N entries (KiB)` build line understates the total — it excludes
   `includeAssets`; sum the `sw.js` manifest for the real figure. _(measured 2026-07-31)_
 
+- **Building a plot silently destroys everything railed into it.** `tryBuildPlot`
+  (`mineActions.ts:285`) gates on `coal >= BUILD_COAL_COST && money >= BUILD_MONEY_COST`, then calls
+  `plotsStore.set(cellId, buildPlot(...))` — and `buildPlot` returns a *fresh* plot with
+  `ageResources: createEmptyAgeResources()` and `station: null`. Three consequences:
+  - **Only coal is ever checked.** Oil, copper and superalloy delivered to the plot are ignored.
+  - **The coal is never spent.** Money is deducted; the coal requirement is a threshold, not a cost.
+  - **The whole pool is wiped, not spent**, along with any station scaffold. Railing in 500 coal and
+    railing in exactly 10 produce identical results; the surplus evaporates.
+
+  `CONTEXT.md` describes the intent as "the player has **spent** the accumulated resources (and
+  money)", so the code and the domain model disagree. The minimal fix is to deduct the cost and
+  carry the remaining `ageResources` (and the scaffold's station) through the build rather than
+  replacing the plot wholesale. Costs are marked `PROVISIONAL` in-code, so the numbers are open too.
+  _(verified 2026-08-01)_
+
 - **`Super_Alloy.webp` is a photoreal outlier.** Every other resource and train asset is pixel art
   (1px `#151116` outline, four-tone ramp, speckled highlights) — this one is from a different pass
   and reads as foreign next to the new train sprites. It should be redrawn to match. Flagged by the
   Station design handoff, which deliberately scoped it out. _(noted 2026-07-31)_
 
 ## Planned work
+
+- **Nothing states what an under-construction plot needs, or what has arrived.** Delivery itself
+  works: `trainTick.ts` `case 'plot'` deposits `trip.cargo` into the target's `ageResources`,
+  creating a scaffold if the cell was never visited, and pays nothing. But no surface — World cell
+  card, Station route card, or platform view — shows a requirement or a running total, so the player
+  is railing cargo at an invisible target. Worth designing alongside the `tryBuildPlot` fix above,
+  since a "needed vs delivered" readout is meaningless while the pool is wiped on build. Wants a
+  per-age requirement (probably scaling with ring distance) rather than today's single coal
+  threshold. _(noted 2026-08-01)_
 
 - **Redesign the Station and trainyard view.** `DESIGN-SYSTEM.md` currently declares Station
   explicitly out of scope for the design pass; that needs revisiting as part of this.

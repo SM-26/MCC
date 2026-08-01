@@ -1,6 +1,7 @@
 <!-- /src/components/mine/MineHeader.svelte -->
 <script lang="ts">
   import { Button } from 'bits-ui';
+  import { toRoman } from '../../logic/mine/mineLabels';
 
   const {
     shaftIndex = 0,
@@ -22,7 +23,8 @@
 <header class="header">
   <div class="nav-line">
     <Button.Root class="nav-btn nav-arrow" onclick={onPreviousShaft} disabled={!canGoPrevious} aria-label="Previous shaft">‹</Button.Root>
-    <span class="shaft-label">Shaft <b class="shaft-num">{shaftIndex + 1}</b> / {shaftTotal}</span>
+    <!-- Roman throughout, matching how shafts are labelled in the Station tab. -->
+    <span class="shaft-label">Shaft <b class="shaft-num">{toRoman(shaftIndex + 1)}</b> / {toRoman(shaftTotal)}</span>
     <Button.Root class="nav-btn nav-arrow" onclick={onNextShaft} disabled={!canGoNext} aria-label="Next shaft">›</Button.Root>
   </div>
 </header>

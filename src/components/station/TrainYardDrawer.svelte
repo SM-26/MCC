@@ -158,22 +158,21 @@
           {#each CART_TYPES as cartType (cartType)}
             {@const stats = CART_STATS[cartType]}
             {@const pooled = station.trainyardInventory.carts[cartType] ?? 0}
-            {@const canAdd = pooled > 0 && Boolean(targetPlatform?.train)}
             <div class="row">
-              <!-- Picking the row attaches from the pool; buying stays its own
-                   button so an owned type is never a dead end in either direction. -->
-              <button type="button" class="row-pick" onclick={() => handleAddCart(cartType)} disabled={!canAdd}>
-                <img class="row-sprite cart" src={CART_SPRITE[cartType]} alt="" draggable="false" />
-                <span class="row-body">
-                  <span class="row-title">{cartType}</span>
-                  <span class="row-sub">
-                    {stats.role} · capacity {stats.capacity} · in pool ×{pooled}{canAdd ? ' · tap to attach' : ''}
-                  </span>
-                </span>
-              </button>
-              <button type="button" class="btn-buy" onclick={() => handleBuyCart(cartType)} disabled={gameState.current.money < stats.cost.money}>
-                ${stats.cost.money}
-              </button>
+              <img class="row-sprite cart" src={CART_SPRITE[cartType]} alt="" draggable="false" />
+              <span class="row-body">
+                <span class="row-title">{cartType}</span>
+                <span class="row-sub">{stats.role} · capacity {stats.capacity} · in pool ×{pooled}</span>
+              </span>
+              <!-- Same shape as the engine rows: owning one turns the row into an
+                   Assign, buying is what you get when the pool is empty. -->
+              {#if pooled > 0}
+                <button type="button" class="btn-assign" onclick={() => handleAddCart(cartType)} disabled={!targetPlatform?.train}>Assign</button>
+              {:else}
+                <button type="button" class="btn-buy" onclick={() => handleBuyCart(cartType)} disabled={gameState.current.money < stats.cost.money}>
+                  ${stats.cost.money}
+                </button>
+              {/if}
             </div>
           {/each}
         {:else}
@@ -432,28 +431,6 @@
     flex: 1;
     min-width: 0;
     text-align: left;
-  }
-
-  .row-pick {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    min-width: 0;
-    min-height: 44px;
-    padding: 0;
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-  }
-
-  .row-pick:disabled {
-    cursor: default;
-  }
-
-  .row-pick:hover:not(:disabled) .row-title {
-    color: var(--mcc-accent);
   }
 
   .row-title {
