@@ -198,9 +198,12 @@
         <Select.Portal>
           <Select.Content class="select-content">
             {#each routeDestinations as dest (dest.id)}
+              <!-- "Exploration · exploration" reads as a stutter; it isn't a
+                   place, so it doesn't get a type suffix. -->
               {@const accepts = dest.acceptedResources?.length ? ` · buys ${dest.acceptedResources.join(', ')}` : ''}
-              <Select.Item class="select-item" value={dest.id} label={`${dest.name} · ${dest.type}${accepts}`}>
-                {dest.name} · {dest.type}{accepts}
+              {@const optionLabel = dest.type === 'exploration' ? dest.name : `${dest.name} · ${dest.type}${accepts}`}
+              <Select.Item class="select-item" value={dest.id} label={optionLabel}>
+                {optionLabel}
               </Select.Item>
             {/each}
           </Select.Content>

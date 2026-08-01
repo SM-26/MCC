@@ -344,16 +344,18 @@
       </div>
       <!-- Side by side: these are both once-in-a-while actions and stacking them
            cost a row of vertical space the grid needs more. -->
-      <div class="soil-actions">
-        {#if !nextShaftExists}
-          <Button.Root class="nav-btn" onclick={handleNextShaft} aria-disabled={nextShaftBlocker !== ''}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
-        {/if}
-        {#if showAdvanceAge}
-          <Button.Root class="nav-btn" onclick={handleAdvanceAge} aria-disabled={advanceBlocker !== ''}>
-            {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}
-          </Button.Root>
-        {/if}
-      </div>
+      {#if !nextShaftExists || showAdvanceAge}
+        <div class="soil-actions">
+          {#if !nextShaftExists}
+            <Button.Root class="nav-btn" onclick={handleNextShaft} aria-disabled={nextShaftBlocker !== ''}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
+          {/if}
+          {#if showAdvanceAge}
+            <Button.Root class="nav-btn" onclick={handleAdvanceAge} aria-disabled={advanceBlocker !== ''}>
+              {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}
+            </Button.Root>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
