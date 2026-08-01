@@ -11,8 +11,9 @@
   import { AGE_ORDER } from '../../logic/mine/ageProgression';
   import { toRoman } from '../../logic/mine/mineLabels';
   import { getPlatformDisplayName, getPlatformsForMineshaft, getTotalCartCount, getTripRemainingMs } from '../../logic/station/stationTypes';
-  import { createExplorationDestination, isExplorationRoute } from '../../logic/world/worldTypes';
-  import { assignRoute, dispatch, placeEngine, removeCart, upgradeEngine } from '../../logic/station/stationActions';
+  import { createExplorationDestination, getExplorationTarget, isExplorationRoute } from '../../logic/world/worldTypes';
+  import { assignRoute, dispatch, dispatchExplore, getActiveExploreTargets, placeEngine, removeCart, upgradeEngine } from '../../logic/station/stationActions';
+  import { plotsStore } from '../../logic/mine/plotsStore.svelte';
   import { ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost } from '../../logic/station/stationBalance';
   import type { CartType, Platform, Station } from '../../logic/station/stationTypes';
   import type { Ages, PlotState } from '../../logic/mine/mineTypes';
@@ -73,6 +74,12 @@
   const routeDestinations = $derived([createExplorationDestination(), ...worldStore.destinations.filter((d) => d.id !== plotCellId)]);
   const routeDestination = $derived(routeDestinations.find((d) => d.id === train?.route?.destinationId) ?? null);
   const isExploring = $derived(isExplorationRoute(train?.route));
+
+  // Scouts can also be sent from here, not just the World map — but only while a
+  // hidden tile is inspected and nobody is already on their way to it.
+  const exploreTarget = $derived(getExplorationTarget(worldStore.current));
+  const exploreOccupied = $derived(getActiveExploreTargets(plotsStore.current));
+  const exploreTargetFree = $derived(exploreTarget !== null && !exploreOccupied.has(exploreTarget.id));
   const routeName = $derived(routeDestination?.name ?? null);
   // "Cargo" on its own never said *which* ore the factory buys.
   const acceptedLabel = $derived(routeDestination?.acceptedResources?.length ? routeDestination.acceptedResources.join(', ') : null);
@@ -105,6 +112,12 @@
     if (!train || !plot || !plotCellId) {
       return;
     }
+    if (isExploring) {
+      if (exploreTarget) {
+        commit(dispatchExplore(train, worldStore.current, exploreTarget.id, plotCellId, Date.now(), exploreOccupied));
+      }
+      return;
+    }
     commit(dispatch(train, plot, worldStore.current, plotCellId, Date.now()));
   }
 
@@ -125,7 +138,7 @@
     <button type="button" class="chip" onclick={onBack}>‹ All</button>
     <div class="titles">
       <h2 class="title">{displayName}</h2>
-      <p class="subtitle">Shaft {shaftLabel} · Depth {platform.depth}</p>
+      <p class="subtitle">Shaft <span class="roman">{shaftLabel}</span> · Depth {platform.depth}</p>
     </div>
     <button type="button" class="chip" onclick={() => stationUi.openYard('peek')} aria-label="Open train yard">🚂</button>
   </header>
@@ -134,7 +147,7 @@
   {#if shaftIndexes.length > 1}
     <div class="stepper-row">
       <button type="button" class="step" onclick={() => stepShaft(-1)} disabled={shaftPosition <= 0} aria-label="Previous shaft">‹</button>
-      <span class="stepper-label">Shaft {shaftLabel} · {shaftPlatformCount} platforms</span>
+      <span class="stepper-label">Shaft <span class="roman">{shaftLabel}</span> · {shaftPlatformCount} platforms</span>
       <button
         type="button"
         class="step"
@@ -220,7 +233,9 @@
         <p class="hint">Buys {acceptedLabel} — only that ore sells here.</p>
       {/if}
       {#if isExploring}
-        <p class="hint">Scout duty. Pick a hidden tile in the World map to send this train — the estimate above tracks whichever fog tile you last inspected.</p>
+        <p class="hint">
+          Scout duty. Inspect a hidden tile in the World map, then send this train from either place — the estimate above tracks whichever tile you inspected.
+        </p>
       {:else}
         <p class="hint">Explore fog from the World map — set a train's route to Exploration to send it.</p>
       {/if}
@@ -241,10 +256,14 @@
             {#if upgradeMissing}<span class="shortfall">({upgradeMissing})</span>{/if}
           {/if}
         </button>
-        <!-- An exploring train picks its target in the World map, so there is
-             nothing to dispatch to from here. -->
-        <button type="button" class="btn-primary" onclick={handleDispatch} disabled={!train.route || isExploring}>
-          {isExploring ? 'Send from World map' : 'Dispatch'}
+        <!-- A scout can go from here too, but only once the World map has a
+             hidden tile inspected for it to head for. -->
+        <button type="button" class="btn-primary" onclick={handleDispatch} disabled={!train.route || (isExploring && !exploreTargetFree)}>
+          {#if isExploring}
+            {exploreTargetFree ? 'Explore inspected tile' : 'Inspect a hidden tile'}
+          {:else}
+            Dispatch
+          {/if}
         </button>
       </footer>
     {/if}

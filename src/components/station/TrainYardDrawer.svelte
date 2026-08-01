@@ -182,7 +182,7 @@
               <div class="row">
                 <span class="depth-badge">
                   <span class="depth-num">{platform.depth}</span>
-                  <span class="depth-shaft">{toRoman(platform.mineshaftIndex + 1)}</span>
+                  <span class="depth-shaft roman">{toRoman(platform.mineshaftIndex + 1)}</span>
                 </span>
                 <span class="row-body">
                   <span class="row-title">{train.engineAge} · Lv {train.engineLevel}</span>

@@ -1,9 +1,10 @@
 <!-- /src/components/station/PlatformRow.svelte -->
 <script lang="ts">
   import TrainConsist from './TrainConsist.svelte';
-  import { formatCountdown } from './stationSelectors';
+  import { formatCountdown, isDispatchable } from './stationSelectors';
   import { tripPreview } from './stationHelpers.svelte';
   import { worldStore } from '../../logic/world/worldStore.svelte';
+  import { isExplorationRoute } from '../../logic/world/worldTypes';
   import { getPlatformDisplayName, getTripRemainingMs } from '../../logic/station/stationTypes';
   import type { Platform, Station } from '../../logic/station/stationTypes';
   import type { PlotState } from '../../logic/mine/mineTypes';
@@ -16,10 +17,12 @@
     isActive: boolean;
     /** Ticking clock from the shell; countdowns re-render off this. */
     now: number;
+    /** Whether a scout has anywhere to go — see isDispatchable. */
+    exploreTargetFree?: boolean;
     onOpen: (platform: Platform) => void;
   }
 
-  const { platform, station, plot, plotCellId, isActive, now, onOpen }: Props = $props();
+  const { platform, station, plot, plotCellId, isActive, now, exploreTargetFree = false, onOpen }: Props = $props();
 
   const train = $derived(platform.train);
   const trip = $derived(train?.trip ?? null);
@@ -29,8 +32,10 @@
   const preview = $derived(train && train.route ? tripPreview(train, plot, plotCellId) : null);
   const destinationName = $derived(worldStore.destinations.find((d) => d.id === train?.route?.destinationId)?.name ?? null);
 
+  // "Ready" means dispatchable *now*. A scout with no hidden tile inspected has
+  // a route but nowhere to go, so it reads Idle rather than promising a trip.
   type Tone = 'empty' | 'idle' | 'ready' | 'out';
-  const tone = $derived<Tone>(!train ? 'empty' : trip ? 'out' : train.route ? 'ready' : 'idle');
+  const tone = $derived<Tone>(!train ? 'empty' : trip ? 'out' : isDispatchable(train, exploreTargetFree) ? 'ready' : 'idle');
 
   const statusLabel = $derived(
     tone === 'out' && trip ? formatCountdown(getTripRemainingMs(trip, now)) : tone === 'ready' ? 'Ready' : tone === 'idle' ? 'Idle' : 'Empty',
@@ -39,13 +44,16 @@
   // Elapsed fraction of the round trip, clamped so a late tick can't overflow the bar.
   const progressPercent = $derived(trip ? Math.min(100, Math.max(0, (1 - getTripRemainingMs(trip, now) / trip.durationMs) * 100)) : 0);
 
-  const subLine = $derived(
-    !train
-      ? 'No train — tap to assign from yard'
-      : train.route && destinationName
-        ? `→ ${destinationName}${preview ? ` · pays ${preview.reward}` : ''}`
-        : '',
-  );
+  const subLine = $derived.by(() => {
+    if (!train) return 'No train — tap to assign from yard';
+    if (isExplorationRoute(train.route)) {
+      return exploreTargetFree ? '→ Exploring · ready to reveal the inspected tile' : '→ Exploration · inspect a hidden tile in the World map';
+    }
+    if (train.route && destinationName) {
+      return `→ ${destinationName}${preview ? ` · pays ${preview.reward}` : ''}`;
+    }
+    return '';
+  });
 </script>
 
 <button type="button" class="row" class:is-ready={tone === 'ready'} onclick={() => onOpen(platform)}>

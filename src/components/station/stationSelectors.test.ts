@@ -9,6 +9,7 @@ import {
   getShaftIndexesWithPlatforms,
   getShallowestPlatform,
   getStationSummary,
+  isDispatchable,
 } from './stationSelectors';
 
 function withRoute(train: Train): Train {
@@ -69,6 +70,47 @@ describe('getDispatchReadyPlatforms', () => {
     station.platforms = [platform];
 
     expect(getDispatchReadyPlatforms(station)).toEqual([]);
+  });
+});
+
+describe('getDispatchReadyPlatforms with scouts', () => {
+  /** Station with `count` idle trains, all on exploration duty. */
+  function makeScoutStation(count: number): Station {
+    const station = createEmptyStation('s');
+    station.platforms = Array.from({ length: count }, (_, index) => {
+      const platform = createPlatform(`scout-${index}`, 0, index * 6);
+      const train = createTrain(`t-${index}`, 'Steam');
+      train.route = { destinationId: 'exploration', destinationType: 'exploration' };
+      platform.train = train;
+      return platform;
+    });
+    return station;
+  }
+
+  it('does not count a scout when no hidden tile is inspected', () => {
+    const station = makeScoutStation(1);
+    expect(getDispatchReadyPlatforms(station, { exploreTargetFree: false })).toEqual([]);
+    expect(isDispatchable(station.platforms[0].train, false)).toBe(false);
+  });
+
+  it('counts a scout once a hidden tile is available', () => {
+    const station = makeScoutStation(1);
+    expect(getDispatchReadyPlatforms(station, { exploreTargetFree: true }).map((p) => p.id)).toEqual(['scout-0']);
+    expect(isDispatchable(station.platforms[0].train, true)).toBe(true);
+  });
+
+  it('counts only one scout, since there is only ever one inspected tile', () => {
+    const station = makeScoutStation(3);
+    expect(getDispatchReadyPlatforms(station, { exploreTargetFree: true }).map((p) => p.id)).toEqual(['scout-0']);
+  });
+
+  it('still counts non-scouts while scouts are grounded', () => {
+    const station = makeScoutStation(1);
+    const hauler = createPlatform('hauler', 0, 11);
+    hauler.train = withRoute(createTrain('t-haul', 'Diesel'));
+    station.platforms.push(hauler);
+
+    expect(getDispatchReadyPlatforms(station, { exploreTargetFree: false }).map((p) => p.id)).toEqual(['hauler']);
   });
 });
 

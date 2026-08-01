@@ -9,7 +9,9 @@
   import { stationUi } from '../../logic/station/stationUi.svelte';
   import { toRoman } from '../../logic/mine/mineLabels';
   import { getPlatformsForMineshaft } from '../../logic/station/stationTypes';
-  import { buildPlatform, dispatch, getEligiblePlatformPositions } from '../../logic/station/stationActions';
+  import { buildPlatform, dispatch, dispatchExplore, getActiveExploreTargets, getEligiblePlatformPositions } from '../../logic/station/stationActions';
+  import { getExplorationTarget, isExplorationRoute } from '../../logic/world/worldTypes';
+  import { plotsStore } from '../../logic/mine/plotsStore.svelte';
   import { getPlatformCost } from '../../logic/station/stationBalance';
   import type { EligiblePosition } from '../../logic/station/stationActions';
   import type { Platform, Station } from '../../logic/station/stationTypes';
@@ -32,7 +34,13 @@
   const shaftIndexes = $derived(getShaftIndexesWithPlatforms(station));
   const platformCount = $derived(station?.platforms.length ?? 0);
 
-  const dispatchReady = $derived(getDispatchReadyPlatforms(station));
+  // A scout is only "ready" while a hidden tile is inspected and nobody else is
+  // already on their way to it.
+  const exploreTarget = $derived(getExplorationTarget(worldStore.current));
+  const exploreOccupied = $derived(getActiveExploreTargets(plotsStore.current));
+  const exploreTargetFree = $derived(exploreTarget !== null && !exploreOccupied.has(exploreTarget.id));
+
+  const dispatchReady = $derived(getDispatchReadyPlatforms(station, { exploreTargetFree }));
   const eligiblePositions = $derived<EligiblePosition[]>(plot ? getEligiblePlatformPositions(plot) : []);
 
   // Several eligible spots collapse to the shallowest, with the rest one tap away.
@@ -66,6 +74,13 @@
       if (!train) {
         continue;
       }
+      // Scouts go to the inspected fog tile; everyone else to their standing route.
+      if (isExplorationRoute(train.route)) {
+        if (exploreTarget) {
+          commit(dispatchExplore(train, worldStore.current, exploreTarget.id, plotCellId, Date.now(), exploreOccupied));
+        }
+        continue;
+      }
       commit(dispatch(train, plot, worldStore.current, plotCellId, Date.now()));
     }
   }
@@ -97,7 +112,7 @@
 
     <div class="list">
       {#each shaftIndexes as shaftIndex (shaftIndex)}
-        <h3 class="shaft-head">Shaft {toRoman(shaftIndex + 1)}</h3>
+        <h3 class="shaft-head">Shaft <span class="roman">{toRoman(shaftIndex + 1)}</span></h3>
         {#each getPlatformsForMineshaft(station, shaftIndex) as platform (platform.id)}
           <PlatformRow
             {platform}
@@ -105,6 +120,7 @@
             {plot}
             {plotCellId}
             {now}
+            {exploreTargetFree}
             isActive={station.activePlatformId === platform.id}
             onOpen={onOpenPlatform}
           />

@@ -9,7 +9,8 @@
 // rules in logic/station/ are unchanged by the redesign.
 
 import { getPlatformsForMineshaft } from '../../logic/station/stationTypes';
-import type { Platform, Station } from '../../logic/station/stationTypes';
+import { isExplorationRoute } from '../../logic/world/worldTypes';
+import type { Platform, Station, Train } from '../../logic/station/stationTypes';
 
 export interface StationSummary {
   idle: number;
@@ -41,9 +42,42 @@ export function getStationSummary(station: Station | null): StationSummary {
  * Platforms "Dispatch ready" will act on: a train that has somewhere to go and
  * isn't already going there. Matches the per-train guard inside `dispatch()`,
  * so the count on the button can't promise more than the action delivers.
+ *
+ * `exploreTargetFree` is that same honesty rule applied to scouts: an
+ * exploration route only leads somewhere while a hidden tile is inspected and
+ * nobody is already headed for it. And since there is exactly one such tile,
+ * at most one scout can count — otherwise the button would promise N trips and
+ * deliver one.
  */
-export function getDispatchReadyPlatforms(station: Station | null): Platform[] {
-  return (station?.platforms ?? []).filter((platform) => platform.train && platform.train.route && !platform.train.trip);
+export function getDispatchReadyPlatforms(station: Station | null, options: { exploreTargetFree?: boolean } = {}): Platform[] {
+  const ready: Platform[] = [];
+  let scoutClaimed = false;
+
+  for (const platform of station?.platforms ?? []) {
+    const train = platform.train;
+    if (!train || !train.route || train.trip) {
+      continue;
+    }
+
+    if (isExplorationRoute(train.route)) {
+      if (!options.exploreTargetFree || scoutClaimed) {
+        continue;
+      }
+      scoutClaimed = true;
+    }
+
+    ready.push(platform);
+  }
+
+  return ready;
+}
+
+/** True when this train could be dispatched right now — drives the Ready pill. */
+export function isDispatchable(train: Train | null, exploreTargetFree: boolean): boolean {
+  if (!train || !train.route || train.trip) {
+    return false;
+  }
+  return isExplorationRoute(train.route) ? exploreTargetFree : true;
 }
 
 /** Ascending shaft indexes that actually have a platform — the stepper's range. */

@@ -30,6 +30,20 @@ export function createExplorationDestination(): Destination {
 export function isExplorationRoute(route: Route | null | undefined): boolean {
   return route?.destinationType === 'exploration';
 }
+
+/**
+ * Where an exploration-routed train would go right now: the inspected cell, but
+ * only while it's still hidden. Null means a scout has nowhere to go — which is
+ * why such a train must not be counted as "ready" or offered a Dispatch button.
+ */
+export function getExplorationTarget(world: WorldState): WorldCell | null {
+  const id = world.inspectedCellId;
+  if (!id) {
+    return null;
+  }
+  const cell = getCellById(world, id);
+  return cell && !cell.discovered ? cell : null;
+}
 export type ResourceType = 'Oil' | 'Coal' | 'Copper' | 'SuperAlloy';
 
 /**

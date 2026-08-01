@@ -33,6 +33,15 @@
 
   function activatePlot(cell: WorldCell) {
     if (cell.type !== 'plot' || !(cell.discovered || gameState.current.settings.devMode)) return;
+
+    // Double-tapping the plot that's *already* active opens its mine, so
+    // reaching another plot's mine is two double-taps: one to move there, one
+    // to go in.
+    if (cell.id === worldStore.current.activePlotCellId) {
+      navigation.setActiveTab('mine');
+      return;
+    }
+
     worldStore.setActivePlotCellId(cell.id);
     worldStore.setInspectedCellId(cell.id);
     debouncedSave();

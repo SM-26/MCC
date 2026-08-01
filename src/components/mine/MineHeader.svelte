@@ -24,7 +24,7 @@
   <div class="nav-line">
     <Button.Root class="nav-btn nav-arrow" onclick={onPreviousShaft} disabled={!canGoPrevious} aria-label="Previous shaft">‹</Button.Root>
     <!-- Roman throughout, matching how shafts are labelled in the Station tab. -->
-    <span class="shaft-label">Shaft <b class="shaft-num">{toRoman(shaftIndex + 1)}</b> / {toRoman(shaftTotal)}</span>
+    <span class="shaft-label">Shaft <b class="shaft-num roman">{toRoman(shaftIndex + 1)}</b> / <span class="roman">{toRoman(shaftTotal)}</span></span>
     <Button.Root class="nav-btn nav-arrow" onclick={onNextShaft} disabled={!canGoNext} aria-label="Next shaft">›</Button.Root>
   </div>
 </header>
