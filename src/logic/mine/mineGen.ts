@@ -83,6 +83,16 @@ export function getActiveResourcesForDepth(depth: number): MineTileType[] {
   return resources.slice(startIndex, startIndex + 2);
 }
 
+/**
+ * The shallowest depth whose bracket yields this resource, i.e. the first depth
+ * at which a player can actually see it. Ore is bracketed five depths at a time
+ * in `RESOURCE_ORDER`, so coal starts at 5, oil at 10, and so on.
+ */
+export function getFirstDepthForResource(resource: MineTileType): number {
+  const index = RESOURCE_ORDER.indexOf(resource);
+  return index < 0 ? 0 : index * DEPTHS_PER_BRACKET;
+}
+
 function allocateResourceCounts(resources: MineTileType[], totalResourceTiles: number): Record<MineTileType, number> {
   const counts = Object.fromEntries(resources.map((resource) => [resource, 0])) as Record<MineTileType, number>;
 

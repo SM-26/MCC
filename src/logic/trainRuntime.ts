@@ -1,7 +1,7 @@
 // src/logic/trainRuntime.ts
 //
 // App-level composition point for the train system (like stateFactory.ts):
-// the only place station logic meets the live stores. Does NOT save —
+// the only place station logic meets the live stores. Does NOT save,
 // callers own persistence, which keeps this file import-cycle-free
 // (save.svelte.ts imports this for offline catch-up on load).
 

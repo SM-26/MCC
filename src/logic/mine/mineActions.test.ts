@@ -151,7 +151,7 @@ describe('handleNextShaftAction', () => {
     const plot = plotsStore.get(TEST_CELL)!;
     expect(plot.mineshafts).toHaveLength(2);
     expect(plot.activeMineshaftIndex).toBe(1);
-    // Seeded like shaft 0, but with shaftIndex 1 — not a blank default depth.
+    // Seeded like shaft 0, but with shaftIndex 1, not a blank default depth.
     expect(plot.mineshafts[1].mineDepths[0]).toEqual(generatePlot(SEED, RESET_COUNT, 0, 1));
   });
 
@@ -161,7 +161,7 @@ describe('handleNextShaftAction', () => {
 
     expect(result.ok).toBe(false);
     expect(plotsStore.get(TEST_CELL)!.mineshafts).toHaveLength(1);
-    // The wallet is the action's own now — a refusal must not have charged it.
+    // The wallet is the action's own now, a refusal must not have charged it.
     expect(gameState.current.money).toBe(BASE_SHAFT_COST - 1);
   });
 

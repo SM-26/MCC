@@ -112,7 +112,10 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    overflow: auto;
+    /* Sized by the flex chain up to .app-container's 100dvh, so this is a valid
+       size container, which is what lets tiles below measure against it. */
+    container-type: size;
+    overflow: hidden;
     padding: 8px var(--mine-padding) 0;
   }
 
@@ -121,6 +124,15 @@
   }
 
   .tile-grid {
+    /* Fit to whichever axis runs out first. Shafts get taller as they go
+       (BASE_ROWS + shaftIndex/2), so a fixed tile size overflowed on short
+       screens and forced scrolling; deriving it from the board means every
+       tile is on screen at any row count. Still capped so a 5×5 grid doesn't
+       balloon on a desktop. */
+    --fit-width: calc((100cqw - (var(--grid-cols) - 1) * var(--spacing-xs)) / var(--grid-cols));
+    --fit-height: calc((100cqh - (var(--grid-rows) - 1) * var(--spacing-xs)) / var(--grid-rows));
+    --tile-size: min(120px, var(--fit-width), var(--fit-height));
+
     display: grid;
     gap: var(--spacing-xs);
     width: fit-content;

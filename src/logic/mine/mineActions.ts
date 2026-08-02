@@ -44,7 +44,7 @@ export function canBuyMiner(money: number, activeMine: MineDepth | null): boolea
 
 /**
  * Drop a miner on the first free empty tile. Returns false when the depth is
- * full — the caller decides whether that is an error or a no-op.
+ * full, the caller decides whether that is an error or a no-op.
  * Placement only: charging is the caller's business.
  */
 export function placeMiner(activeMine: MineDepth | null, level = 1): boolean {
@@ -179,7 +179,7 @@ export function digDeeper(worldSeed: string, resetCount: number, activeShaftInde
   }
 
   const nextDepth = activeMine.depth + 1;
-  // The age caps how deep you may go. It is a ceiling only — advancing never
+  // The age caps how deep you may go. It is a ceiling only, advancing never
   // requires reaching it, since ore pools across shafts.
   if (nextDepth > getMaxDepthForAge(currentAge)) {
     return { ok: false, message: `Advance to ${getNextAge(currentAge)} to dig deeper` };
@@ -224,10 +224,10 @@ export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigat
   }
 
   // Gate on this shaft's surface, not the depth you happen to be standing on.
-  // Digging down requires a hard-clear, so past depth 0 this is always satisfied —
+  // Digging down requires a hard-clear, so past depth 0 this is always satisfied,
   // otherwise arriving at a fresh depth would block you on rubble you just created.
   //
-  // Soft OR hard — hard-cleared means the dirt is gone too, which is strictly
+  // Soft OR hard, hard-cleared means the dirt is gone too, which is strictly
   // more cleared. Gating on 'soft' alone soft-locked a fully mined-out surface.
   const surface = getMineDepthByDepth(activeMineshaft, 0) ?? activeMine;
   if (getClearStatus(surface) === 'none') {
@@ -240,7 +240,7 @@ export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigat
     return { ok: true, nextActiveShaftIndex: nextIndex };
   }
 
-  // Limit before payment — spendMoney is the commit point, nothing may fail after it.
+  // Limit before payment, spendMoney is the commit point, nothing may fail after it.
   if (maxShafts < nextIndex) {
     return { ok: false, message: 'You reached the shaft limit!' };
   }
@@ -257,7 +257,7 @@ export function handleNextShaftAction(ctx: ShaftNavigationContext): ShaftNavigat
   return { ok: true, nextActiveShaftIndex: nextIndex };
 }
 
-/** Owns the move, like handleNextShaftAction — returning an index the caller had
+/** Owns the move, like handleNextShaftAction, returning an index the caller had
  *  to apply is what left this button doing nothing at all. */
 export function handlePreviousShaftAction(cellId: string, activeShaftIndex: number): ShaftNavigationResult {
   if (activeShaftIndex === 0) {

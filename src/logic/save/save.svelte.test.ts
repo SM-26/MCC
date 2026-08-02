@@ -312,7 +312,7 @@ describe('save.svelte.ts', async () => {
     expect(snapshot.world.plots['0,0'].currentAge).toBe('Steam');
   });
 
-  // ── getSaveSnapshot — inspectedCellId not persisted ──────────────────────
+  // ── getSaveSnapshot, inspectedCellId not persisted ──────────────────────
 
   it('getSaveSnapshot does not persist inspectedCellId but does persist activePlotCellId', () => {
     worldStore.current.inspectedCellId = '1,0';

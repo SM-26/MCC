@@ -108,7 +108,7 @@ export function clampCamera(camera: CameraState, bounds: Bounds, viewportW: numb
 
 /**
  * Recompute camera.x/y so the world-space point currently under
- * (anchorX, anchorY) — screen coordinates relative to the viewport center —
+ * (anchorX, anchorY), screen coordinates relative to the viewport center,
  * stays under that same screen point after switching to `newScale`.
  */
 export function zoomAtPoint(camera: CameraState, anchorX: number, anchorY: number, newScale: number): CameraState {

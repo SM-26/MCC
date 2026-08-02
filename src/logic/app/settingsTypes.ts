@@ -18,7 +18,7 @@ export interface SettingsState {
 export function createDefaultSettingsState(): SettingsState {
   return {
     navbarPosition: 'top',
-    defaultView: 'world',
+    defaultView: 'last-active',
     devMode: false,
     soundEnabled: false,
     notificationsEnabled: false,

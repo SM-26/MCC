@@ -8,7 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 /**
  * Writes src/assets/git-info.txt ("<short-hash>\n<subject>") from the live
- * checkout at dev/build start. Generated, not committed — so the hash always
+ * checkout at dev/build start. Generated, not committed, so the hash always
  * matches what you're actually building. Replaces the old post-commit hook.
  */
 function gitInfoPlugin(): Plugin {
@@ -34,14 +34,14 @@ export default defineConfig({
   },
   publicDir: 'public',
   build: {
-    // The service worker precaches every asset up front — ~1.8 MB across 9
+    // The service worker precaches every asset up front, ~1.8 MB across 9
     // entries. (The plugin's "precache N entries (KiB)" line understates that:
     // it doesn't count includeAssets. Sum the sw.js manifest for the real
     // number.) So splitting this bundle would change *when* bytes arrive, not
     // how many. The JS weight is real but earned: bits-ui ~115 kB and svelte
     // ~51 kB, all of it genuinely used. Raised past the 500 kB default so the
     // warning stops crying wolf on every build.
-    // ponytail: if this ever trips again, that's ~27% growth and worth a look —
+    // ponytail: if this ever trips again, that's ~27% growth and worth a look,
     // the upgrade path is lazy-loading views with dynamic import(), not chunking.
     chunkSizeWarningLimit: 1200,
   },
@@ -66,7 +66,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       // favicon.svg is the splash logo, so it has to be precached or an offline
       // launch renders a broken image. The install-dialog screenshots are
-      // deliberately NOT precached — the browser fetches those directly, and
+      // deliberately NOT precached, the browser fetches those directly, and
       // they'd add ~1.1 MB to the service worker for no offline benefit.
       includeAssets: ['favicon.ico', 'favicon.svg'],
       manifest: {

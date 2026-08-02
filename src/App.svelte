@@ -15,6 +15,7 @@
   import { debouncedSave } from './logic/save/save.svelte';
   import { engineeringStore } from './logic/engineering/engineeringStore.svelte';
   import { runTrainCompletion } from './logic/trainRuntime';
+  import { runMiningForAllPlots } from './logic/mineRuntime';
 
   import Splash from './components/Splash.svelte';
   import PwaInstallPrompt from './components/PwaInstallPrompt.svelte';
@@ -109,15 +110,19 @@
     window.addEventListener('resize', updateScreenSize);
     updateScreenSize();
 
-    const trainTimer = window.setInterval(() => {
+    // One heartbeat for the whole game. Mining lives here rather than in
+    // MineView so every shaft of every plot produces, not just the depth that
+    // happens to be on screen.
+    const gameTimer = window.setInterval(() => {
+      const mined = runMiningForAllPlots();
       const { completed, explored } = runTrainCompletion();
       // Toasts last 2s and replace each other, so announce only the last of a
-      // batch — several trips can land on the same tick.
+      // batch, several trips can land on the same tick.
       const latest = explored.at(-1);
       if (latest) {
-        triggerMobileToast(`Explored ${latest.name} — ${EXPLORED_LABEL[latest.type]}`);
+        triggerMobileToast(`Explored ${latest.name}: ${EXPLORED_LABEL[latest.type]}`);
       }
-      if (completed) {
+      if (completed || mined.changed) {
         debouncedSave();
       }
     }, 1000);
@@ -137,7 +142,7 @@
 
     return () => {
       window.clearTimeout(splashTimer);
-      window.clearInterval(trainTimer);
+      window.clearInterval(gameTimer);
       window.removeEventListener('resize', updateScreenSize);
       stopWatchingSystemTheme();
     };
@@ -270,7 +275,7 @@
     overflow: hidden;
   }
 
-  /* --- 2. Top bar — translucent glass, pills only --- */
+  /* --- 2. Top bar, translucent glass, pills only --- */
   .top-bar {
     display: flex;
     justify-content: flex-end;
@@ -330,7 +335,7 @@
     overflow: hidden;
   }
 
-  /* --- 4. Navtab Bar — frosted glass --- */
+  /* --- 4. Navtab Bar, frosted glass --- */
   :global(.navtab-list) {
     display: flex;
     flex: 0 0 auto;

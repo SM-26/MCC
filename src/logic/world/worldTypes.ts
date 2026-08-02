@@ -7,7 +7,43 @@ export type WorldCellId = string;
 export type DestinationId = string;
 
 export type WorldCellType = 'empty' | 'plot' | 'city' | 'factory' | 'blocker';
-export type DestinationType = 'city' | 'factory' | 'plot';
+/**
+ * `exploration` is not a place. It is a standing order, "go reveal fog", whose
+ * actual target is chosen later, per trip, by tapping a hidden tile in the World
+ * map. Everything else is a fixed cell.
+ */
+export type DestinationType = 'city' | 'factory' | 'plot' | 'exploration';
+
+export const EXPLORATION_DESTINATION_ID = 'exploration';
+
+export function createExplorationDestination(): Destination {
+  return {
+    id: EXPLORATION_DESTINATION_ID,
+    name: 'Exploration',
+    type: 'exploration',
+    distance: 0,
+    basePayout: 0,
+    discovered: true,
+  };
+}
+
+export function isExplorationRoute(route: Route | null | undefined): boolean {
+  return route?.destinationType === 'exploration';
+}
+
+/**
+ * Where an exploration-routed train would go right now: the inspected cell, but
+ * only while it's still hidden. Null means a scout has nowhere to go, which is
+ * why such a train must not be counted as "ready" or offered a Dispatch button.
+ */
+export function getExplorationTarget(world: WorldState): WorldCell | null {
+  const id = world.inspectedCellId;
+  if (!id) {
+    return null;
+  }
+  const cell = getCellById(world, id);
+  return cell && !cell.discovered ? cell : null;
+}
 export type ResourceType = 'Oil' | 'Coal' | 'Copper' | 'SuperAlloy';
 
 /**
@@ -50,11 +86,14 @@ export interface Destination {
   distance: number;
   basePayout: number;
   discovered: boolean;
+  /** Factories only, what this one buys. Carried so the Station can say what
+      "cargo" actually means without re-looking-up the cell. */
+  acceptedResources?: ResourceType[];
 }
 
 export interface WorldState {
   cells: WorldCell[];
-  // Persisted shape only — at runtime the source of truth is plotsStore; worldStore.current.plots is NOT kept up to date.
+  // Persisted shape only, at runtime the source of truth is plotsStore; worldStore.current.plots is NOT kept up to date.
   plots: Record<WorldCellId, PlotState>;
   activePlotCellId: WorldCellId | null;
   inspectedCellId: WorldCellId | null;
@@ -83,6 +122,7 @@ export function getDestinationFromCell(cell: WorldCell): Destination | null {
     distance: 0,
     basePayout: 0,
     discovered: cell.discovered,
+    acceptedResources: cell.acceptedResources,
   };
 }
 

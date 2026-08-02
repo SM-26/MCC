@@ -10,6 +10,7 @@ import { makeTestPlot } from '../station/stationActions.test';
 import { addCart, assignRoute, buildStation, buyCart, buyEngine, dispatch, dispatchExplore, placeEngine } from '../station/stationActions';
 import { getCityPayout, getTripDuration } from '../station/stationBalance';
 import { processTrains } from '../station/trainTick';
+import { createExplorationDestination } from '../world/worldTypes';
 import type { WorldCell, WorldState } from '../world/worldTypes';
 
 function makeCell(id: string, type: WorldCell['type'], discovered = true): WorldCell {
@@ -42,7 +43,7 @@ describe('station train loop', () => {
     const cart = buyCart(station, 'simple', money);
     expect(cart.ok).toBe(true);
     money = cart.nextMoney!;
-    expect(placeEngine(station, platform, 'Mechanical').ok).toBe(true);
+    expect(placeEngine(station, platform, station.trainyardInventory.engines[0].id).ok).toBe(true);
     expect(addCart(station, platform.train!, 'simple').ok).toBe(true);
 
     // Route + dispatch at t=0.
@@ -77,15 +78,17 @@ describe('station train loop', () => {
     const station = plot.station!;
     const platform = station.platforms[0];
     buyEngine(station, plot, 'Mechanical', 1000);
-    placeEngine(station, platform, 'Mechanical');
+    placeEngine(station, platform, station.trainyardInventory.engines[0].id);
 
     // Explore trip dispatched at t=1000, app "closes", reopens days later.
+    // Only a train on exploration duty may be sent into the fog.
+    assignRoute(platform.train!, createExplorationDestination());
     expect(dispatchExplore(platform.train!, world, '0,3', '0,0', 1_000).ok).toBe(true);
     const daysLater = 1_000 + 3 * 24 * 60 * 60 * 1000;
 
     const result = processTrains({ '0,0': plot }, world, 0, daysLater);
     expect(result.completedTrips).toBe(1);
     expect(world.cells.find((c) => c.id === '0,3')?.discovered).toBe(true);
-    expect(platform.train!.trip).toBeNull(); // idle again — manual dispatch means only one completion
+    expect(platform.train!.trip).toBeNull(); // idle again, manual dispatch means only one completion
   });
 });

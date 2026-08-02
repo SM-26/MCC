@@ -1,6 +1,7 @@
 <!-- /src/components/mine/MineHeader.svelte -->
 <script lang="ts">
   import { Button } from 'bits-ui';
+  import { toRoman } from '../../logic/mine/mineLabels';
 
   const {
     shaftIndex = 0,
@@ -22,7 +23,8 @@
 <header class="header">
   <div class="nav-line">
     <Button.Root class="nav-btn nav-arrow" onclick={onPreviousShaft} disabled={!canGoPrevious} aria-label="Previous shaft">‹</Button.Root>
-    <span class="shaft-label">Shaft <b class="shaft-num">{shaftIndex + 1}</b> / {shaftTotal}</span>
+    <!-- Roman throughout, matching how shafts are labelled in the Station tab. -->
+    <span class="shaft-label">Shaft <b class="shaft-num roman">{toRoman(shaftIndex + 1)}</b> / <span class="roman">{toRoman(shaftTotal)}</span></span>
     <Button.Root class="nav-btn nav-arrow" onclick={onNextShaft} disabled={!canGoNext} aria-label="Next shaft">›</Button.Root>
   </div>
 </header>
@@ -51,7 +53,7 @@
     font-size: 1rem;
   }
 
-  /* Current shaft number — fixed gold app accent */
+  /* Current shaft number, fixed gold app accent */
   .shaft-num {
     color: var(--mcc-gold);
     font-weight: 800;
@@ -83,7 +85,7 @@
     transform: translateY(1px);
   }
 
-  /* Arrow buttons — square icon variant */
+  /* Arrow buttons, square icon variant */
   :global(.nav-arrow) {
     flex: 0 0 auto;
     width: 40px;
@@ -100,7 +102,7 @@
   }
 
   /* Looks and reads disabled, but stays clickable and focusable so the button
-     can explain *why* via a toast. Deliberately no pointer-events: none — a
+     can explain *why* via a toast. Deliberately no pointer-events: none, a
      truly disabled button leaves the tab order, and then keyboard users could
      never get that explanation. */
   :global(.nav-btn[aria-disabled='true']) {

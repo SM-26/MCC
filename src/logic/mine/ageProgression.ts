@@ -2,7 +2,7 @@
 //
 // The age ladder: ordering, the resource each age runs on, what the next step
 // costs, and how deep an age lets you dig. Age is a plot concept, so this lives
-// under mine/ — station code imports it, not the other way round.
+// under mine/, station code imports it, not the other way round.
 
 import { log } from '../../lib/logger';
 import { gameState } from '../app/gameState.svelte';
@@ -30,8 +30,8 @@ export function getNextAge(age: Ages): Ages | null {
 }
 
 /**
- * Cost to advance *into* each age. Keyed by the target, so `Mechanical` — the
- * starting age, never a target — is free.
+ * Cost to advance *into* each age. Keyed by the target, so `Mechanical`, the
+ * starting age, never a target, is free.
  * ponytail: flat table, measured against ~60 ore per bracket per shaft. If
  * bracket yield ever drops toward 50, lower these or raise the shaft cap.
  */
@@ -59,7 +59,7 @@ export function getMaxDepthForAge(age: Ages): number {
  * across every shaft, so a second shaft's depth 0-9 funds an age without ever
  * digging past the cap. Do not gate this on a depth.
  *
- * Money is spent here, not handed back as `nextMoney` — `spendMoney` is the
+ * Money is spent here, not handed back as `nextMoney`, `spendMoney` is the
  * commit point, so every check that can fail runs before it.
  */
 export function advanceAge(plot: PlotState): ActionResult {

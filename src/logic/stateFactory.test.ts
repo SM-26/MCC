@@ -69,7 +69,7 @@ describe('stateFactory', () => {
 
       expect(state.settings).toEqual({
         navbarPosition: 'top',
-        defaultView: 'world',
+        defaultView: 'last-active',
         devMode: false,
         soundEnabled: false,
         notificationsEnabled: false,

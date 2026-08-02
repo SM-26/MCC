@@ -124,7 +124,7 @@ describe('World-Mine Integration', () => {
     const settings = initialState.settings;
 
     expect(settings.worldSeed).toBe('123456');
-    expect(settings.defaultView).toBe('world');
+    expect(settings.defaultView).toBe('last-active');
     expect(settings.navbarPosition).toBe('top');
     expect(settings.devMode).toBe(false);
   });
@@ -165,7 +165,7 @@ describe('World-Mine Integration', () => {
     plot!.currentAge = original;
   });
 
-  it('(c) setActivePlotCellId changes which plot plotsStore.get resolves — no copy-back needed', () => {
+  it('(c) setActivePlotCellId changes which plot plotsStore.get resolves, no copy-back needed', () => {
     // Set up a second plot in the map
     const HOME = '0,0';
     const OTHER = '1,0';

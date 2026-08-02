@@ -10,11 +10,11 @@ import { isAgeAtLeast } from '../mine/ageProgression';
 import { getClearStatus } from '../mine/mineGen';
 import type { AgeResources, Ages, PlotState } from '../mine/mineTypes';
 import { getHexDistance } from '../world/hex';
-import { getCellById, parseWorldCellId } from '../world/worldTypes';
+import { getCellById, isExplorationRoute, parseWorldCellId } from '../world/worldTypes';
 import type { Destination, WorldCellId, WorldState } from '../world/worldTypes';
 import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration, planCargoLoad } from './stationBalance';
-import { createEmptyStation, createPlatform, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
-import type { CartType, PlatformId, Platform, Station, Train } from './stationTypes';
+import { createEmptyStation, createPlatform, createPooledEngine, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
+import type { CartType, EngineId, PlatformId, Platform, Station, Train, Trip } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
 // requirements can be layered into the signatures later without breaking callers.
@@ -215,7 +215,7 @@ export function buyEngine(station: Station, plot: PlotState, age: Ages, money: n
   for (const [resource, amount] of Object.entries(cost.resources) as [keyof AgeResources, number][]) {
     plot.ageResources[resource] -= amount;
   }
-  station.trainyardInventory.engines[age] = (station.trainyardInventory.engines[age] ?? 0) + 1;
+  station.trainyardInventory.engines.push(createPooledEngine(age));
 
   return { ok: true, nextMoney: money - cost.money };
 }
@@ -258,16 +258,19 @@ export function upgradeEngine(train: Train, plot: PlotState, money: number): Bui
 }
 
 /** Take an engine from the pool and create this platform's train. */
-export function placeEngine(station: Station, platform: Platform, age: Ages): ActionResult {
+/** Place one specific pooled engine, so its upgrade level comes with it. */
+export function placeEngine(station: Station, platform: Platform, engineId: EngineId): ActionResult {
   if (platform.train) {
     return { ok: false, message: 'Platform already has a train' };
   }
-  if ((station.trainyardInventory.engines[age] ?? 0) <= 0) {
+
+  const index = station.trainyardInventory.engines.findIndex((engine) => engine.id === engineId);
+  if (index === -1) {
     return { ok: false, message: 'No such engine in the yard' };
   }
 
-  station.trainyardInventory.engines[age] = (station.trainyardInventory.engines[age] ?? 0) - 1;
-  platform.train = createTrain(`train-${platform.id}`, age);
+  const [engine] = station.trainyardInventory.engines.splice(index, 1);
+  platform.train = createTrain(`train-${platform.id}`, engine.age, engine.level);
 
   return { ok: true };
 }
@@ -282,7 +285,9 @@ export function removeTrain(station: Station, platform: Platform): ActionResult 
     return { ok: false, message: 'Train is traveling' };
   }
 
-  station.trainyardInventory.engines[train.engineAge] = (station.trainyardInventory.engines[train.engineAge] ?? 0) + 1;
+  // Return the engine at the level it reached. The old count-per-age pool had
+  // nowhere to record this, so every upgrade was destroyed on recall.
+  station.trainyardInventory.engines.push(createPooledEngine(train.engineAge, train.engineLevel));
   for (const slot of train.carts) {
     station.trainyardInventory.carts[slot.cartType] = (station.trainyardInventory.carts[slot.cartType] ?? 0) + slot.count;
   }
@@ -366,6 +371,12 @@ export function dispatch(train: Train, plot: PlotState, world: WorldState, plotC
     return { ok: false, message: 'Assign a route first' };
   }
 
+  // Exploration has no fixed target, the tile is chosen in the World map, so
+  // this train is dispatched by `dispatchExplore`, not from the Station.
+  if (isExplorationRoute(train.route)) {
+    return { ok: false, message: 'Pick a hidden tile in the World map to explore' };
+  }
+
   // Destination ids ARE cell ids (see getDestinationFromCell).
   const targetCellId = train.route.destinationId;
   const cell = getCellById(world, targetCellId);
@@ -405,6 +416,21 @@ export function findIdleTrain(plot: PlotState | null): Train | null {
   return null;
 }
 
+/**
+ * First idle train whose standing order is Exploration. Only these may be sent
+ * into the fog, so committing a train to exploring is a deliberate choice rather
+ * than something any idle train gets volunteered for.
+ */
+export function findExplorerTrain(plot: PlotState | null): Train | null {
+  for (const platform of plot?.station?.platforms ?? []) {
+    const train = platform.train;
+    if (train && !isTraveling(train) && isExplorationRoute(train.route)) {
+      return train;
+    }
+  }
+  return null;
+}
+
 /** Predicted round-trip ms for `train` from the plot to `targetCellId`, or null if unreachable. */
 export function getTravelEta(train: Train, plotCellId: WorldCellId, targetCellId: WorldCellId): number | null {
   const distance = getCellDistance(plotCellId, targetCellId);
@@ -416,16 +442,25 @@ export function getTravelEta(train: Train, plotCellId: WorldCellId, targetCellId
 
 /** Cell ids currently targeted by an in-flight explore trip across all plots. */
 export function getActiveExploreTargets(plots: Record<WorldCellId, PlotState>): Set<WorldCellId> {
-  const targets = new Set<WorldCellId>();
+  return new Set(getExploreTripsByTarget(plots).keys());
+}
+
+/**
+ * In-flight explore trips keyed by the fog cell they're headed for, so the World
+ * map can show a live countdown on the tile itself rather than just knowing that
+ * *something* is on its way.
+ */
+export function getExploreTripsByTarget(plots: Record<WorldCellId, PlotState>): Map<WorldCellId, Trip> {
+  const trips = new Map<WorldCellId, Trip>();
   for (const plot of Object.values(plots)) {
     for (const platform of plot.station?.platforms ?? []) {
       const trip = platform.train?.trip;
       if (trip?.kind === 'explore') {
-        targets.add(trip.targetCellId);
+        trips.set(trip.targetCellId, trip);
       }
     }
   }
-  return targets;
+  return trips;
 }
 
 /**
@@ -442,6 +477,12 @@ export function dispatchExplore(
 ): ActionResult {
   if (isTraveling(train)) {
     return { ok: false, message: 'Train is traveling' };
+  }
+
+  // Exploring is a standing order, not something any idle train gets drafted
+  // into: the route has to say Exploration first.
+  if (!isExplorationRoute(train.route)) {
+    return { ok: false, message: 'Set this train’s route to Exploration first' };
   }
 
   if (occupiedTargets.has(targetCellId)) {

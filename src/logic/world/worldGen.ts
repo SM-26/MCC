@@ -2,7 +2,7 @@
 
 import seedrandom from 'seedrandom';
 import type { SeededRng } from './worldNames';
-import { pickUniquePlotName, pickUniqueCityName, pickFactoryNameForResources, createNameState } from './worldNames';
+import { pickUniquePlotName, pickUniqueCityName, pickFactoryNameForResources, createNameState, inferFactoryResources } from './worldNames';
 import type { NameState } from './worldNames';
 
 import { getRingConfig, getRingTileCount, getMinCount, getMaxCount, getNormalizedWeights } from './worldBalance';
@@ -102,10 +102,13 @@ function generateRing(ring: number, rng: SeededRng, state: GenState): WorldCell[
       continue;
     }
 
-    const name = generateTileName(tileType, state.nameState, rng, ring);
+    const generated = generateTileName(tileType, state.nameState, rng, ring);
     const cell = cells[cellIndex];
     cell.type = tileType;
-    cell.name = name;
+    cell.name = generated.name;
+    if (generated.acceptedResources) {
+      cell.acceptedResources = generated.acceptedResources;
+    }
     cell.discovered = ring === 0 && tileType === 'plot';
 
     state.tileCounts[tileType]++;
@@ -218,23 +221,32 @@ function pickWeightedTileKind(ringConfig: RingConfig, rng: SeededRng, state: Gen
  * @param ring - Ring number (affects plot naming - ring 0 excludes "Prague" from pool)
  * @returns Generated name for the tile
  */
-function generateTileName(tileType: WorldCellType, nameState: NameState, rng: SeededRng, ring: number): string {
+/** A generated tile's name plus anything the naming step already decided. */
+interface GeneratedTile {
+  name: string;
+  acceptedResources?: ResourceType[];
+}
+
+function generateTileName(tileType: WorldCellType, nameState: NameState, rng: SeededRng, ring: number): GeneratedTile {
   switch (tileType) {
     case 'plot':
-      return pickUniquePlotName(nameState, rng, ring === 0 ? [] : ['Prague']) ?? 'Unknown';
+      return { name: pickUniquePlotName(nameState, rng, ring === 0 ? [] : ['Prague']) ?? 'Unknown' };
     case 'city':
-      return pickUniqueCityName(nameState, rng) ?? 'Unknown';
+      return { name: pickUniqueCityName(nameState, rng) ?? 'Unknown' };
     case 'factory': {
       const resources: ResourceType[] = ['Oil', 'Coal', 'Copper', 'SuperAlloy'];
       const resource = resources[Math.floor(rng() * resources.length)];
-      return pickFactoryNameForResources([resource], rng);
+      // Keep the ore. It was always drawn here to theme the name, "The Crude
+      // Awakening Refinery" is an oil plant, and then thrown away, which is why
+      // ring-generated factories had no accepted resource at all.
+      return { name: pickFactoryNameForResources([resource], rng), acceptedResources: [resource] };
     }
     case 'blocker': {
       const flavors = ['River', 'Lake', 'Mountain'];
-      return flavors[Math.floor(rng() * flavors.length)];
+      return { name: flavors[Math.floor(rng() * flavors.length)] };
     }
     default:
-      return '';
+      return { name: '' };
   }
 }
 
@@ -309,7 +321,7 @@ export function generateWorld(worldSeed: string, resetCount: number, ringsToGene
  * present in `world.cells`. No-op if that ring already exists.
  *
  * Regenerates the whole world from scratch rather than resuming the RNG
- * stream in place — generation is deterministic from (worldSeed, resetCount),
+ * stream in place, generation is deterministic from (worldSeed, resetCount),
  * so replaying rings 0..ring reproduces the exact same existing cells.
  */
 export function ensureRingGenerated(world: WorldState, worldSeed: string, resetCount: number, ring: number): WorldCell[] {
@@ -326,7 +338,7 @@ export function ensureRingGenerated(world: WorldState, worldSeed: string, resetC
 /**
  * Reveal fog tiles that touch an already-discovered cell, so the frontier
  * grows organically with exploration instead of gating on a fully-cleared
- * ring — discovering one tile deep in ring 3 exposes its ring-4 neighbors
+ * ring, discovering one tile deep in ring 3 exposes its ring-4 neighbors
  * immediately, without needing every other ring-3 tile cleared first.
  * Returns the newly generated cells (empty if nothing new touches discovered
  * ground yet).
@@ -379,6 +391,31 @@ export function revealTouchingFrontier(world: WorldState, worldSeed: string, res
  * // revealed.type could be 'city', 'factory', 'plot', or 'empty'
  * // revealed.discovered === true
  */
+/**
+ * Repair factories saved before their ore was stored. The name already encodes
+ * it, the pools are resource-keyed, so this recovers the real answer rather
+ * than inventing one, and an existing save starts naming its cargo immediately.
+ *
+ * Idempotent: only fills cells that are missing the field. Returns how many it
+ * fixed, for logging.
+ */
+export function backfillFactoryResources(world: WorldState): number {
+  let repaired = 0;
+
+  for (const cell of world.cells) {
+    if (cell.type !== 'factory' || cell.acceptedResources?.length) {
+      continue;
+    }
+    const inferred = inferFactoryResources(cell.name);
+    if (inferred.length > 0) {
+      cell.acceptedResources = inferred;
+      repaired += 1;
+    }
+  }
+
+  return repaired;
+}
+
 export function revealFogTile(cell: WorldCell, worldSeed: string, resetCount: number): WorldCell {
   const rng = makeSeededRng(worldSeed, resetCount);
   const ringConfig = getRingConfig(cell.ring);
@@ -403,15 +440,18 @@ export function revealFogTile(cell: WorldCell, worldSeed: string, resetCount: nu
 
   if (chosenType !== 'empty') {
     const nameState = createNameState();
-    revealed.name = generateTileName(chosenType, nameState, rng, cell.ring);
+    const generated = generateTileName(chosenType, nameState, rng, cell.ring);
+    revealed.name = generated.name;
 
     if (chosenType === 'city' || chosenType === 'factory') {
       revealed.capacity = Math.floor(10 + rng() * 40);
     }
 
-    if (chosenType === 'factory') {
-      const resources: ResourceType[] = ['Oil', 'Coal', 'Copper', 'SuperAlloy'];
-      revealed.acceptedResources = [resources[Math.floor(rng() * resources.length)]];
+    // Taken from the naming draw rather than a fresh one, so the ore always
+    // agrees with the name. Previously a "Crude Awakening Refinery" revealed
+    // from fog could end up accepting copper.
+    if (generated.acceptedResources) {
+      revealed.acceptedResources = generated.acceptedResources;
     }
   }
 

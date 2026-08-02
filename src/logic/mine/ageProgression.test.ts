@@ -85,7 +85,7 @@ describe('advanceAge', () => {
     expect(plot.ageResources.superalloy).toBe(999);
   });
 
-  it('counts ore mined in a second shaft — the cap is a ceiling, not a prerequisite', () => {
+  it('counts ore mined in a second shaft, the cap is a ceiling, not a prerequisite', () => {
     const plot = makePlot();
     // Two shallow shafts, neither anywhere near the depth cap. ageResources pools
     // across shafts, so the combined haul must still buy the age.

@@ -1,7 +1,7 @@
 // src/logic/station/stationBalance.ts
 //
 // Every tunable number and pure formula for the station/train economy lives
-// here. Balancing is a later pass over this one file — values below are
+// here. Balancing is a later pass over this one file, values below are
 // playable placeholders, not balanced.
 
 import { AGE_RESOURCE } from '../mine/ageProgression';

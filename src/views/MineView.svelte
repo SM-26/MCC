@@ -4,8 +4,7 @@
   import { Button } from 'bits-ui';
 
   import { debouncedSave } from '../logic/save/save.svelte';
-  import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
-  import { runMiningTick } from '../logic/mine/mineTick';
+  import { getClearProgress, getClearStatus, getPlotStats } from '../logic/mine/mineGen';
   import {
     BASE_SHAFT_COST,
     buyMiner,
@@ -20,9 +19,9 @@
   import MineHeader from '../components/mine/MineHeader.svelte';
   import MineGrid from '../components/mine/MineGrid.svelte';
   import MyMeter from '../components/MyMeter.svelte';
-  import { AGE_ADVANCE_COST, advanceAge, getMaxDepthForAge, getNextAge } from '../logic/mine/ageProgression';
+  import { AGE_ADVANCE_COST, AGE_RESOURCE, advanceAge, getMaxDepthForAge, getNextAge } from '../logic/mine/ageProgression';
   import { RESOURCE_KEYS, RESOURCE_META, type ResourceKey } from '../logic/mine/mineLabels';
-  import { getActiveResourcesForDepth } from '../logic/mine/mineGen';
+  import { getActiveResourcesForDepth, getFirstDepthForResource } from '../logic/mine/mineGen';
   import { log } from '../lib/logger';
 
   import { appContext } from '../logic/app/appContext.svelte';
@@ -48,7 +47,7 @@
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
   const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
-  // The shaft gate is about its surface, not the depth you're standing on — digging
+  // The shaft gate is about its surface, not the depth you're standing on, digging
   // down needs a hard-clear, so below depth 0 this is already satisfied.
   const surfaceClearStatus = $derived.by(() => {
     const surface = activeMineshaft ? getMineDepthByDepth(activeMineshaft, 0) : null;
@@ -59,9 +58,24 @@
   const canGoNext = $derived(
     activeMine && activePlotState ? surfaceClearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false,
   );
+  // Buying is only on offer while the next shaft doesn't exist yet, once bought,
+  // moving between shafts is the › arrow's job, not a second button's.
+  const nextShaftExists = $derived(activePlotState ? activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false);
+
   // --- age advancement ---
   const nextAge = $derived(activePlotState ? getNextAge(activePlotState.currentAge) : null);
   const advanceCost = $derived(nextAge ? AGE_ADVANCE_COST[nextAge] : null);
+
+  // Deepest depth this plot has actually dug, across every shaft.
+  const deepestReached = $derived(
+    activePlotState ? activePlotState.mineshafts.reduce((max, shaft) => shaft.mineDepths.reduce((m, d) => Math.max(m, d.depth), max), 0) : 0,
+  );
+  // Don't dangle an age the player has no idea how to pay for: the advance offer
+  // appears only once they've reached the depth where its ore actually shows up.
+  // (Reaching it is a *reveal* condition, not a prerequisite, the cost is still
+  // just resources + money, and ore pools across shafts.)
+  const nextAgeResource = $derived(nextAge ? AGE_RESOURCE[nextAge] : null);
+  const showAdvanceAge = $derived(!nextAge || (nextAgeResource !== null && deepestReached >= getFirstDepthForResource(nextAgeResource)));
   const advanceCostLabel = $derived(
     advanceCost
       ? [`$${advanceCost.money}`, ...(Object.entries(advanceCost.resources) as [ResourceKey, number][]).map(([res, amount]) => `${amount} ${res}`)].join(' + ')
@@ -82,7 +96,14 @@
   });
   const digBlocker = $derived.by(() => {
     if (!activeMine || !activePlotState) return 'No active mine';
-    if (clearStatus !== 'hard') return 'Clear all rubble and dirt first!';
+    if (clearStatus !== 'hard') {
+      // Name what is actually left. Rubble only exists in the top bracket, so
+      // below depth 5 the old fixed "clear all rubble" message was simply wrong.
+      const stats = getPlotStats(activeMine);
+      const resourcesLeft = RESOURCE_KEYS.reduce((sum, key) => sum + (stats[key] ?? 0), 0);
+      const remaining = [stats.rubble > 0 ? 'rubble' : '', resourcesLeft > 0 ? 'resources' : '', stats.dirt > 0 ? 'dirt' : ''].filter(Boolean);
+      return remaining.length > 0 ? `Clear the remaining ${remaining.join(' and ')} first!` : 'Clear this level first!';
+    }
     if (activeMine.depth + 1 > getMaxDepthForAge(activePlotState.currentAge)) return `Advance to ${nextAge} to dig deeper`;
     return '';
   });
@@ -104,27 +125,14 @@
   const showResourcePill = $derived(hasAnyResource || currentOres.length > 0);
   const shownOres = $derived(resExpanded || currentOres.length === 0 ? RESOURCE_KEYS : currentOres);
 
-  let interval: ReturnType<typeof setInterval>;
   let draggedMiner = $state<Miner | null>(null);
   let draggedPointerId = $state<number | null>(null);
   let dragPos = $state({ x: 0, y: 0 });
   let isDraggingMiner = $state(false);
 
-  function handleMiningTick() {
-    if (!activeMine) return;
-    const result = runMiningTick(activeMine, gameState.current.money);
-    gameState.current.money = result.nextMoney;
-
-    let didEarnResource = false;
-    if (activePlotState) {
-      for (const [res, amount] of Object.entries(result.resourcesEarned) as [ResourceKey, number][]) {
-        activePlotState.ageResources[res] += amount;
-        didEarnResource = true;
-      }
-    }
-
-    if (result.didClearTile || result.didEarnMoney || didEarnResource) debouncedSave();
-  }
+  // Mining itself is driven by the app-level heartbeat in App.svelte
+  // (`runMiningForAllPlots`), so every shaft of every plot produces whether or
+  // not this view is mounted. This component only renders it.
 
   function resetDragState() {
     isDraggingMiner = false;
@@ -257,12 +265,14 @@
     debouncedSave();
   }
 
-  function handleNextShaft() {
+  /**
+   * Walking to the next shaft and buying one are the same action underneath
+   * (handleNextShaftAction only charges when the shaft doesn't exist yet), but
+   * they are NOT the same gate. Running the purchase blockers before navigating
+   * is what made "›" fail with "Need $100" once you owned shaft 2 and spent down.
+   */
+  function runNextShaft() {
     if (!activePlotState || !activePlotCellId) return;
-    if (nextShaftBlocker) {
-      triggerMobileToast(nextShaftBlocker);
-      return;
-    }
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
@@ -282,6 +292,20 @@
     debouncedSave();
   }
 
+  /** The "›" arrow: pure navigation, no purchase gates. */
+  function handleGoToNextShaft() {
+    runNextShaft();
+  }
+
+  /** The buy button: gated, since this one can actually spend money. */
+  function handleBuyNextShaft() {
+    if (nextShaftBlocker) {
+      triggerMobileToast(nextShaftBlocker);
+      return;
+    }
+    runNextShaft();
+  }
+
   function handleGlobalPointerMove(event: PointerEvent) {
     handlePointerMove(event);
   }
@@ -293,14 +317,12 @@
   }
 
   onMount(() => {
-    interval = setInterval(handleMiningTick, 1000);
     window.addEventListener('pointermove', handleGlobalPointerMove, { passive: false });
     window.addEventListener('pointerup', handleGlobalPointerUp, { passive: false });
     window.addEventListener('pointercancel', handleGlobalPointerCancel, { passive: false });
   });
 
   onDestroy(() => {
-    clearInterval(interval);
     window.removeEventListener('pointermove', handleGlobalPointerMove);
     window.removeEventListener('pointerup', handleGlobalPointerUp);
     window.removeEventListener('pointercancel', handleGlobalPointerCancel);
@@ -319,7 +341,7 @@
       {canGoPrevious}
       {canGoNext}
       onPreviousShaft={handlePreviousShaft}
-      onNextShaft={handleNextShaft}
+      onNextShaft={handleGoToNextShaft}
     />
 
     <div class="soil-card">
@@ -343,10 +365,20 @@
         <span>Depth {activeMine.depth}</span>
         <span>{clearStatusLabel} · {clearPercent}%</span>
       </div>
-      <Button.Root class="nav-btn" onclick={handleNextShaft} aria-disabled={nextShaftBlocker !== ''}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
-      <Button.Root class="nav-btn" onclick={handleAdvanceAge} aria-disabled={advanceBlocker !== ''}>
-        {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}
-      </Button.Root>
+      <!-- Side by side: these are both once-in-a-while actions and stacking them
+           cost a row of vertical space the grid needs more. -->
+      {#if !nextShaftExists || showAdvanceAge}
+        <div class="soil-actions">
+          {#if !nextShaftExists}
+            <Button.Root class="nav-btn" onclick={handleBuyNextShaft} aria-disabled={nextShaftBlocker !== ''}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
+          {/if}
+          {#if showAdvanceAge}
+            <Button.Root class="nav-btn" onclick={handleAdvanceAge} aria-disabled={advanceBlocker !== ''}>
+              {#if nextAge}Advance to {nextAge} · {advanceCostLabel}{:else}Age {activePlotState.currentAge}{/if}
+            </Button.Root>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     <MineGrid {activeMine} {draggedMiner} {dragPos} {isDraggingMiner} onMinerPointerDown={handleMinerPointerDown} />
@@ -422,7 +454,20 @@
     --mine-miner-label-size: 0.76rem;
   }
 
-  /* Glass soil card — plot name, meter, depth/status */
+  /* Glass soil card, plot name, meter, depth/status */
+  /* The two buttons share a row. `:global` reaches bits-ui's own element, but
+     the scoped parent keeps this from being a second definition of .nav-btn,
+     MineHeader still owns that class outright. */
+  .soil-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+
+  .soil-actions > :global(.nav-btn) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   .soil-card {
     flex: 0 0 auto;
     margin: 0 var(--mine-padding);
@@ -553,7 +598,7 @@
     filter: brightness(1.05);
   }
 
-  /* Press the chunky button "down" — collapse the 3D edge */
+  /* Press the chunky button "down", collapse the 3D edge */
   :global(.buy-btn:active:not(:disabled)) {
     transform: translateY(3px);
     box-shadow:
