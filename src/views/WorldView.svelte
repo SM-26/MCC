@@ -158,7 +158,7 @@
         {:else if inspectedCell.type === 'city'}
           Passenger destination.
         {:else if inspectedCell.type === 'factory'}
-          <!-- Name the ore: "cargo destination" alone never told the player what
+          <!-- Name the resource: "cargo destination" alone never told the player what
                this factory actually buys. -->
           {#if inspectedCell.acceptedResources?.length}
             Cargo destination · buys {inspectedCell.acceptedResources.join(', ')}.
@@ -189,7 +189,7 @@
           {:else if !activePlotState}
             <p class="cell-sub">Build a plot with a station to send explorers.</p>
           {:else if !idleTrain}
-            <p class="cell-sub">No train on scout duty — set a train's route to Exploration in your station.</p>
+            <p class="cell-sub">No train on scout duty. Set a train's route to Exploration in your station.</p>
           {:else}
             <Button.Root class="glass-btn" onclick={exploreInspected}>
               Send train to explore{exploreEtaMs !== null ? ` (~${Math.ceil(exploreEtaMs / 1000)}s)` : ''}

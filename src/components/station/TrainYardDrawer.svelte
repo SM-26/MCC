@@ -95,7 +95,7 @@
           <span class="bay-label">Carts ×{totalCarts}</span>
         </div>
         {#if enginePool.length === 0}
-          <p class="hint">No engines in the pool — expand the yard to buy one.</p>
+          <p class="hint">No engines in the pool. Expand the yard to buy one.</p>
         {/if}
       </div>
 

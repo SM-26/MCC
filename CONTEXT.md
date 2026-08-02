@@ -103,7 +103,8 @@ the Plot's **dig ceiling**.
 _Avoid_: Basic (for Mechanical); treating Age as global or per-World
 
 **Age resource**:
-The ore an Age runs on — coal, oil, copper, superalloy. Mined from Tiles and pooled on the Plot
+The resource an Age runs on: coal, oil, copper, superalloy. Not all of them are ores (oil is not),
+so prefer "resource" in player-facing copy. Mined from Tiles and pooled on the Plot
 (`ageResources`), **not on the Mineshaft**: ore from every Mineshaft of a Plot accumulates
 together, and is also what gets railed into an under-construction Plot.
 

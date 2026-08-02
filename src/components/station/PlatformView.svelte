@@ -81,7 +81,7 @@
   const exploreOccupied = $derived(getActiveExploreTargets(plotsStore.current));
   const exploreTargetFree = $derived(exploreTarget !== null && !exploreOccupied.has(exploreTarget.id));
   const routeName = $derived(routeDestination?.name ?? null);
-  // "Cargo" on its own never said *which* ore the factory buys.
+  // "Cargo" on its own never said *which* resource the factory buys.
   const acceptedLabel = $derived(routeDestination?.acceptedResources?.length ? routeDestination.acceptedResources.join(', ') : null);
   const preview = $derived(train && train.route ? tripPreview(train, plot, plotCellId) : null);
 
@@ -171,7 +171,7 @@
         aria-label="Platform above"
       >
         ▲
-        <span class="step-label">{neighbours.shallower ? `D${neighbours.shallower.depth}` : '—'}</span>
+        <span class="step-label">{neighbours.shallower ? `D${neighbours.shallower.depth}` : '-'}</span>
       </button>
       <button
         type="button"
@@ -181,7 +181,7 @@
         aria-label="Platform below"
       >
         ▼
-        <span class="step-label">{neighbours.deeper ? `D${neighbours.deeper.depth}` : '—'}</span>
+        <span class="step-label">{neighbours.deeper ? `D${neighbours.deeper.depth}` : '-'}</span>
       </button>
     </div>
   </div>
@@ -225,19 +225,19 @@
 
       {#if preview}
         <div class="preview">
-          <span>Round trip {preview.etaSec !== null ? `~${preview.etaSec}s` : '—'}</span>
+          <span>Round trip {preview.etaSec !== null ? `~${preview.etaSec}s` : 'n/a'}</span>
           <span>Pays {preview.reward}</span>
         </div>
       {/if}
       {#if acceptedLabel}
-        <p class="hint">Buys {acceptedLabel} — only that ore sells here.</p>
+        <p class="hint">Buys {acceptedLabel}. Only that resource sells here.</p>
       {/if}
       {#if isExploring}
         <p class="hint">
-          Scout duty. Inspect a hidden tile in the World map, then send this train from either place — the estimate above tracks whichever tile you inspected.
+          Scout duty. Inspect a hidden tile in the World map, then send this train from either place. The estimate above tracks whichever tile you inspected.
         </p>
       {:else}
-        <p class="hint">Explore fog from the World map — set a train's route to Exploration to send it.</p>
+        <p class="hint">Explore fog from the World map. Set a train's route to Exploration to send it.</p>
       {/if}
     </section>
 

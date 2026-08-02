@@ -83,7 +83,7 @@ export function tripPreview(train: Train, plot: PlotState | null, plotCellId: st
     const etaMs = target ? getTravelEta(train, plotCellId, target.id) : null;
     return {
       etaSec: etaMs !== null ? Math.ceil(etaMs / 1000) : null,
-      reward: 'no payout — reveals the map',
+      reward: 'no payout, reveals the map',
     };
   }
 

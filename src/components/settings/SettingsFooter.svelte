@@ -19,7 +19,7 @@
 </script>
 
 <section class="settings-footer">
-  <div class="telemetry-line">Mines & Choo-Choos — Alpha Architecture</div>
+  <div class="telemetry-line">Mines & Choo-Choos · Alpha Architecture</div>
 
   <div class="telemetry-line">
     <span>Version: v{appVersion.trim()} | Commit hash:</span>

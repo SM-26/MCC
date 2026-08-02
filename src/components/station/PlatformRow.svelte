@@ -45,7 +45,7 @@
   const progressPercent = $derived(trip ? Math.min(100, Math.max(0, (1 - getTripRemainingMs(trip, now) / trip.durationMs) * 100)) : 0);
 
   const subLine = $derived.by(() => {
-    if (!train) return 'No train — tap to assign from yard';
+    if (!train) return 'No train. Tap to assign one from the yard.';
     if (isExplorationRoute(train.route)) {
       return exploreTargetFree ? '→ Exploring · ready to reveal the inspected tile' : '→ Exploration · inspect a hidden tile in the World map';
     }

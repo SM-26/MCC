@@ -120,7 +120,7 @@
       // batch — several trips can land on the same tick.
       const latest = explored.at(-1);
       if (latest) {
-        triggerMobileToast(`Explored ${latest.name} — ${EXPLORED_LABEL[latest.type]}`);
+        triggerMobileToast(`Explored ${latest.name}: ${EXPLORED_LABEL[latest.type]}`);
       }
       if (completed || mined.changed) {
         debouncedSave();

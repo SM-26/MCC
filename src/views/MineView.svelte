@@ -4,7 +4,7 @@
   import { Button } from 'bits-ui';
 
   import { debouncedSave } from '../logic/save/save.svelte';
-  import { getClearProgress, getClearStatus } from '../logic/mine/mineGen';
+  import { getClearProgress, getClearStatus, getPlotStats } from '../logic/mine/mineGen';
   import {
     BASE_SHAFT_COST,
     buyMiner,
@@ -96,7 +96,14 @@
   });
   const digBlocker = $derived.by(() => {
     if (!activeMine || !activePlotState) return 'No active mine';
-    if (clearStatus !== 'hard') return 'Clear all rubble and dirt first!';
+    if (clearStatus !== 'hard') {
+      // Name what is actually left. Rubble only exists in the top bracket, so
+      // below depth 5 the old fixed "clear all rubble" message was simply wrong.
+      const stats = getPlotStats(activeMine);
+      const resourcesLeft = RESOURCE_KEYS.reduce((sum, key) => sum + (stats[key] ?? 0), 0);
+      const remaining = [stats.rubble > 0 ? 'rubble' : '', resourcesLeft > 0 ? 'resources' : '', stats.dirt > 0 ? 'dirt' : ''].filter(Boolean);
+      return remaining.length > 0 ? `Clear the remaining ${remaining.join(' and ')} first!` : 'Clear this level first!';
+    }
     if (activeMine.depth + 1 > getMaxDepthForAge(activePlotState.currentAge)) return `Advance to ${nextAge} to dig deeper`;
     return '';
   });
@@ -258,12 +265,14 @@
     debouncedSave();
   }
 
-  function handleNextShaft() {
+  /**
+   * Walking to the next shaft and buying one are the same action underneath
+   * (handleNextShaftAction only charges when the shaft doesn't exist yet), but
+   * they are NOT the same gate. Running the purchase blockers before navigating
+   * is what made "›" fail with "Need $100" once you owned shaft 2 and spent down.
+   */
+  function runNextShaft() {
     if (!activePlotState || !activePlotCellId) return;
-    if (nextShaftBlocker) {
-      triggerMobileToast(nextShaftBlocker);
-      return;
-    }
     const result = handleNextShaftAction({
       worldSeed: gameState.current.settings.worldSeed,
       resetCount: 0,
@@ -281,6 +290,20 @@
 
     resetDragState();
     debouncedSave();
+  }
+
+  /** The "›" arrow: pure navigation, no purchase gates. */
+  function handleGoToNextShaft() {
+    runNextShaft();
+  }
+
+  /** The buy button: gated, since this one can actually spend money. */
+  function handleBuyNextShaft() {
+    if (nextShaftBlocker) {
+      triggerMobileToast(nextShaftBlocker);
+      return;
+    }
+    runNextShaft();
   }
 
   function handleGlobalPointerMove(event: PointerEvent) {
@@ -318,7 +341,7 @@
       {canGoPrevious}
       {canGoNext}
       onPreviousShaft={handlePreviousShaft}
-      onNextShaft={handleNextShaft}
+      onNextShaft={handleGoToNextShaft}
     />
 
     <div class="soil-card">
@@ -347,7 +370,7 @@
       {#if !nextShaftExists || showAdvanceAge}
         <div class="soil-actions">
           {#if !nextShaftExists}
-            <Button.Root class="nav-btn" onclick={handleNextShaft} aria-disabled={nextShaftBlocker !== ''}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
+            <Button.Root class="nav-btn" onclick={handleBuyNextShaft} aria-disabled={nextShaftBlocker !== ''}>Buy next shaft · ${BASE_SHAFT_COST}</Button.Root>
           {/if}
           {#if showAdvanceAge}
             <Button.Root class="nav-btn" onclick={handleAdvanceAge} aria-disabled={advanceBlocker !== ''}>
