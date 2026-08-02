@@ -4,6 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <!-- Declared explicitly: a browser's implicit /favicon.ico request resolves at
+       the domain root, which 404s under the /MCC/ base. Vite rewrites this one. -->
+  <link rel="icon" type="image/x-icon" sizes="48x48 32x32 16x16" href="/favicon.ico" />
+  <!-- iOS ignores manifest icons for Add to Home Screen and needs a PNG here. -->
+  <link rel="apple-touch-icon" href="/pwa-192x192.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Mines & Choo-Choos</title>
 </head>

@@ -297,6 +297,18 @@
     runNextShaft();
   }
 
+  /**
+   * Escape hatch for a built plot whose active shaft or depth index points at
+   * nothing (a stale index from an older save, say). Without it the tab renders
+   * empty and the shaft arrows that would fix it are not on screen.
+   */
+  function handleResetToFirstShaft() {
+    if (!activePlotCellId) return;
+    plotsStore.setActiveMineshaftIndex(activePlotCellId, 0);
+    plotsStore.setActiveDepthIndex(activePlotCellId, 0);
+    debouncedSave();
+  }
+
   /** The buy button: gated, since this one can actually spend money. */
   function handleBuyNextShaft() {
     if (nextShaftBlocker) {
@@ -389,6 +401,14 @@
         Buy Miner (${minerCost})
       </Button.Root>
     </div>
+  </div>
+{:else}
+  <!-- Built, but the active shaft or depth index points at nothing. The shaft
+       arrows live inside the branch above, so without this the tab rendered
+       blank with no way back. -->
+  <div class="mine-not-built">
+    <p>This shaft has nothing to show.</p>
+    <Button.Root class="buy-btn" onclick={handleResetToFirstShaft}>Back to the first shaft</Button.Root>
   </div>
 {/if}
 

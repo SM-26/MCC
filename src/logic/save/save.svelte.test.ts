@@ -728,7 +728,7 @@ describe('save.svelte.ts', async () => {
 
   // ── Round-trip test ───────────────────────────────────────────────────────
 
-  it('round-trip: mutation via plotsStore survives a save/reload cycle', async () => {
+  it('round-trip: mutation via plotsStore survives a save/reload cycle', () => {
     // Set up initial state with a built home plot and world context
     worldStore.current = {
       cells: [makeHomeCell()],

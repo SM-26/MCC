@@ -6,27 +6,31 @@ for things that would otherwise be forgotten.
 
 ## Live bugs
 
-- **Icon assets dominate the service-worker precache.** The SW precaches ~1842 KiB, of which
-  `favicon.ico` (361 KiB), `favicon.svg` (243 KiB) and `pwa-512x512.png` (233 KiB) account for
-  883 KiB, nearly as much as the entire JS bundle (921 KiB). Measured breakdown:
+- **HUMAN CHECK NEEDED: the new icon wiring has never been looked at.** Icons are the one thing
+  that cannot be verified headlessly, and the browser pane in use never composited frames, so every
+  screenshot attempt timed out. The paths, sizes, formats and precache contents are all confirmed by
+  measurement, but **nobody has actually seen these icons render.** Worth eyeballing:
 
-  - **`favicon.ico`, 361 KiB, and nothing links it.** `index.html` declares only `favicon.svg`, and
-    a browser's implicit `/favicon.ico` request resolves at the domain root, which 404s under
-    GitHub Pages' `/MCC/` base. So it is precached weight for a file nobody fetches. Its frames are
-    uncompressed BMP: 256×256 is 264 KiB and 128×128 is 66 KiB, together 91% of the file. Keeping
-    only 16/32/48 gives **14.8 KiB**. If it is kept it should also be linked explicitly with a
-    relative href so it actually resolves.
-  - **`favicon.svg`, 243 KiB, is genuine vector**, 14 paths and zero embedded rasters. (An earlier
-    note here guessed embedded raster data; that was wrong.) The weight is 34,658 coordinates, the
-    signature of an auto-trace from a bitmap. Rounding precision alone only reaches ~142 KiB, so
-    this needs path simplification or a redraw, not re-encoding. A hand-drawn logo of this
-    complexity would be 5 to 15 KiB.
-  - **`pwa-512x512`: WebP is 39.6 KiB against the PNG's 233 KiB**, an 83% cut. HEIC came in at
-    104 KiB and has effectively no browser support for manifest icons, so WebP wins on both axes.
-    Keep a PNG entry alongside it for iOS, which does not honour WebP for the home-screen icon.
+  - Browser tab favicon, light and dark theme, and a pinned/bookmarked tab.
+  - Android install prompt and the resulting home-screen icon, which now comes from a **WebP**
+    manifest entry. This is the highest-risk one: WebP manifest icons are well supported in Chrome,
+    but if anything is going to fall back to a generic glyph, it is this.
+  - iOS Add to Home Screen, which ignores manifest icons and uses the new
+    `<link rel="apple-touch-icon" href="./pwa-192x192.png">`.
+  - The deployed `/MCC/` build specifically, since the `favicon.ico` link exists precisely because
+    the implicit root request 404s under that base.
 
-  Note the plugin's `precache N entries (KiB)` build line understates the total, it excludes
-  `includeAssets`; sum the `sw.js` manifest for the real figure. _(measured 2026-08-02)_
+  If the Android icon misbehaves, the fix is adding the PNG entries back into `manifest.icons`
+  alongside the WebP ones, at the cost of ~279 KiB of precache. _(wired 2026-08-02)_
+
+- **`favicon.svg` is 243 KiB and now dominates the icon weight.** After the ico slimming and the
+  WebP swap it is 79% of all icon bytes and 19% of the whole precache. It is **genuine vector**,
+  14 paths and zero embedded rasters (an earlier note here guessed embedded raster data; that was
+  wrong). The weight is 34,658 coordinates, the signature of an auto-trace from a bitmap. Rounding
+  precision alone only reaches ~142 KiB, because the problem is node count rather than decimals, so
+  this needs path simplification or a redraw rather than re-encoding. A hand-drawn logo of this
+  complexity would be 5 to 15 KiB. The master six-frame icon is archived at
+  `docs/assets/favicon_all.ico`. _(measured 2026-08-02)_
 
 - **Building a plot silently destroys everything railed into it.** `tryBuildPlot`
   (`mineActions.ts:285`) gates on `coal >= BUILD_COAL_COST && money >= BUILD_MONEY_COST`, then calls
@@ -114,10 +118,6 @@ hiding a fully dead `src/logic/shared/` folder.
 
 ## Minor test / polish nits (low priority)
 
-- Double `plotsStore.get` in a `WorldView` `$derived`.
-- Round-trip save test is needlessly `async`.
-- `tryBuildPlot` already-built test doesn't assert `nextMoney` is unchanged.
-- `MineView` renders blank if a plot is built but has empty mineshafts, add an `{:else}` fallback.
 - A couple of missing null/miss-path coverage cases.
 
 ## Tracked in GitHub Issues

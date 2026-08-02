@@ -63,7 +63,10 @@
     worldStore.setInspectedCellId(null);
   }
 
-  const inspectedPlotBuilt = $derived(inspectedCell?.type === 'plot' && !!plotsStore.get(inspectedCell.id) && isPlotBuilt(plotsStore.get(inspectedCell.id)!));
+  // One lookup, and no non-null assertion: the second plotsStore.get() here was
+  // only there to satisfy the `!` on the first.
+  const inspectedPlot = $derived(inspectedCell?.type === 'plot' ? plotsStore.get(inspectedCell.id) : null);
+  const inspectedPlotBuilt = $derived(inspectedPlot !== null && isPlotBuilt(inspectedPlot));
 
   // --- fog exploration: send an idle train from the active plot to reveal a cell ---
   const activePlotCellId = $derived(worldStore.current.activePlotCellId);

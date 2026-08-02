@@ -77,16 +77,20 @@ export default defineConfig({
         background_color: '#1a1a1a',
         display: 'standalone',
         orientation: 'portrait',
+        // WebP only, deliberately. The plugin precaches whatever is listed here,
+        // and the WebP pair is 50 KiB against the PNG pair's 279 KiB. The PNGs
+        // stay in public/ and are wired as apple-touch-icon in index.html,
+        // because iOS does not use manifest icons for Add to Home Screen.
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'pwa-192x192.webp',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/webp'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'pwa-512x512.webp',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/webp'
           }
         ],
         // Chrome's "richer install UI" needs at least one `wide` screenshot for

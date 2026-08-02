@@ -84,6 +84,8 @@ describe('tryBuildPlot', () => {
     // Try to build again
     const result = tryBuildPlot(TEST_CELL, SEED, RESET_COUNT, BUILD_MONEY_COST);
     expect(result.ok).toBe(false);
+    // A refused build must not charge: the caller commits whatever comes back.
+    expect(result.nextMoney).toBe(BUILD_MONEY_COST);
   });
 
   it('succeeds and returns nextMoney reduced by BUILD_MONEY_COST', () => {
