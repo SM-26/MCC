@@ -13,12 +13,13 @@
     showSlots?: boolean;
     /** Placeholder engine for an empty platform. */
     ghost?: boolean;
-    /** Supplied by the consist editor — makes carts and slots tappable. */
+    /** Supplied by the consist editor, makes the engine, carts and slots tappable. */
+    onEngineClick?: () => void;
     onCartClick?: (cartType: CartType) => void;
     onSlotClick?: () => void;
   }
 
-  const { train, scale = 1, showSlots = false, ghost = false, onCartClick, onSlotClick }: Props = $props();
+  const { train, scale = 1, showSlots = false, ghost = false, onEngineClick, onCartClick, onSlotClick }: Props = $props();
 
   // CartSlot carries a count; the strip wants one sprite per physical cart.
   const cartSprites = $derived<CartType[]>(train ? train.carts.flatMap((slot) => Array.from({ length: slot.count }, () => slot.cartType)) : []);
@@ -36,7 +37,7 @@
   {#if ghost || !train}
     <img class="sprite engine is-ghost" src={ENGINE_SPRITE.Mechanical} alt="" draggable="false" />
   {:else}
-    <div class="engine-wrap">
+    {#snippet engineSprite()}
       <img class="sprite engine" src={ENGINE_SPRITE[train.engineAge]} alt="" draggable="false" />
       <!-- Pips only from scale 2 up: at 20px there is no room above the cab, and
            every scale-1 surface already prints "Lv n" in its title. -->
@@ -47,7 +48,15 @@
           {/each}
         </span>
       {/if}
-    </div>
+    {/snippet}
+
+    {#if onEngineClick}
+      <button type="button" class="engine-wrap engine-btn" onclick={() => onEngineClick()} aria-label={`Recall the ${train.engineAge} engine to the yard`}>
+        {@render engineSprite()}
+      </button>
+    {:else}
+      <div class="engine-wrap">{@render engineSprite()}</div>
+    {/if}
 
     {#each cartSprites as cartType, index (`${cartType}-${index}`)}
       {#if onCartClick}
@@ -137,6 +146,20 @@
     border: 1px dashed var(--mcc-border);
     border-radius: 4px;
     box-sizing: border-box;
+  }
+
+  .engine-btn {
+    padding: 12px 0;
+    margin: -12px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    min-height: 44px;
+    box-sizing: content-box;
+  }
+
+  .engine-btn:hover .engine {
+    filter: brightness(1.2);
   }
 
   /* Interactive mode pads vertically only. A horizontal pad would open gaps

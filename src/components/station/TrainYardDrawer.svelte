@@ -8,7 +8,7 @@
   import { CART_SPRITE, ENGINE_SPRITE } from '../../logic/station/stationSprites';
   import { CART_STATS, ENGINE_STATS } from '../../logic/station/stationBalance';
   import { addCart, buyCart, buyEngine, placeEngine, removeTrain } from '../../logic/station/stationActions';
-  import type { CartType, Platform, Station } from '../../logic/station/stationTypes';
+  import type { CartType, EngineId, Platform, Station } from '../../logic/station/stationTypes';
   import type { Ages, PlotState } from '../../logic/mine/mineTypes';
 
   interface Props {
@@ -25,15 +25,19 @@
   const height = $derived(stationUi.current.yard);
   const tab = $derived(stationUi.current.yardTab);
 
-  const enginePool = $derived(AGE_ORDER.filter((age) => (station.trainyardInventory.engines[age] ?? 0) > 0));
-  const totalCarts = $derived(Object.values(station.trainyardInventory.carts).reduce((sum, n) => sum + (n ?? 0), 0));
+  // Newest age first, strongest first within an age.
+  const enginePool = $derived(
+    [...station.trainyardInventory.engines].sort((a, b) => AGE_ORDER.indexOf(b.age) - AGE_ORDER.indexOf(a.age) || b.level - a.level),
+  );
+  const cartPool = $derived(CART_TYPES.filter((cartType) => (station.trainyardInventory.carts[cartType] ?? 0) > 0));
   const assignedPlatforms = $derived(station.platforms.filter((platform) => platform.train !== null));
+  const countForAge = $derived((age: Ages) => station.trainyardInventory.engines.filter((engine) => engine.age === age).length);
 
-  function handlePlaceEngine(age: Ages) {
+  function handlePlaceEngine(engineId: EngineId) {
     if (!targetPlatform) {
       return;
     }
-    if (commit(placeEngine(station, targetPlatform, age))) {
+    if (commit(placeEngine(station, targetPlatform, engineId))) {
       stationUi.closeYard();
     }
   }
@@ -78,24 +82,28 @@
     <div class="handle" aria-hidden="true"></div>
 
     {#if height === 'peek'}
+      <!-- Peek answers "what do I own": every bay here is assignable. Buying
+           lives one level up, in the expanded view. -->
       <header class="peek-head">
         <h3 class="drawer-title">Train Yard</h3>
-        <p class="drawer-sub">Tap a bay to place</p>
+        <p class="drawer-sub">Tap to assign</p>
       </header>
 
       <div class="bays">
-        {#each enginePool as age (age)}
-          <button type="button" class="bay" onclick={() => handlePlaceEngine(age)} disabled={!targetPlatform}>
-            <img class="bay-sprite engine" src={ENGINE_SPRITE[age]} alt="" draggable="false" />
-            <span class="bay-label">{age} ×{station.trainyardInventory.engines[age] ?? 0}</span>
+        {#each enginePool as engine (engine.id)}
+          <button type="button" class="bay" onclick={() => handlePlaceEngine(engine.id)} disabled={!targetPlatform}>
+            <img class="bay-sprite engine" src={ENGINE_SPRITE[engine.age]} alt="" draggable="false" />
+            <span class="bay-label">{engine.age} Lv {engine.level}</span>
           </button>
         {/each}
-        <div class="bay is-static">
-          <img class="bay-sprite cart" src={CART_SPRITE.cargo} alt="" draggable="false" />
-          <span class="bay-label">Carts ×{totalCarts}</span>
-        </div>
-        {#if enginePool.length === 0}
-          <p class="hint">No engines in the pool. Expand the yard to buy one.</p>
+        {#each cartPool as cartType (cartType)}
+          <button type="button" class="bay" onclick={() => handleAddCart(cartType)} disabled={!targetPlatform?.train}>
+            <img class="bay-sprite cart" src={CART_SPRITE[cartType]} alt="" draggable="false" />
+            <span class="bay-label">{cartType} ×{station.trainyardInventory.carts[cartType] ?? 0}</span>
+          </button>
+        {/each}
+        {#if enginePool.length === 0 && cartPool.length === 0}
+          <p class="hint">Nothing in the pool yet. Expand the yard to buy stock.</p>
         {/if}
       </div>
 
@@ -104,7 +112,7 @@
       <header class="full-head">
         <div>
           <h3 class="drawer-title">Train Yard</h3>
-          <p class="drawer-sub">Buy stock · assign to platforms</p>
+          <p class="drawer-sub">Buy stock · collapse to assign</p>
         </div>
         <button type="button" class="chip" onclick={() => stationUi.openYard('peek')} aria-label="Collapse yard">▾</button>
       </header>
@@ -128,7 +136,7 @@
         {#if tab === 'engines'}
           {#each AGE_ORDER as age (age)}
             {@const locked = !plot || !isAgeAtLeast(plot.currentAge, age)}
-            {@const pooled = station.trainyardInventory.engines[age] ?? 0}
+            {@const pooled = countForAge(age)}
             {@const cost = ENGINE_STATS[age].cost}
             {@const missing = missingLabel(cost, plot?.ageResources)}
             <div class="row" class:locked>
@@ -143,14 +151,12 @@
                   {/if}
                 </span>
               </span>
+              <!-- Buy only. Assigning happens in the peek view, where the pool
+                   lists each engine with the level it actually carries. -->
               {#if !locked}
-                {#if pooled > 0}
-                  <button type="button" class="btn-assign" onclick={() => handlePlaceEngine(age)} disabled={!targetPlatform}>Assign</button>
-                {:else}
-                  <button type="button" class="btn-buy" onclick={() => handleBuyEngine(age)} disabled={missing !== ''}>
-                    ${cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
-                  </button>
-                {/if}
+                <button type="button" class="btn-buy" onclick={() => handleBuyEngine(age)} disabled={missing !== ''}>
+                  ${cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
+                </button>
               {/if}
             </div>
           {/each}
@@ -164,15 +170,9 @@
                 <span class="row-title">{cartType}</span>
                 <span class="row-sub">{stats.role} · capacity {stats.capacity} · in pool ×{pooled}</span>
               </span>
-              <!-- Same shape as the engine rows: owning one turns the row into an
-                   Assign, buying is what you get when the pool is empty. -->
-              {#if pooled > 0}
-                <button type="button" class="btn-assign" onclick={() => handleAddCart(cartType)} disabled={!targetPlatform?.train}>Assign</button>
-              {:else}
-                <button type="button" class="btn-buy" onclick={() => handleBuyCart(cartType)} disabled={gameState.current.money < stats.cost.money}>
-                  ${stats.cost.money}
-                </button>
-              {/if}
+              <button type="button" class="btn-buy" onclick={() => handleBuyCart(cartType)} disabled={gameState.current.money < stats.cost.money}>
+                ${stats.cost.money}
+              </button>
             </div>
           {/each}
         {:else}
@@ -300,10 +300,6 @@
     border-radius: 12px;
     color: var(--mcc-text-main);
     cursor: pointer;
-  }
-
-  .bay.is-static {
-    cursor: default;
   }
 
   .bay:hover:not(:disabled):not(.is-static) {

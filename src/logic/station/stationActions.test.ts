@@ -17,7 +17,7 @@ import {
   removeTrain,
   upgradeEngine,
 } from './stationActions';
-import { createEmptyStation, createPlatform } from './stationTypes';
+import { createEmptyStation, createPlatform, createPooledEngine } from './stationTypes';
 import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration } from './stationBalance';
 import { createExplorationDestination } from '../world/worldTypes';
 import type { WorldCell, WorldState } from '../world/worldTypes';
@@ -88,7 +88,8 @@ describe('buyEngine', () => {
     expect(result.ok).toBe(true);
     expect(result.nextMoney).toBe(1000 - ENGINE_STATS.Steam.cost.money);
     expect(plot.ageResources.coal).toBe(50 - (ENGINE_STATS.Steam.cost.resources.coal ?? 0));
-    expect(station.trainyardInventory.engines.Steam).toBe(1);
+    expect(station.trainyardInventory.engines).toHaveLength(1);
+    expect(station.trainyardInventory.engines[0]).toMatchObject({ age: 'Steam', level: 1 });
   });
 
   it('gates by plot currentAge', () => {
@@ -104,7 +105,7 @@ describe('buyEngine', () => {
     expect(buyEngine(station, plot, 'Steam', 10).ok).toBe(false);
     plot.ageResources.coal = 0;
     expect(buyEngine(station, plot, 'Steam', 1000).ok).toBe(false);
-    expect(station.trainyardInventory.engines.Steam ?? 0).toBe(0);
+    expect(station.trainyardInventory.engines).toHaveLength(0);
   });
 });
 
@@ -123,34 +124,66 @@ describe('buyCart', () => {
   });
 });
 
+const YARD_ENGINE_ID = 'yard-engine';
+
 function makeYard() {
   const station = createEmptyStation('s1');
   const platform = createPlatform('p1', 0, 0);
   station.platforms.push(platform);
-  station.trainyardInventory.engines.Mechanical = 1;
+  // Fixed id so fixtures can name it without threading the object around.
+  const engine = { ...createPooledEngine('Mechanical'), id: YARD_ENGINE_ID };
+  station.trainyardInventory.engines.push(engine);
   station.trainyardInventory.carts.simple = 3;
-  return { station, platform };
+  return { station, platform, engine };
 }
 
 describe('placeEngine / removeTrain', () => {
   it('moves an engine from pool to platform and back', () => {
-    const { station, platform } = makeYard();
+    const { station, platform, engine } = makeYard();
 
-    expect(placeEngine(station, platform, 'Mechanical').ok).toBe(true);
+    expect(placeEngine(station, platform, engine.id).ok).toBe(true);
     expect(platform.train?.engineAge).toBe('Mechanical');
-    expect(station.trainyardInventory.engines.Mechanical).toBe(0);
-    expect(placeEngine(station, platform, 'Mechanical').ok).toBe(false); // occupied + empty pool
+    expect(station.trainyardInventory.engines).toHaveLength(0);
+    expect(placeEngine(station, platform, engine.id).ok).toBe(false); // occupied + empty pool
 
     expect(addCart(station, platform.train!, 'simple').ok).toBe(true);
     expect(removeTrain(station, platform).ok).toBe(true);
     expect(platform.train).toBeNull();
-    expect(station.trainyardInventory.engines.Mechanical).toBe(1);
+    expect(station.trainyardInventory.engines).toHaveLength(1);
+    expect(station.trainyardInventory.engines[0].age).toBe('Mechanical');
     expect(station.trainyardInventory.carts.simple).toBe(3); // cart returned too
+  });
+
+  it('keeps an engine at the level it reached across recall and reassignment', () => {
+    // The reported bug: the pool was a count per age, so the upgrade level had
+    // nowhere to live and every engine came back at 1.
+    const { station, platform, engine } = makeYard();
+    placeEngine(station, platform, engine.id);
+    platform.train!.engineLevel = 4;
+
+    removeTrain(station, platform);
+    expect(station.trainyardInventory.engines[0].level).toBe(4);
+
+    const pooled = station.trainyardInventory.engines[0];
+    expect(placeEngine(station, platform, pooled.id).ok).toBe(true);
+    expect(platform.train!.engineLevel).toBe(4);
+  });
+
+  it('places the specific engine asked for, not just any of that age', () => {
+    const { station, platform } = makeYard();
+    const veteran = createPooledEngine('Mechanical', 5);
+    station.trainyardInventory.engines.push(veteran);
+
+    expect(placeEngine(station, platform, veteran.id).ok).toBe(true);
+    expect(platform.train!.engineLevel).toBe(5);
+    // The level-1 engine from makeYard is untouched.
+    expect(station.trainyardInventory.engines).toHaveLength(1);
+    expect(station.trainyardInventory.engines[0].level).toBe(1);
   });
 
   it('blocks removal while traveling', () => {
     const { station, platform } = makeYard();
-    placeEngine(station, platform, 'Mechanical');
+    placeEngine(station, platform, YARD_ENGINE_ID);
     platform.train!.trip = { kind: 'route', targetCellId: '1,0', departedAt: 0, durationMs: 9_999, cargo: {} };
     expect(removeTrain(station, platform).ok).toBe(false);
   });
@@ -159,7 +192,7 @@ describe('placeEngine / removeTrain', () => {
 describe('addCart / removeCart', () => {
   it('respects the engine maxCarts and pool stock', () => {
     const { station, platform } = makeYard();
-    placeEngine(station, platform, 'Mechanical'); // maxCarts: 2
+    placeEngine(station, platform, YARD_ENGINE_ID); // maxCarts: 2
     const train = platform.train!;
 
     expect(addCart(station, train, 'simple').ok).toBe(true);
@@ -176,7 +209,7 @@ describe('addCart / removeCart', () => {
 
   it('rejects when the pool has no such cart', () => {
     const { station, platform } = makeYard();
-    placeEngine(station, platform, 'Mechanical');
+    placeEngine(station, platform, YARD_ENGINE_ID);
     expect(addCart(station, platform.train!, 'luxury').ok).toBe(false);
   });
 });
@@ -184,8 +217,9 @@ describe('addCart / removeCart', () => {
 describe('upgradeEngine', () => {
   it('charges the level-scaled cost and raises the level', () => {
     const { station, platform } = makeYard();
-    station.trainyardInventory.engines.Steam = 1;
-    placeEngine(station, platform, 'Steam');
+    const steam = createPooledEngine('Steam');
+    station.trainyardInventory.engines.push(steam);
+    placeEngine(station, platform, steam.id);
     const train = platform.train!;
     const plot = makeTestPlot();
 
@@ -205,7 +239,7 @@ describe('upgradeEngine', () => {
 
   it('refuses past the level cap', () => {
     const { station, platform } = makeYard();
-    placeEngine(station, platform, 'Mechanical');
+    placeEngine(station, platform, YARD_ENGINE_ID);
     const train = platform.train!;
     train.engineLevel = MAX_ENGINE_LEVEL;
 
@@ -217,7 +251,7 @@ describe('upgradeEngine', () => {
 
   it('refuses a traveling train and an unaffordable upgrade', () => {
     const { station, platform } = makeYard();
-    placeEngine(station, platform, 'Mechanical');
+    placeEngine(station, platform, YARD_ENGINE_ID);
     const train = platform.train!;
     const plot = makeTestPlot();
 
@@ -242,7 +276,7 @@ function makeWorld(cells: WorldCell[]): WorldState {
 function makeReadyTrain() {
   const { station, platform } = makeYard();
   station.trainyardInventory.carts.cargo = 2;
-  placeEngine(station, platform, 'Mechanical');
+  placeEngine(station, platform, YARD_ENGINE_ID);
   addCart(station, platform.train!, 'simple');
   addCart(station, platform.train!, 'cargo');
   return platform.train!;

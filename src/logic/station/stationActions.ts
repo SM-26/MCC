@@ -13,8 +13,8 @@ import { getHexDistance } from '../world/hex';
 import { getCellById, isExplorationRoute, parseWorldCellId } from '../world/worldTypes';
 import type { Destination, WorldCellId, WorldState } from '../world/worldTypes';
 import { CART_STATS, ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost, getPlatformCost, getTripDuration, planCargoLoad } from './stationBalance';
-import { createEmptyStation, createPlatform, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
-import type { CartType, PlatformId, Platform, Station, Train, Trip } from './stationTypes';
+import { createEmptyStation, createPlatform, createPooledEngine, createTrain, getCartCapacity, getTotalCartCount, hasPlatformAtDepth, isTraveling } from './stationTypes';
+import type { CartType, EngineId, PlatformId, Platform, Station, Train, Trip } from './stationTypes';
 
 // Costs are money-only for now and intentionally easy to balance. Age-resource
 // requirements can be layered into the signatures later without breaking callers.
@@ -215,7 +215,7 @@ export function buyEngine(station: Station, plot: PlotState, age: Ages, money: n
   for (const [resource, amount] of Object.entries(cost.resources) as [keyof AgeResources, number][]) {
     plot.ageResources[resource] -= amount;
   }
-  station.trainyardInventory.engines[age] = (station.trainyardInventory.engines[age] ?? 0) + 1;
+  station.trainyardInventory.engines.push(createPooledEngine(age));
 
   return { ok: true, nextMoney: money - cost.money };
 }
@@ -258,16 +258,19 @@ export function upgradeEngine(train: Train, plot: PlotState, money: number): Bui
 }
 
 /** Take an engine from the pool and create this platform's train. */
-export function placeEngine(station: Station, platform: Platform, age: Ages): ActionResult {
+/** Place one specific pooled engine, so its upgrade level comes with it. */
+export function placeEngine(station: Station, platform: Platform, engineId: EngineId): ActionResult {
   if (platform.train) {
     return { ok: false, message: 'Platform already has a train' };
   }
-  if ((station.trainyardInventory.engines[age] ?? 0) <= 0) {
+
+  const index = station.trainyardInventory.engines.findIndex((engine) => engine.id === engineId);
+  if (index === -1) {
     return { ok: false, message: 'No such engine in the yard' };
   }
 
-  station.trainyardInventory.engines[age] = (station.trainyardInventory.engines[age] ?? 0) - 1;
-  platform.train = createTrain(`train-${platform.id}`, age);
+  const [engine] = station.trainyardInventory.engines.splice(index, 1);
+  platform.train = createTrain(`train-${platform.id}`, engine.age, engine.level);
 
   return { ok: true };
 }
@@ -282,7 +285,9 @@ export function removeTrain(station: Station, platform: Platform): ActionResult 
     return { ok: false, message: 'Train is traveling' };
   }
 
-  station.trainyardInventory.engines[train.engineAge] = (station.trainyardInventory.engines[train.engineAge] ?? 0) + 1;
+  // Return the engine at the level it reached. The old count-per-age pool had
+  // nowhere to record this, so every upgrade was destroyed on recall.
+  station.trainyardInventory.engines.push(createPooledEngine(train.engineAge, train.engineLevel));
   for (const slot of train.carts) {
     station.trainyardInventory.carts[slot.cartType] = (station.trainyardInventory.carts[slot.cartType] ?? 0) + slot.count;
   }

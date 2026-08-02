@@ -12,11 +12,11 @@
   import { toRoman } from '../../logic/mine/mineLabels';
   import { getPlatformDisplayName, getPlatformsForMineshaft, getTotalCartCount, getTripRemainingMs } from '../../logic/station/stationTypes';
   import { createExplorationDestination, getExplorationTarget, isExplorationRoute } from '../../logic/world/worldTypes';
-  import { assignRoute, dispatch, dispatchExplore, getActiveExploreTargets, placeEngine, removeCart, upgradeEngine } from '../../logic/station/stationActions';
+  import { assignRoute, dispatch, dispatchExplore, getActiveExploreTargets, placeEngine, removeCart, removeTrain, upgradeEngine } from '../../logic/station/stationActions';
   import { plotsStore } from '../../logic/mine/plotsStore.svelte';
   import { ENGINE_STATS, MAX_ENGINE_LEVEL, getEngineUpgradeCost } from '../../logic/station/stationBalance';
-  import type { CartType, Platform, Station } from '../../logic/station/stationTypes';
-  import type { Ages, PlotState } from '../../logic/mine/mineTypes';
+  import type { CartType, EngineId, Platform, Station } from '../../logic/station/stationTypes';
+  import type { PlotState } from '../../logic/mine/mineTypes';
 
   interface Props {
     station: Station;
@@ -90,7 +90,11 @@
   const upgradeCost = $derived(train ? getEngineUpgradeCost(train.engineAge, train.engineLevel) : null);
   const upgradeMissing = $derived(!train || maxed || !upgradeCost ? '' : missingLabel(upgradeCost, plot?.ageResources));
 
-  const enginesInPool = $derived(AGE_ORDER.filter((age) => (station.trainyardInventory.engines[age] ?? 0) > 0));
+  // Individual engines now, newest age first and strongest first within an age,
+  // so picking "the good one" is the default rather than a hunt.
+  const enginesInPool = $derived(
+    [...station.trainyardInventory.engines].sort((a, b) => AGE_ORDER.indexOf(b.age) - AGE_ORDER.indexOf(a.age) || b.level - a.level),
+  );
 
   const progressPercent = $derived(trip ? Math.min(100, Math.max(0, (1 - getTripRemainingMs(trip, now) / trip.durationMs) * 100)) : 0);
 
@@ -121,8 +125,13 @@
     commit(dispatch(train, plot, worldStore.current, plotCellId, Date.now()));
   }
 
-  function handlePlaceEngine(age: Ages) {
-    commit(placeEngine(station, platform, age));
+  function handlePlaceEngine(engineId: EngineId) {
+    commit(placeEngine(station, platform, engineId));
+  }
+
+  /** Tapping the engine sends it back to the yard, symmetric with tapping a cart. */
+  function handleRemoveEngine() {
+    commit(removeTrain(station, platform));
   }
 
   function handleAssignRoute(destinationId: string) {
@@ -190,9 +199,16 @@
     <section class="card">
       <div class="card-head">
         <h3 class="card-title">Consist · {train.engineAge} Lv {train.engineLevel}</h3>
-        <span class="hint">Tap a slot to fill</span>
+        <span class="hint">Tap the engine to recall it, a slot to fill</span>
       </div>
-      <TrainConsist {train} scale={1} showSlots onCartClick={handleRemoveCart} onSlotClick={() => stationUi.openYardOn('carts')} />
+      <TrainConsist
+        {train}
+        scale={1}
+        showSlots
+        onEngineClick={handleRemoveEngine}
+        onCartClick={handleRemoveCart}
+        onSlotClick={() => stationUi.openYardOn('carts')}
+      />
     </section>
 
     <section class="card">
@@ -272,10 +288,10 @@
       <h3 class="card-title">Place an engine</h3>
       {#if enginesInPool.length > 0}
         <div class="place-list">
-          {#each enginesInPool as age (age)}
-            <button type="button" class="place-row" onclick={() => handlePlaceEngine(age)}>
-              <span>{age}</span>
-              <span class="hint">{station.trainyardInventory.engines[age] ?? 0} in yard</span>
+          {#each enginesInPool as engine (engine.id)}
+            <button type="button" class="place-row" onclick={() => handlePlaceEngine(engine.id)}>
+              <span>{engine.age}</span>
+              <span class="hint">Lv {engine.level}</span>
             </button>
           {/each}
         </div>

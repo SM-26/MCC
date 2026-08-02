@@ -4,6 +4,7 @@ import {
   cloneStation,
   createEmptyStation,
   createPlatform,
+  createPooledEngine,
   createTrain,
   getCartCapacity,
   getTotalCartCount,
@@ -47,15 +48,17 @@ describe('cloneStation', () => {
     platform.train = makeTrainWithCarts();
     platform.train.trip = { kind: 'route', targetCellId: '1,0', departedAt: 1, durationMs: 2, cargo: { coal: 3 } };
     station.platforms.push(platform);
-    station.trainyardInventory.engines.Steam = 2;
+    station.trainyardInventory.engines.push(createPooledEngine('Steam', 3), createPooledEngine('Steam'));
 
     const copy = cloneStation(station);
     copy.platforms[0].train!.carts[0].count = 99;
     copy.platforms[0].train!.trip!.cargo.coal = 99;
-    copy.trainyardInventory.engines.Steam = 99;
+    copy.trainyardInventory.engines[0].level = 99;
 
     expect(station.platforms[0].train!.carts[0].count).toBe(2);
     expect(station.platforms[0].train!.trip!.cargo.coal).toBe(3);
-    expect(station.trainyardInventory.engines.Steam).toBe(2);
+    // Pooled engines are cloned per entry, not shared by reference.
+    expect(station.trainyardInventory.engines[0].level).toBe(3);
+    expect(station.trainyardInventory.engines).toHaveLength(2);
   });
 });
