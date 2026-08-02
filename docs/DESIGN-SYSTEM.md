@@ -2,7 +2,9 @@
 
 Visual direction: restrained **Frutiger-Aero**, frosted-glass panels, subtle gloss, chunky 3D
 primary button, on a dark navy ground. A single theme colour drives the entire neutral palette.
-Station and Engineering are intentionally **out of scope** and will get their own design passes.
+Station had its own design pass and now follows this system (dashboard, platform view and train
+yard drawer, built from `docs/design_handoff_station/`, since removed). Engineering is still
+intentionally **out of scope** and remains a placeholder awaiting its own pass.
 
 ---
 

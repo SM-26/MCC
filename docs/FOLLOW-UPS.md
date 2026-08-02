@@ -8,12 +8,25 @@ for things that would otherwise be forgotten.
 
 - **Icon assets dominate the service-worker precache.** The SW precaches ~1842 KiB, of which
   `favicon.ico` (361 KiB), `favicon.svg` (243 KiB) and `pwa-512x512.png` (233 KiB) account for
-  883 KiB, nearly as much as the entire JS bundle (921 KiB). The `.ico` is almost certainly
-  carrying oversized frames, and a 243 KiB `.svg` suggests embedded raster data; the splash
-  renders it at 120×120. Re-encoding these three is a far bigger win than anything available in
-  the JS build, where `chunkSizeWarningLimit` was deliberately raised instead of code-splitting.
+  883 KiB, nearly as much as the entire JS bundle (921 KiB). Measured breakdown:
+
+  - **`favicon.ico`, 361 KiB, and nothing links it.** `index.html` declares only `favicon.svg`, and
+    a browser's implicit `/favicon.ico` request resolves at the domain root, which 404s under
+    GitHub Pages' `/MCC/` base. So it is precached weight for a file nobody fetches. Its frames are
+    uncompressed BMP: 256×256 is 264 KiB and 128×128 is 66 KiB, together 91% of the file. Keeping
+    only 16/32/48 gives **14.8 KiB**. If it is kept it should also be linked explicitly with a
+    relative href so it actually resolves.
+  - **`favicon.svg`, 243 KiB, is genuine vector**, 14 paths and zero embedded rasters. (An earlier
+    note here guessed embedded raster data; that was wrong.) The weight is 34,658 coordinates, the
+    signature of an auto-trace from a bitmap. Rounding precision alone only reaches ~142 KiB, so
+    this needs path simplification or a redraw, not re-encoding. A hand-drawn logo of this
+    complexity would be 5 to 15 KiB.
+  - **`pwa-512x512`: WebP is 39.6 KiB against the PNG's 233 KiB**, an 83% cut. HEIC came in at
+    104 KiB and has effectively no browser support for manifest icons, so WebP wins on both axes.
+    Keep a PNG entry alongside it for iOS, which does not honour WebP for the home-screen icon.
+
   Note the plugin's `precache N entries (KiB)` build line understates the total, it excludes
-  `includeAssets`; sum the `sw.js` manifest for the real figure. _(measured 2026-07-31)_
+  `includeAssets`; sum the `sw.js` manifest for the real figure. _(measured 2026-08-02)_
 
 - **Building a plot silently destroys everything railed into it.** `tryBuildPlot`
   (`mineActions.ts:285`) gates on `coal >= BUILD_COAL_COST && money >= BUILD_MONEY_COST`, then calls
@@ -58,9 +71,6 @@ for things that would otherwise be forgotten.
   per-age requirement (probably scaling with ring distance) rather than today's single coal
   threshold. _(noted 2026-08-01)_
 
-- **Redesign the Station and trainyard view.** `DESIGN-SYSTEM.md` currently declares Station
-  explicitly out of scope for the design pass; that needs revisiting as part of this.
-
 - **Write ADR-0002** for the decisions made during age advancement, whose rationale currently lives
   only in commit messages:
   - The plot's age owns the dig ceiling (`getMaxDepthForAge`), and `EngineeringState.maxUndergroundLevels`
@@ -83,10 +93,14 @@ hiding a fully dead `src/logic/shared/` folder.
   so they don't gate CI. Some are genuinely dead (`worldPathing.ts`'s `getTileCost`,
   `isTilePassableByCell`, `getExplorationTime`; `appTypes.ts`'s `AppContext`, `PWAInstallState`),
   others may be intentional API surface. `fallow fix --dry-run` lists them; triage before deleting.
-- **`pnpm fallow` still exits 1** on `health` (29 complexity findings). The two named refactoring
-  targets are `WorldView.svelte` (cognitive 53, 313 LOC, medium effort) and `StationView.svelte`
-  (cognitive 149, 869 LOC), the latter should wait for the Station redesign above rather than be
-  refactored twice.
+- **`pnpm fallow` still exits 1** on `health` (82 above threshold, maintainability 88.7). Re-measured
+  after the Station rebuild: `StationView.svelte` has dropped off the list entirely (869 LOC and
+  cognitive 149, now 87 LOC). The current targets are `WorldView.svelte` (cognitive 60, 341 LOC,
+  medium effort) and two components the rebuild introduced, `TrainYardDrawer.svelte` (cognitive 75,
+  616 LOC) and `PlatformView.svelte` (cognitive 58, 569 LOC). Splitting one 869-line file into eight
+  moved the complexity rather than removing all of it; both are mostly template branching and would
+  reduce by extracting the yard's tab bodies and the platform's action rows.
+  _(re-measured 2026-08-02)_
 - `svelte` is reported as a dev dependency used in production. For a bundled Vite app this is
   cosmetic, dependencies vs devDependencies doesn't change the output. Ignore or suppress.
 
