@@ -23,7 +23,7 @@ import { createExplorationDestination } from '../world/worldTypes';
 import type { WorldCell, WorldState } from '../world/worldTypes';
 
 export function makeClearedDepth(depth: number): MineDepthState {
-  // A 1×1 grid holding a hard-cleared (empty) tile — getClearStatus() === 'hard'.
+  // A 1×1 grid holding a hard-cleared (empty) tile, getClearStatus() === 'hard'.
   return { depth, rows: 1, cols: 1, tiles: [[createMineTile('empty')]], miners: [] };
 }
 
@@ -330,7 +330,7 @@ describe('dispatch', () => {
   });
 });
 
-/** A train on scout duty — only these may be sent into the fog. */
+/** A train on scout duty, only these may be sent into the fog. */
 function makeExplorerTrain() {
   const train = makeReadyTrain();
   assignRoute(train, createExplorationDestination());
@@ -379,7 +379,7 @@ describe('dispatchExplore', () => {
 });
 
 describe('dispatch with an exploration route', () => {
-  it('refuses to dispatch from the station — the tile is picked in the World map', () => {
+  it('refuses to dispatch from the station, the tile is picked in the World map', () => {
     const train = makeExplorerTrain();
     const world = makeWorld([makeCell('0,0', 'plot'), makeCell('0,4', 'city', false)]);
 

@@ -17,7 +17,7 @@ export interface Station {
   id: StationId;
   platforms: Platform[]; // default: []
   trainyardInventory: TrainyardInventory;
-  activePlatformId: PlatformId | null; // default: null — which platform StationView is focused on
+  activePlatformId: PlatformId | null; // default: null, which platform StationView is focused on
 }
 
 export interface Platform {
@@ -57,10 +57,10 @@ export interface Trip {
 export interface Train {
   id: TrainId;
   engineAge: Ages;
-  engineLevel: number; // default: 1 — upgrade action deferred
+  engineLevel: number; // default: 1, upgrade action deferred
   carts: CartSlot[]; // default: []
   route: Route | null; // standing assignment, survives between trips
-  trip: Trip | null; // default: null — null means idle at platform
+  trip: Trip | null; // default: null, null means idle at platform
 }
 
 export interface CartSlot {

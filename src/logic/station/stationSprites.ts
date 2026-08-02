@@ -2,7 +2,7 @@
 //
 // Static sprite lookups, nothing else. Vite fingerprints each import and hands
 // back a based URL, which is what keeps these working under GitHub Pages'
-// /MCC/ subpath — never build these paths as strings.
+// /MCC/ subpath, never build these paths as strings.
 //
 // Geometry the renderers rely on: engines are 30x20, carts 18x20, wheel centres
 // on row 15 for every sprite. That shared baseline is why a consist is just
@@ -41,7 +41,7 @@ export const CART_SPRITE: Record<CartType, string> = {
   'best cargo': CartBestCargo,
 };
 
-/** Native sprite pixel dimensions — scale by integers only, or they blur. */
+/** Native sprite pixel dimensions, scale by integers only, or they blur. */
 export const SPRITE_SIZE = {
   engine: { width: 30, height: 20 },
   cart: { width: 18, height: 20 },

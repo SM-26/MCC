@@ -1,10 +1,10 @@
 /* ============================================================
-   Mines & Choo-Choos — Theme tokens
+   Mines & Choo-Choos, Theme tokens
    ------------------------------------------------------------
    ONE "theme colour" (--mcc-u) drives the whole neutral ground
    through color-mix(). The mode (dark / light) chooses the mix
    base. Gold (app accent) and the clear-status colours are
-   FIXED — they never change with --mcc-u.
+   FIXED, they never change with --mcc-u.
 
    Modes are selected by  body[data-theme='...']  (see applyTheme.ts):
      (no attr) / dark  -> :root derivations
@@ -14,7 +14,7 @@
    IMPORTANT: custom properties inherit their *substituted* value,
    so the derived tokens must be declared on the SAME element that
    sets --mcc-u. That's why the dark derivations live on a shared
-   selector ( :root, body[data-theme='user'] ) — each element then
+   selector ( :root, body[data-theme='user'] ), each element then
    re-substitutes them with its own --mcc-u.
    ============================================================ */
 
@@ -31,20 +31,20 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* App accent — fixed GOLD (active tab, current shaft #, selection ring) */
+  /* App accent, fixed GOLD (active tab, current shaft #, selection ring) */
   --mcc-gold: #e8b24c;
 
-  /* Clear-status colours — must match MyMeter.svelte */
+  /* Clear-status colours, must match MyMeter.svelte */
   --mcc-status-none: #f0c507; /* not cleared   */
   --mcc-status-soft: #e1891d; /* soft-cleared  */
   --mcc-status-hard: #22c55e; /* hard-cleared  */
 
-  /* Primary (Buy / Save / Build) — glossy 3D green */
+  /* Primary (Buy / Save / Build), glossy 3D green */
   --mcc-green-top: #3fce74;
   --mcc-green-bot: #1fa353;
   --mcc-green-edge: #16753b;
 
-  /* Danger (Reset / Nuke) — glossy 3D red */
+  /* Danger (Reset / Nuke), glossy 3D red */
   --mcc-red-top: #f0685a;
   --mcc-red-bot: #c5392c;
   --mcc-red-edge: #8f271d;
@@ -54,7 +54,7 @@
   --mcc-btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
 
   /* ============================================================
-     THEME COLOUR — default is the brand navy. Everything in the
+     THEME COLOUR, default is the brand navy. Everything in the
      derivation block is built from it. Change this one value
      (or override it per-mode / per-user) and the UI repaints.
      ============================================================ */
@@ -62,7 +62,7 @@
 }
 
 /* ============================================================
-   DARK derivations — shared by default/dark (:root) and USER mode.
+   DARK derivations, shared by default/dark (:root) and USER mode.
    Declared on both selectors so each re-substitutes var(--mcc-u)
    with its own theme colour.
    ============================================================ */
@@ -82,7 +82,7 @@ body[data-theme='user'] {
   --mcc-text-main: #eef2f8;
   --mcc-text-muted: color-mix(in srgb, var(--mcc-u) 22%, #9aa6ba);
 
-  /* Legacy alias — old code referenced --mcc-accent; now it's gold */
+  /* Legacy alias, old code referenced --mcc-accent; now it's gold */
   --mcc-accent: var(--mcc-gold);
   --mcc-primary: var(--mcc-u);
 
@@ -109,7 +109,7 @@ body[data-theme='user'] {
 }
 
 /* ============================================================
-   LIGHT mode — mixes toward white. Declared on the body element,
+   LIGHT mode, mixes toward white. Declared on the body element,
    so overriding --mcc-u here (e.g. light+user) re-substitutes too.
    ============================================================ */
 body[data-theme='light'] {
@@ -140,13 +140,13 @@ body[data-theme='light'] {
   --mcc-hp-fill: #dc2626;
 }
 
-/* Light + user-picked colour (optional combo — add class 'theme-user') */
+/* Light + user-picked colour (optional combo, add class 'theme-user') */
 body[data-theme='light'].theme-user {
   --mcc-u: var(--mcc-user-color, #14213d);
 }
 
 /* ============================================================
-   Base document — the ground is a soft vertical gradient.
+   Base document, the ground is a soft vertical gradient.
    ============================================================ */
 body {
   background: linear-gradient(168deg, var(--mcc-ground-1), var(--mcc-ground-2));

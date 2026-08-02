@@ -75,7 +75,7 @@
   const routeDestination = $derived(routeDestinations.find((d) => d.id === train?.route?.destinationId) ?? null);
   const isExploring = $derived(isExplorationRoute(train?.route));
 
-  // Scouts can also be sent from here, not just the World map — but only while a
+  // Scouts can also be sent from here, not just the World map, but only while a
   // hidden tile is inspected and nobody is already on their way to it.
   const exploreTarget = $derived(getExplorationTarget(worldStore.current));
   const exploreOccupied = $derived(getActiveExploreTargets(plotsStore.current));

@@ -1,5 +1,6 @@
 <!-- /src/components/station/TrainYardDrawer.svelte -->
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { commit, missingLabel } from './stationHelpers.svelte';
   import { gameState } from '../../logic/app/gameState.svelte';
   import { stationUi } from '../../logic/station/stationUi.svelte';
@@ -42,15 +43,39 @@
     }
   }
 
+  // Buying drops stock into the pool, which lives in the *other* drawer height,
+  // so without this the button gives no sign anything happened. The flash is
+  // keyed per row so only the button you pressed reacts.
+  let justBought = $state<string | null>(null);
+  let boughtTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flashBought(key: string) {
+    justBought = key;
+    if (boughtTimer) {
+      clearTimeout(boughtTimer);
+    }
+    boughtTimer = setTimeout(() => (justBought = null), 450);
+  }
+
+  onDestroy(() => {
+    if (boughtTimer) {
+      clearTimeout(boughtTimer);
+    }
+  });
+
   function handleBuyEngine(age: Ages) {
     if (!plot) {
       return;
     }
-    commit(buyEngine(station, plot, age, gameState.current.money));
+    if (commit(buyEngine(station, plot, age, gameState.current.money))) {
+      flashBought(`engine:${age}`);
+    }
   }
 
   function handleBuyCart(cartType: CartType) {
-    commit(buyCart(station, cartType, gameState.current.money));
+    if (commit(buyCart(station, cartType, gameState.current.money))) {
+      flashBought(`cart:${cartType}`);
+    }
   }
 
   /**
@@ -154,7 +179,13 @@
               <!-- Buy only. Assigning happens in the peek view, where the pool
                    lists each engine with the level it actually carries. -->
               {#if !locked}
-                <button type="button" class="btn-buy" onclick={() => handleBuyEngine(age)} disabled={missing !== ''}>
+                <button
+                  type="button"
+                  class="btn-buy"
+                  class:bought={justBought === `engine:${age}`}
+                  onclick={() => handleBuyEngine(age)}
+                  disabled={missing !== ''}
+                >
                   ${cost.money}{#each Object.entries(cost.resources) as [res, amt] (res)}&nbsp;+ {amt} {res}{/each}
                 </button>
               {/if}
@@ -170,7 +201,13 @@
                 <span class="row-title">{cartType}</span>
                 <span class="row-sub">{stats.role} · capacity {stats.capacity} · in pool ×{pooled}</span>
               </span>
-              <button type="button" class="btn-buy" onclick={() => handleBuyCart(cartType)} disabled={gameState.current.money < stats.cost.money}>
+              <button
+                type="button"
+                class="btn-buy"
+                class:bought={justBought === `cart:${cartType}`}
+                onclick={() => handleBuyCart(cartType)}
+                disabled={gameState.current.money < stats.cost.money}
+              >
                 ${stats.cost.money}
               </button>
             </div>
@@ -212,7 +249,7 @@
 
 <style>
   /* Both the scrim and the drawer are absolute inside the Station view, never
-     fixed to the viewport — that is what keeps them clear of the nav bar, which
+     fixed to the viewport, that is what keeps them clear of the nav bar, which
      the player can put at the top or the bottom. */
   .scrim {
     position: absolute;
@@ -486,6 +523,34 @@
     background: var(--mcc-accent);
     color: #1a1a1a;
     border: 1px solid var(--mcc-accent);
+    transition: transform 0.08s ease;
+  }
+
+  /* Presses immediately, so the tap feels connected even before the purchase
+     resolves. */
+  .btn-buy:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+
+  /* Then confirms: the stock landed in the pool, which is one drawer height away
+     and therefore invisible from here. */
+  .btn-buy.bought {
+    animation: bought-pop 0.45s ease;
+  }
+
+  @keyframes bought-pop {
+    0% {
+      transform: scale(0.94);
+      box-shadow: 0 0 0 0 var(--success);
+    }
+    45% {
+      transform: scale(1.07);
+      box-shadow: 0 0 0 7px rgba(25, 135, 84, 0);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+    }
   }
 
   .btn-assign:disabled,
@@ -534,8 +599,17 @@
 
   @media (prefers-reduced-motion: reduce) {
     .drawer,
-    .scrim {
+    .scrim,
+    .btn-buy.bought {
       animation: none;
+    }
+
+    .btn-buy {
+      transition: none;
+    }
+
+    .btn-buy:active:not(:disabled) {
+      transform: none;
     }
   }
 </style>

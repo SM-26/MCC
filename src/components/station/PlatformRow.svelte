@@ -17,7 +17,7 @@
     isActive: boolean;
     /** Ticking clock from the shell; countdowns re-render off this. */
     now: number;
-    /** Whether a scout has anywhere to go — see isDispatchable. */
+    /** Whether a scout has anywhere to go, see isDispatchable. */
     exploreTargetFree?: boolean;
     onOpen: (platform: Platform) => void;
   }

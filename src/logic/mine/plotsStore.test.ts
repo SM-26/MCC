@@ -19,7 +19,7 @@ describe('plotsStore', () => {
     expect(ok).toBe(true);
     // The scaffold starts with mineshafts[0] (empty depths); addMineshaft pushes
     // a new default shaft at index 1 which becomes active. Correction vs brief
-    // skeleton: brief says [0] but scaffold already occupies that slot — [1] is
+    // skeleton: brief says [0] but scaffold already occupies that slot, [1] is
     // where the new shaft (and the miner) actually lands.
     expect(store.get('0,0')?.mineshafts[1].mineDepths[0].miners.length).toBe(1);
   });

@@ -89,6 +89,6 @@ describe('station train loop', () => {
     const result = processTrains({ '0,0': plot }, world, 0, daysLater);
     expect(result.completedTrips).toBe(1);
     expect(world.cells.find((c) => c.id === '0,3')?.discovered).toBe(true);
-    expect(platform.train!.trip).toBeNull(); // idle again — manual dispatch means only one completion
+    expect(platform.train!.trip).toBeNull(); // idle again, manual dispatch means only one completion
   });
 });

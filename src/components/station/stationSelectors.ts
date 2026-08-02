@@ -46,7 +46,7 @@ export function getStationSummary(station: Station | null): StationSummary {
  * `exploreTargetFree` is that same honesty rule applied to scouts: an
  * exploration route only leads somewhere while a hidden tile is inspected and
  * nobody is already headed for it. And since there is exactly one such tile,
- * at most one scout can count — otherwise the button would promise N trips and
+ * at most one scout can count, otherwise the button would promise N trips and
  * deliver one.
  */
 export function getDispatchReadyPlatforms(station: Station | null, options: { exploreTargetFree?: boolean } = {}): Platform[] {
@@ -72,7 +72,7 @@ export function getDispatchReadyPlatforms(station: Station | null, options: { ex
   return ready;
 }
 
-/** True when this train could be dispatched right now — drives the Ready pill. */
+/** True when this train could be dispatched right now, drives the Ready pill. */
 export function isDispatchable(train: Train | null, exploreTargetFree: boolean): boolean {
   if (!train || !train.route || train.trip) {
     return false;
@@ -80,7 +80,7 @@ export function isDispatchable(train: Train | null, exploreTargetFree: boolean):
   return isExplorationRoute(train.route) ? exploreTargetFree : true;
 }
 
-/** Ascending shaft indexes that actually have a platform — the stepper's range. */
+/** Ascending shaft indexes that actually have a platform, the stepper's range. */
 export function getShaftIndexesWithPlatforms(station: Station | null): number[] {
   const indexes = new Set((station?.platforms ?? []).map((platform) => platform.mineshaftIndex));
   return [...indexes].sort((a, b) => a - b);
@@ -88,7 +88,7 @@ export function getShaftIndexesWithPlatforms(station: Station | null): number[] 
 
 /**
  * Neighbouring platforms within the same shaft, by depth. `shallower` is what
- * the ▲ step targets, `deeper` the ▼ — null at either end so the button
+ * the ▲ step targets, `deeper` the ▼, null at either end so the button
  * disables rather than wrapping around.
  */
 export function getPlatformNeighbours(station: Station | null, platform: Platform | null): { shallower: Platform | null; deeper: Platform | null } {
@@ -109,7 +109,7 @@ export function getPlatformNeighbours(station: Station | null, platform: Platfor
 }
 
 /**
- * Stepping to another shaft lands on its shallowest platform — the shaft's own
+ * Stepping to another shaft lands on its shallowest platform, the shaft's own
  * depth ordering is what `getPlatformsForMineshaft` already guarantees.
  */
 export function getShallowestPlatform(station: Station | null, mineshaftIndex: number): Platform | null {

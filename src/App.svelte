@@ -117,7 +117,7 @@
       const mined = runMiningForAllPlots();
       const { completed, explored } = runTrainCompletion();
       // Toasts last 2s and replace each other, so announce only the last of a
-      // batch — several trips can land on the same tick.
+      // batch, several trips can land on the same tick.
       const latest = explored.at(-1);
       if (latest) {
         triggerMobileToast(`Explored ${latest.name}: ${EXPLORED_LABEL[latest.type]}`);
@@ -275,7 +275,7 @@
     overflow: hidden;
   }
 
-  /* --- 2. Top bar — translucent glass, pills only --- */
+  /* --- 2. Top bar, translucent glass, pills only --- */
   .top-bar {
     display: flex;
     justify-content: flex-end;
@@ -335,7 +335,7 @@
     overflow: hidden;
   }
 
-  /* --- 4. Navtab Bar — frosted glass --- */
+  /* --- 4. Navtab Bar, frosted glass --- */
   :global(.navtab-list) {
     display: flex;
     flex: 0 0 auto;

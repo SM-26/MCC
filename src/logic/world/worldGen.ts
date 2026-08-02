@@ -236,8 +236,8 @@ function generateTileName(tileType: WorldCellType, nameState: NameState, rng: Se
     case 'factory': {
       const resources: ResourceType[] = ['Oil', 'Coal', 'Copper', 'SuperAlloy'];
       const resource = resources[Math.floor(rng() * resources.length)];
-      // Keep the ore. It was always drawn here to theme the name — "The Crude
-      // Awakening Refinery" is an oil plant — and then thrown away, which is why
+      // Keep the ore. It was always drawn here to theme the name, "The Crude
+      // Awakening Refinery" is an oil plant, and then thrown away, which is why
       // ring-generated factories had no accepted resource at all.
       return { name: pickFactoryNameForResources([resource], rng), acceptedResources: [resource] };
     }
@@ -321,7 +321,7 @@ export function generateWorld(worldSeed: string, resetCount: number, ringsToGene
  * present in `world.cells`. No-op if that ring already exists.
  *
  * Regenerates the whole world from scratch rather than resuming the RNG
- * stream in place — generation is deterministic from (worldSeed, resetCount),
+ * stream in place, generation is deterministic from (worldSeed, resetCount),
  * so replaying rings 0..ring reproduces the exact same existing cells.
  */
 export function ensureRingGenerated(world: WorldState, worldSeed: string, resetCount: number, ring: number): WorldCell[] {
@@ -338,7 +338,7 @@ export function ensureRingGenerated(world: WorldState, worldSeed: string, resetC
 /**
  * Reveal fog tiles that touch an already-discovered cell, so the frontier
  * grows organically with exploration instead of gating on a fully-cleared
- * ring — discovering one tile deep in ring 3 exposes its ring-4 neighbors
+ * ring, discovering one tile deep in ring 3 exposes its ring-4 neighbors
  * immediately, without needing every other ring-3 tile cleared first.
  * Returns the newly generated cells (empty if nothing new touches discovered
  * ground yet).
@@ -393,7 +393,7 @@ export function revealTouchingFrontier(world: WorldState, worldSeed: string, res
  */
 /**
  * Repair factories saved before their ore was stored. The name already encodes
- * it — the pools are resource-keyed — so this recovers the real answer rather
+ * it, the pools are resource-keyed, so this recovers the real answer rather
  * than inventing one, and an existing save starts naming its cargo immediately.
  *
  * Idempotent: only fills cells that are missing the field. Returns how many it

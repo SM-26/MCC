@@ -47,7 +47,7 @@
   const clearStatus = $derived(activeMine ? getClearStatus(activeMine) : 'none');
   const clearStatusLabel = $derived(clearStatus === 'hard' ? 'Hard-cleared' : clearStatus === 'soft' ? 'Soft-cleared' : 'Not cleared');
   const canGoPrevious = $derived((activePlotState?.activeMineshaftIndex ?? 0) > 0);
-  // The shaft gate is about its surface, not the depth you're standing on — digging
+  // The shaft gate is about its surface, not the depth you're standing on, digging
   // down needs a hard-clear, so below depth 0 this is already satisfied.
   const surfaceClearStatus = $derived.by(() => {
     const surface = activeMineshaft ? getMineDepthByDepth(activeMineshaft, 0) : null;
@@ -58,7 +58,7 @@
   const canGoNext = $derived(
     activeMine && activePlotState ? surfaceClearStatus !== 'none' && activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false,
   );
-  // Buying is only on offer while the next shaft doesn't exist yet — once bought,
+  // Buying is only on offer while the next shaft doesn't exist yet, once bought,
   // moving between shafts is the › arrow's job, not a second button's.
   const nextShaftExists = $derived(activePlotState ? activePlotState.activeMineshaftIndex + 1 < activePlotState.mineshafts.length : false);
 
@@ -72,7 +72,7 @@
   );
   // Don't dangle an age the player has no idea how to pay for: the advance offer
   // appears only once they've reached the depth where its ore actually shows up.
-  // (Reaching it is a *reveal* condition, not a prerequisite — the cost is still
+  // (Reaching it is a *reveal* condition, not a prerequisite, the cost is still
   // just resources + money, and ore pools across shafts.)
   const nextAgeResource = $derived(nextAge ? AGE_RESOURCE[nextAge] : null);
   const showAdvanceAge = $derived(!nextAge || (nextAgeResource !== null && deepestReached >= getFirstDepthForResource(nextAgeResource)));
@@ -454,9 +454,9 @@
     --mine-miner-label-size: 0.76rem;
   }
 
-  /* Glass soil card — plot name, meter, depth/status */
+  /* Glass soil card, plot name, meter, depth/status */
   /* The two buttons share a row. `:global` reaches bits-ui's own element, but
-     the scoped parent keeps this from being a second definition of .nav-btn —
+     the scoped parent keeps this from being a second definition of .nav-btn,
      MineHeader still owns that class outright. */
   .soil-actions {
     display: flex;
@@ -598,7 +598,7 @@
     filter: brightness(1.05);
   }
 
-  /* Press the chunky button "down" — collapse the 3D edge */
+  /* Press the chunky button "down", collapse the 3D edge */
   :global(.buy-btn:active:not(:disabled)) {
     transform: translateY(3px);
     box-shadow:

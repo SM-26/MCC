@@ -371,7 +371,7 @@ export function dispatch(train: Train, plot: PlotState, world: WorldState, plotC
     return { ok: false, message: 'Assign a route first' };
   }
 
-  // Exploration has no fixed target — the tile is chosen in the World map, so
+  // Exploration has no fixed target, the tile is chosen in the World map, so
   // this train is dispatched by `dispatchExplore`, not from the Station.
   if (isExplorationRoute(train.route)) {
     return { ok: false, message: 'Pick a hidden tile in the World map to explore' };

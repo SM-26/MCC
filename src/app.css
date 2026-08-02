@@ -43,7 +43,7 @@ body {
 
 /* Roman numerals need serifs to read as numerals. Nunito draws capital I as a
    bare vertical stroke, so "Shaft I / II" came out looking like stray pipes.
-   Global on purpose — shaft numerals appear in Mine, Station and the yard. */
+   Global on purpose, shaft numerals appear in Mine, Station and the yard. */
 .roman {
   font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
   letter-spacing: 0.03em;

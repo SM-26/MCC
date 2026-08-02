@@ -80,7 +80,7 @@
 
   /**
    * Reveal every currently-generated cell and pull in whatever new fog tiles
-   * now touch discovered ground (see `revealTouchingFrontier`) — so repeated
+   * now touch discovered ground (see `revealTouchingFrontier`), so repeated
    * clicks keep growing the map outward instead of stalling at whatever was
    * generated so far.
    */
@@ -107,7 +107,7 @@
    * Skip the RNG grind for a second buildable plot: finds an already-generated
    * but undiscovered `plot` cell (ring 2+ only, per worldGen's ring pools),
    * generating further-out rings on demand if none exist yet. Unlike
-   * `cheatRevealWorld`, this only reveals the one plot tile it finds — every
+   * `cheatRevealWorld`, this only reveals the one plot tile it finds, every
    * other fog tile (including its own ring-mates) stays hidden.
    */
   function cheatDiscoverNeighborPlot() {

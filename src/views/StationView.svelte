@@ -72,7 +72,7 @@
 
 <style>
   /* `relative` is load-bearing: the yard drawer anchors to this box rather than
-     the viewport, which is what keeps it clear of the nav bar — the player can
+     the viewport, which is what keeps it clear of the nav bar, the player can
      put that at the top or the bottom. */
   .station-view {
     position: relative;

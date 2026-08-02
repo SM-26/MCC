@@ -84,7 +84,7 @@ export function getActiveResourcesForDepth(depth: number): MineTileType[] {
 }
 
 /**
- * The shallowest depth whose bracket yields this resource — i.e. the first depth
+ * The shallowest depth whose bracket yields this resource, i.e. the first depth
  * at which a player can actually see it. Ore is bracketed five depths at a time
  * in `RESOURCE_ORDER`, so coal starts at 5, oil at 10, and so on.
  */

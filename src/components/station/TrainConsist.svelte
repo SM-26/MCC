@@ -82,7 +82,7 @@
 
 <style>
   /* Every sprite is 20px tall with its wheel centres on row 15, so butting them
-     together in a row is all the alignment a consist needs — no gap, no margin. */
+     together in a row is all the alignment a consist needs, no gap, no margin. */
   .consist {
     display: flex;
     align-items: flex-end;

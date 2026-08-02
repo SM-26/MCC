@@ -25,7 +25,7 @@
   const inspectedCellId = $derived(inspectedCell?.id ?? null);
 
   // Single click inspects, and only inspects. Activating a plot is a commitment
-  // — it changes what the Mine and Station tabs operate on — so it takes the
+  //, it changes what the Mine and Station tabs operate on, so it takes the
   // deliberate gesture.
   function selectCell(cell: WorldCell) {
     worldStore.setInspectedCellId(cell.id);

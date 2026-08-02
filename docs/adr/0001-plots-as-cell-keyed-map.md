@@ -6,13 +6,13 @@ status: accepted
 
 ## Decision
 
-Persistent plot state lives in a single map keyed by World **cell id** (`"q,r"`) —
-`world.plots: Record<cellId, PlotState>` — replacing the three structures that previously
+Persistent plot state lives in a single map keyed by World **cell id** (`"q,r"`),
+`world.plots: Record<cellId, PlotState>`, replacing the three structures that previously
 described a plot (`world.cells[]` type flag, `world.plots[]` reference array, and the positional
 `data.plots[]` array). A Plot is identified by its Cell; there is no separate `plotId`. Entries
 are created **lazily on discovery**, not at world generation: an undiscovered plot has no entry
 and is regenerated from seed. The Mine and Station views read and mutate `plots[activePlotCellId]`
-**in place** — there is no separate working copy to sync back.
+**in place**, there is no separate working copy to sync back.
 
 ## Context
 
@@ -24,14 +24,14 @@ runtime only ever held **one** plot despite the model claiming many.
 
 ## Considered options
 
-- **Parallel arrays joined by id (status quo)** — rejected: the redundancy is the bug source;
+- **Parallel arrays joined by id (status quo)**, rejected: the redundancy is the bug source;
   positional arrays make load logic guess.
-- **Keep `mineStore` as a hot working copy of the active plot** — rejected: re-introduces the
+- **Keep `mineStore` as a hot working copy of the active plot**, rejected: re-introduces the
   exact dual-source-of-truth drift we are trying to delete.
-- **Fold full plot state (mines, tiles) into the World cell** — rejected: makes `world` a
+- **Fold full plot state (mines, tiles) into the World cell**, rejected: makes `world` a
   god-object that owns mine/station internals, breaking feature ownership. (We *do* fold the
   plots map under `world` in the **save shape**, but runtime logic stays modular.)
-- **Discriminated union on a stored `built` flag** — rejected in favor of the uniform
+- **Discriminated union on a stored `built` flag**, rejected in favor of the uniform
   scaffold-that-grows below; building is incremental, which a growable structure models better
   than a flag that flips, and a derived predicate cannot drift from reality.
 
@@ -52,7 +52,7 @@ There is **no stored `built` flag and no separate build ledger**. "Built" is **d
 - The old "guard middleware" reduces to one invariant, checked on load: `activePlotCellId` must
   reference a discovered `plot` Cell that is Built; otherwise fall back to the home plot `(0,0)`.
 - `activePlotCellId` is persisted (reload returns to the managed plot); `inspectedCellId`
-  (World-view inspection/tooltip) is session-only and never persisted — these are now distinct
+  (World-view inspection/tooltip) is session-only and never persisted, these are now distinct
   concepts, ending the `selectedCellId` conflation.
 - Save size scales with plots the player has *touched*, not map size.
 - Known follow-up fallout (deferred): rename `northExpansion` → `mineshaft`; drop the

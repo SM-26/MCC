@@ -53,7 +53,7 @@
     font-size: 1rem;
   }
 
-  /* Current shaft number — fixed gold app accent */
+  /* Current shaft number, fixed gold app accent */
   .shaft-num {
     color: var(--mcc-gold);
     font-weight: 800;
@@ -85,7 +85,7 @@
     transform: translateY(1px);
   }
 
-  /* Arrow buttons — square icon variant */
+  /* Arrow buttons, square icon variant */
   :global(.nav-arrow) {
     flex: 0 0 auto;
     width: 40px;
@@ -102,7 +102,7 @@
   }
 
   /* Looks and reads disabled, but stays clickable and focusable so the button
-     can explain *why* via a toast. Deliberately no pointer-events: none — a
+     can explain *why* via a toast. Deliberately no pointer-events: none, a
      truly disabled button leaves the tab order, and then keyboard users could
      never get that explanation. */
   :global(.nav-btn[aria-disabled='true']) {

@@ -145,7 +145,7 @@ export function pickFactoryNameForResources(resourceTypes: ResourceType[], rng: 
 /**
  * Reverse of `pickFactoryNameForResources`: recover what a factory buys from the
  * name it was given. The pools are disjoint and resource-keyed, so this is exact
- * rather than a guess — which is what lets a save written before the ore was
+ * rather than a guess, which is what lets a save written before the ore was
  * stored be repaired instead of reset.
  */
 export function inferFactoryResources(name: string): ResourceType[] {

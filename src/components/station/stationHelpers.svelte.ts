@@ -22,7 +22,7 @@ import type { AgeResources, PlotState } from '../../logic/mine/mineTypes';
 
 /**
  * Commit an action result: toast the reason on failure, otherwise apply any
- * money change and save. Centralising `nextMoney` matters — a caller that
+ * money change and save. Centralising `nextMoney` matters, a caller that
  * forgets to apply it is exactly how buying a shaft became a money sink.
  */
 export function commit(result: BuildResult): boolean {
@@ -67,7 +67,7 @@ export interface TripPreview {
   reward: string;
 }
 
-/** Live "what dispatch will do" for the current route — recomputes as carts/resources change, locks in on dispatch. */
+/** Live "what dispatch will do" for the current route, recomputes as carts/resources change, locks in on dispatch. */
 export function tripPreview(train: Train, plot: PlotState | null, plotCellId: string | null): TripPreview | null {
   const destId = train.route?.destinationId;
   if (!destId || !plotCellId) {
@@ -75,7 +75,7 @@ export function tripPreview(train: Train, plot: PlotState | null, plotCellId: st
   }
 
   // Exploration has no fixed target, so the estimate is against whichever fog
-  // tile the player last looked at in the World map — and it never pays.
+  // tile the player last looked at in the World map, and it never pays.
   if (isExplorationRoute(train.route)) {
     const inspectedId = worldStore.current.inspectedCellId;
     const inspected = inspectedId ? getCellById(worldStore.current, inspectedId) : null;
@@ -108,7 +108,7 @@ export function tripPreview(train: Train, plot: PlotState | null, plotCellId: st
   return { etaSec, reward: `delivers ${units} cargo` };
 }
 
-/** Planned cargo units for the current route — drives the crates on the deck. */
+/** Planned cargo units for the current route, drives the crates on the deck. */
 export function plannedCargoUnits(train: Train, plot: PlotState | null): number {
   if (!plot) {
     return 0;

@@ -1,7 +1,7 @@
 // src/logic/mineRuntime.ts
 //
 // App-level composition point for mining, mirroring trainRuntime.ts: the only
-// place mine logic meets the live stores. Does NOT save — the caller owns
+// place mine logic meets the live stores. Does NOT save, the caller owns
 // persistence.
 //
 // This exists because mining used to be driven from MineView against whichever
@@ -32,7 +32,7 @@ export function runMiningForAllPlots(): { changed: boolean } {
         money = result.nextMoney;
 
         for (const [resource, amount] of Object.entries(result.resourcesEarned) as [keyof AgeResources, number][]) {
-          // Ore pools on the plot, never on the mineshaft — every shaft of a
+          // Ore pools on the plot, never on the mineshaft, every shaft of a
           // plot feeds the same bucket.
           plot.ageResources[resource] += amount;
           changed = true;

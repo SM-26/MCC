@@ -24,11 +24,11 @@ After completing the code, ask the user if they want a playground link. Only cal
 
 ---
 
-# MCC — Mines & Choo-Choos
+# MCC: Mines & Choo-Choos
 
 A mobile-first, portrait-first idle railway tycoon built with Svelte 5 (runes) and bits-ui.
 
-**Architecture, conventions and commands live in `CLAUDE.md`. Domain vocabulary lives in `CONTEXT.md`.** This file covers only project status and agent-facing tooling — don't duplicate the other two here.
+**Architecture, conventions and commands live in `CLAUDE.md`. Domain vocabulary lives in `CONTEXT.md`.** This file covers only project status and agent-facing tooling, don't duplicate the other two here.
 
 ## Project status
 
@@ -36,15 +36,15 @@ Five tabs are routed in `src/App.svelte`; four have real views in `src/views/`.
 
 | Tab | State |
 |---|---|
-| World | Built — hex map, fog of war, pan/zoom, train-driven exploration |
-| Mine | Built — tile clearing, miner drag-to-merge, dig deeper, multiple mineshafts, age advancement |
-| Station | Built — platforms, train yard, engines/carts, routes, dispatch. A redesign is planned (`docs/FOLLOW-UPS.md`) |
-| Settings | Built — theme, navbar position, dev toggles, save management, dev cheat panel |
-| Engineering | **Placeholder only** — an inline block in `App.svelte`, no view file. `EngineeringState` (`engineeringIdeas`, `maxMineshafts`, `maxUndergroundLevels`) exists and is persisted, but nothing in the UI can spend ideas or raise a cap |
+| World | Built, hex map, fog of war, pan/zoom, train-driven exploration |
+| Mine | Built, tile clearing, miner drag-to-merge, dig deeper, multiple mineshafts, age advancement |
+| Station | Built, platforms, train yard, engines/carts, routes, dispatch. A redesign is planned (`docs/FOLLOW-UPS.md`) |
+| Settings | Built, theme, navbar position, dev toggles, save management, dev cheat panel |
+| Engineering | **Placeholder only**, an inline block in `App.svelte`, no view file. `EngineeringState` (`engineeringIdeas`, `maxMineshafts`, `maxUndergroundLevels`) exists and is persisted, but nothing in the UI can spend ideas or raise a cap |
 
-Consequences of that last row worth knowing before planning work: `maxMineshafts` defaults to 1, so a plot is limited to two mineshafts and no in-game action can change that. `maxUndergroundLevels` is unused entirely — the dig-depth ceiling comes from the plot's age (`getMaxDepthForAge`), not from engineering.
+Consequences of that last row worth knowing before planning work: `maxMineshafts` defaults to 1, so a plot is limited to two mineshafts and no in-game action can change that. `maxUndergroundLevels` is unused entirely, the dig-depth ceiling comes from the plot's age (`getMaxDepthForAge`), not from engineering.
 
-Remaining work is tracked in `docs/FOLLOW-UPS.md` (deferred items, live bugs, provisional balance) and GitHub Issues (anything with an owner or a save-format impact) — not here.
+Remaining work is tracked in `docs/FOLLOW-UPS.md` (deferred items, live bugs, provisional balance) and GitHub Issues (anything with an owner or a save-format impact), not here.
 
 ---
 

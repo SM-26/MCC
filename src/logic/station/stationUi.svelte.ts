@@ -1,7 +1,7 @@
 // src/logic/station/stationUi.svelte.ts
 //
 // UI-only state for the Station tab: which part is on screen and how open the
-// yard drawer is. Deliberately NOT persisted and not wired into save.svelte.ts —
+// yard drawer is. Deliberately NOT persisted and not wired into save.svelte.ts,
 // reopening the tab should land you on the dashboard, not wherever you happened
 // to be. Which *platform* is focused is a different question and stays on the
 // persisted `station.activePlatformId`; this store never knows about it.

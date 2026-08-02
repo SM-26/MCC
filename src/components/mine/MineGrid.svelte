@@ -113,7 +113,7 @@
     align-items: flex-start;
     justify-content: center;
     /* Sized by the flex chain up to .app-container's 100dvh, so this is a valid
-       size container — which is what lets tiles below measure against it. */
+       size container, which is what lets tiles below measure against it. */
     container-type: size;
     overflow: hidden;
     padding: 8px var(--mine-padding) 0;

@@ -8,7 +8,7 @@
     train: Train | null;
     statusLabel: string;
     statusTone: 'ready' | 'idle' | 'out' | 'empty';
-    /** "3 / 4 carts" — omitted on an empty platform. */
+    /** "3 / 4 carts", omitted on an empty platform. */
     cartLabel?: string;
     /** Planned cargo units; drives how many crates sit on the deck. */
     cargoUnits?: number;
@@ -18,7 +18,7 @@
 
   const enRoute = $derived(Boolean(train?.trip));
 
-  // One crate per 10 planned units, capped at 3 — the deck is scenery, not a gauge.
+  // One crate per 10 planned units, capped at 3, the deck is scenery, not a gauge.
   const crateCount = $derived(Math.min(3, Math.ceil(cargoUnits / 10)));
 
   // Departure and return are the same CSS transition run in opposite directions,

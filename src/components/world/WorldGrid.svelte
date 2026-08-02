@@ -29,7 +29,7 @@
   let layerEl: HTMLDivElement;
   let gridEl: HTMLDivElement;
 
-  // Ephemeral drag/click-vs-drag tracking. Plain (non-reactive) state is fine —
+  // Ephemeral drag/click-vs-drag tracking. Plain (non-reactive) state is fine,
   // nothing here needs to trigger a re-render on its own.
   //
   // Deliberately NOT a SvelteMap: this is written on every pointermove and read
@@ -46,7 +46,7 @@
   const KEY_ZOOM_FACTOR = 1.15;
 
   // Whether the camera is at "default" is tracked as explicit user intent, not
-  // numeric equality against DEFAULT_CAMERA — clampCamera centers on the bounds
+  // numeric equality against DEFAULT_CAMERA, clampCamera centers on the bounds
   // centroid of generated cells, which drifts from (0,0) as the world grows
   // asymmetrically, so (0,0) is not always a reachable/legal position.
   let atDefault = $state(true);
@@ -149,7 +149,7 @@
     if (!target.closest('button.hex')) onClearSelection?.();
   }
 
-  // A single click only ever inspects — every cell type, plots included.
+  // A single click only ever inspects, every cell type, plots included.
   function handleClick(cell: WorldCell, event: MouseEvent) {
     event.stopPropagation();
     if (totalMovement > CLICK_DRAG_THRESHOLD) return;
@@ -305,7 +305,7 @@
     box-sizing: border-box;
   }
 
-  /* Gold selection ring — slightly scaled up, behind hex-shape */
+  /* Gold selection ring, slightly scaled up, behind hex-shape */
   .hex-ring {
     position: absolute;
     inset: 0;
