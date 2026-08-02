@@ -64,11 +64,12 @@ export default defineConfig({
     svelte(),
     VitePWA({
       registerType: 'autoUpdate',
-      // favicon.svg is the splash logo, so it has to be precached or an offline
-      // launch renders a broken image. The install-dialog screenshots are
-      // deliberately NOT precached, the browser fetches those directly, and
-      // they'd add ~1.1 MB to the service worker for no offline benefit.
-      includeAssets: ['favicon.ico', 'favicon.svg'],
+      // favicon.svg is deliberately NOT precached. It used to be, because the
+      // splash drew it, but the splash now uses pwa-512x512.webp (same artwork,
+      // 38.7 KiB against 316.7, and already precached as a manifest icon). The
+      // install-dialog screenshots are excluded for the same reason: the browser
+      // fetches those directly and they would add ~1.1 MB for no offline gain.
+      includeAssets: ['favicon.ico'],
       manifest: {
         name: 'Merge & Choo-Choo',
         short_name: 'MCC',

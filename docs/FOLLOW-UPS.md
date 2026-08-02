@@ -19,18 +19,26 @@ for things that would otherwise be forgotten.
     `<link rel="apple-touch-icon" href="./pwa-192x192.png">`.
   - The deployed `/MCC/` build specifically, since the `favicon.ico` link exists precisely because
     the implicit root request 404s under that base.
+  - **The splash logo**, which now draws `pwa-512x512.webp` instead of `favicon.svg`. Confirmed to
+    fetch 200 as `image/webp` and decode at 512x512, but nobody has watched it paint.
 
   If the Android icon misbehaves, the fix is adding the PNG entries back into `manifest.icons`
   alongside the WebP ones, at the cost of ~279 KiB of precache. _(wired 2026-08-02)_
 
-- **`favicon.svg` is 243 KiB and now dominates the icon weight.** After the ico slimming and the
-  WebP swap it is 79% of all icon bytes and 19% of the whole precache. It is **genuine vector**,
-  14 paths and zero embedded rasters (an earlier note here guessed embedded raster data; that was
-  wrong). The weight is 34,658 coordinates, the signature of an auto-trace from a bitmap. Rounding
-  precision alone only reaches ~142 KiB, because the problem is node count rather than decimals, so
-  this needs path simplification or a redraw rather than re-encoding. A hand-drawn logo of this
-  complexity would be 5 to 15 KiB. The master six-frame icon is archived at
-  `docs/assets/favicon_all.ico`. _(measured 2026-08-02)_
+- **`favicon.svg` is 316.7 KiB, is not actually vector, and now earns nothing.** It is out of the
+  precache and the splash no longer uses it, so it is no longer urgent, but it still ships and is
+  still declared as the tab icon in `index.html`.
+
+  The current file is an Inkscape wrapper containing **zero paths** and one `<image>` holding a
+  base64 PNG. That PNG is **byte-identical to `public/pwa-512x512.png`**, and base64 adds 36%, so
+  this is the single most expensive copy of that artwork in the repo: 316.7 KiB for a picture that
+  ships as 38.7 KiB in WebP. It also cannot scale, which was the only reason to keep an SVG at all.
+  (The version before it was genuine vector, 14 paths, but 243 KiB of auto-traced coordinates.)
+
+  For the tab icon it buys nothing over `favicon.ico`, which is 14.7 KiB and covers 16/32/48. Two
+  clean endings: drop the `<link rel="icon" type="image/svg+xml">` and delete the file, or replace
+  it with a real hand-drawn vector, which for this mark would be 5 to 15 KiB. The master six-frame
+  icon is archived at `docs/assets/favicon_all.ico`. _(measured 2026-08-02)_
 
 - **Building a plot silently destroys everything railed into it.** `tryBuildPlot`
   (`mineActions.ts:285`) gates on `coal >= BUILD_COAL_COST && money >= BUILD_MONEY_COST`, then calls

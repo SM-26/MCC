@@ -26,7 +26,11 @@
       <!-- Vite rewrites absolute asset paths in index.html but NOT in component
            markup, so a bare "/favicon.svg" ignores `base` and 404s wherever the
            app isn't served from the domain root (e.g. GitHub Pages /MCC/). -->
-      <img src="{import.meta.env.BASE_URL}favicon.svg" alt="MCC Logo" class="splash-logo" draggable="false" />
+      <!-- The 512 WebP, not favicon.svg. Same artwork, 38.7 KiB against 316.7,
+           and it is already precached as a manifest icon so the offline splash
+           keeps working. The splash draws it at 120x120, so there is nothing a
+           vector would buy here. -->
+      <img src="{import.meta.env.BASE_URL}pwa-512x512.webp" alt="MCC Logo" class="splash-logo" draggable="false" />
       <h1 class="splash-title">Mines &amp; Choo-Choos</h1>
       <p class="splash-subtitle">Dig, merge, and build your rail empire from rubble.</p>
 
