@@ -1,7 +1,8 @@
 // src/logic/world/worldGen.test.ts
 import { describe, expect, it } from 'vitest';
 
-import { makeSeededRng, generateWorld, revealFogTile, revealTouchingFrontier } from './worldGen';
+import { backfillFactoryResources, makeSeededRng, generateWorld, revealFogTile, revealTouchingFrontier } from './worldGen';
+import { inferFactoryResources } from './worldNames';
 import type { WorldState, WorldCell } from './worldTypes';
 
 // Helper: find an undiscovered tile in the world (fog in UI terms)
@@ -258,5 +259,86 @@ describe('worldGen', () => {
       expect(newCells.every((c) => c.ring === 2 && !c.discovered)).toBe(true);
       expect(world.cells.filter((c) => c.ring === 2).length).toBe(12);
     });
+  });
+});
+
+describe('factory accepted resources', () => {
+  it('stores what a ring-generated factory buys', () => {
+    // The regression: generateRing set type and name but dropped the ore, so
+    // every factory in a fresh world had no accepted resource at all.
+    const world = generateWorld('123456', 0, 3);
+    const factories = world.cells.filter((c) => c.type === 'factory');
+
+    expect(factories.length).toBeGreaterThan(0);
+    for (const factory of factories) {
+      expect(factory.acceptedResources?.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('agrees with the name the factory was given', () => {
+    const world = generateWorld('123456', 0, 3);
+
+    for (const factory of world.cells.filter((c) => c.type === 'factory')) {
+      expect(factory.acceptedResources).toEqual(inferFactoryResources(factory.name));
+    }
+  });
+
+  it('gives a fog-revealed factory an ore that matches its name too', () => {
+    // Previously drawn from a separate rng call, so a "Crude Awakening
+    // Refinery" could come back accepting copper.
+    const world = generateWorld('123456', 0, 2);
+    const revealed = world.cells
+      .filter((c) => !c.discovered)
+      .map((c) => revealFogTile(c, '123456', 0))
+      .filter((c) => c.type === 'factory');
+
+    for (const factory of revealed) {
+      expect(factory.acceptedResources).toEqual(inferFactoryResources(factory.name));
+    }
+  });
+});
+
+describe('backfillFactoryResources', () => {
+  function worldWith(cells: Partial<WorldCell>[]): WorldState {
+    return {
+      cells: cells.map((c, i) => ({ id: `${i},0`, name: '', type: 'empty', q: i, r: 0, ring: 1, discovered: true, ...c }) as WorldCell),
+      plots: {},
+      activePlotCellId: null,
+      inspectedCellId: null,
+    };
+  }
+
+  it('recovers the ore from the factory name', () => {
+    const world = worldWith([{ type: 'factory', name: 'The Crude Awakening Refinery' }]);
+
+    expect(backfillFactoryResources(world)).toBe(1);
+    expect(world.cells[0].acceptedResources).toEqual(['Oil']);
+  });
+
+  it('handles a combined-resource factory', () => {
+    const world = worldWith([{ type: 'factory', name: 'The Black Gold Junction' }]);
+
+    backfillFactoryResources(world);
+
+    expect(world.cells[0].acceptedResources).toEqual(['Oil', 'Coal']);
+  });
+
+  it('leaves an already-populated factory alone and is idempotent', () => {
+    const world = worldWith([{ type: 'factory', name: 'Liquid Gold Ltd', acceptedResources: ['Coal'] }]);
+
+    expect(backfillFactoryResources(world)).toBe(0);
+    expect(world.cells[0].acceptedResources).toEqual(['Coal']);
+    expect(backfillFactoryResources(world)).toBe(0);
+  });
+
+  it('ignores non-factories and unknown names', () => {
+    const world = worldWith([
+      { type: 'city', name: 'Vulcanus' },
+      { type: 'factory', name: 'Some Renamed Plant' },
+    ]);
+
+    expect(backfillFactoryResources(world)).toBe(0);
+    expect(world.cells[0].acceptedResources).toBeUndefined();
+    expect(world.cells[1].acceptedResources).toBeUndefined();
   });
 });

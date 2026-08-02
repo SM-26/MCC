@@ -35,6 +35,12 @@ for things that would otherwise be forgotten.
   and reads as foreign next to the new train sprites. It should be redrawn to match. Flagged by the
   Station design handoff, which deliberately scoped it out. _(noted 2026-07-31)_
 
+- **`WorldCell.capacity` is written but never read.** `revealFogTile` assigns it for cities and
+  factories (`Math.floor(10 + rng() * 40)`); nothing anywhere consumes it. Ring generation never set
+  it at all, so it's also inconsistent between the two creation paths. Either give it a meaning
+  (destination throughput?) or drop the field — note that removing the `rng()` call would shift fog
+  reveals for existing seeds. _(noted 2026-08-02)_
+
 ## Planned work
 
 - **Nothing states what an under-construction plot needs, or what has arrived.** Delivery itself

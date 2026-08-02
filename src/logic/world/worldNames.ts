@@ -142,6 +142,23 @@ export function pickFactoryNameForResources(resourceTypes: ResourceType[], rng: 
   return pool[index];
 }
 
+/**
+ * Reverse of `pickFactoryNameForResources`: recover what a factory buys from the
+ * name it was given. The pools are disjoint and resource-keyed, so this is exact
+ * rather than a guess — which is what lets a save written before the ore was
+ * stored be repaired instead of reset.
+ */
+export function inferFactoryResources(name: string): ResourceType[] {
+  for (const [key, pool] of Object.entries(FACTORY_NAMES)) {
+    if (!pool.includes(name)) {
+      continue;
+    }
+    // Combined pools are keyed "OilAndCoal".
+    return key.split('And') as ResourceType[];
+  }
+  return [];
+}
+
 export function areBothPoolsDepleted(state: NameState): boolean {
   return state.plotNamesDepleted && state.cityNamesDepleted;
 }
